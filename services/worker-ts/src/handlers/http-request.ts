@@ -81,7 +81,7 @@ function validateUrl(url: string, allowlist?: string[]): void {
  */
 export async function httpRequestHandler(
   payload: unknown,
-  context: JobContext
+  _context: JobContext
 ): Promise<HttpRequestResult> {
   const validated = HttpRequestPayloadSchema.parse(payload)
 
@@ -103,7 +103,7 @@ export async function httpRequestHandler(
       signal: AbortSignal.timeout(validated.timeout_ms),
     })
 
-    const duration_ms = Date.now() - startTime
+    const _duration_ms = Date.now() - startTime
 
     // Redact sensitive headers
     const response_headers: Record<string, string> = {}
@@ -129,7 +129,7 @@ export async function httpRequestHandler(
       success: response.ok,
     }
   } catch (error) {
-    const duration_ms = Date.now() - startTime
+    const _duration_ms = Date.now() - startTime
 
     throw new Error(
       `HTTP request failed: ${error instanceof Error ? error.message : String(error)}`

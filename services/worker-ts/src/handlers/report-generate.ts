@@ -37,7 +37,7 @@ const reportGenerators: Record<
   string,
   (inputs: Record<string, unknown>, options?: Record<string, unknown>) => Record<string, unknown>
 > = {
-  'usage-summary': (inputs, options) => {
+  'usage-summary': (inputs, _options) => {
     // Example: Summarize usage metrics
     const events = (inputs.events as Array<Record<string, unknown>>) || []
 
@@ -52,18 +52,15 @@ const reportGenerators: Record<
     }
   },
 
-  'job-analytics': (inputs, options) => {
+  'job-analytics': (inputs, _options) => {
     // Example: Analyze job execution data
     const jobs = (inputs.jobs as Array<Record<string, unknown>>) || []
 
-    const statusCounts = jobs.reduce<Record<string, number>>(
-      (acc, job) => {
-        const status = String(job.status || 'unknown')
-        acc[status] = (acc[status] || 0) + 1
-        return acc
-      },
-      {}
-    )
+    const statusCounts = jobs.reduce<Record<string, number>>((acc, job) => {
+      const status = String(job.status || 'unknown')
+      acc[status] = (acc[status] || 0) + 1
+      return acc
+    }, {})
 
     return {
       total_jobs: jobs.length,
@@ -74,7 +71,7 @@ const reportGenerators: Record<
     }
   },
 
-  'tenant-usage': (inputs, options) => {
+  'tenant-usage': (inputs, _options) => {
     // Example: Tenant resource usage report
     const tenantId = inputs.tenant_id
     const jobs = (inputs.jobs as Array<Record<string, unknown>>) || []
@@ -171,7 +168,7 @@ export async function reportGenerateHandler(
   }
 
   // Get input data
-  let inputsData = validated.inputs_data || {}
+  const inputsData = validated.inputs_data || {}
 
   if (validated.inputs_ref) {
     // In production, fetch inputs from storage using inputs_ref
