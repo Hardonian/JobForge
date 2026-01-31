@@ -1,55 +1,174 @@
 # JobForge
 
-Language-Agnostic Job Orchestrator for Postgres
+**Production-Grade, Postgres-Native Job Queue**
 
-A Postgres-native job framework with language-agnostic workers (Python, Node, Go). Idempotency, retries, backoff built-in. RPC-first, RLS-aware. No Redis, no Kafka—boringly correct OSS.
+A Postgres-native job queue/workhorse designed as a drop-in module for multi-tenant SaaS applications. Built on Supabase/Postgres with RPC, RLS, idempotency, retries, and concurrency-safe operations.
 
-Perfect for Supabase users tired of ad-hoc queues.
+Perfect for Supabase users who need reliable background job processing without Redis or Kafka.
 
 ## Features
 
-- **Postgres-Native Queue** - Job queue lives in Postgres, no external dependencies
-- **Language-Agnostic Workers** - Python, Node.js, Go workers (Python implemented)
-- **Idempotent Handlers** - Safe to retry, safe to run multiple times
-- **Automatic Retries** - Configurable retry policy with exponential backoff
-- **Distributed Locking** - Multiple workers, no race conditions
-- **Correlation ID Tracking** - End-to-end request tracing
-- **RPC-Based Writes** - All mutations through API for consistency
-- **Production-Hardened** - Error envelopes, resilient fetch, connection pooling
+- **Postgres is the Truth Layer** - All job state in Postgres with RPC-based mutations
+- **Multi-Tenant Isolation** - Strict tenant isolation via Row Level Security (RLS)
+- **Concurrency-Safe** - `FOR UPDATE SKIP LOCKED` prevents race conditions
+- **Idempotent by Default** - Deduplication via `(tenant_id, type, idempotency_key)`
+- **Automatic Retries** - Exponential backoff (1s → 2s → 4s → ... → 3600s max)
+- **Dead Letter Queue** - Failed jobs move to `dead` status after max attempts
+- **Observable** - Structured logs, correlation IDs, heartbeat tracking
+- **Language-Agnostic** - TypeScript and Python workers + SDKs included
+- **Built-in Connectors** - HTTP requests, webhooks, reports, and more
 
 ## Quick Start
 
-### Python Worker
+### 1. Apply Database Migrations
 
 ```bash
-cd packages/python-worker
-pip install -r requirements.txt
+# Via Supabase CLI
+cd supabase
+supabase db push
 
-# Configure environment
-cp examples/.env.example .env
-# Edit .env with your DATABASE_URL, WORKER_ID, API_BASE_URL
-
-# Run example worker
-python examples/example_worker.py
+# OR via psql
+psql -U postgres -d your_database -f supabase/migrations/001_jobforge_core.sql
 ```
 
-See [Python Worker Documentation](packages/python-worker/README.md) for details.
+See [Database Schema Docs](supabase/README.md) for details.
+
+### 2. Enqueue a Job (TypeScript)
+
+```typescript
+import { JobForgeClient } from '@jobforge/sdk-ts';
+
+const client = new JobForgeClient({
+  supabaseUrl: process.env.SUPABASE_URL!,
+  supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
+});
+
+// Enqueue HTTP request job
+const job = await client.enqueueJob({
+  tenant_id: 'your-tenant-uuid',
+  type: 'connector.http.request',
+  payload: {
+    url: 'https://api.example.com/webhook',
+    method: 'POST',
+    body: { message: 'Hello from JobForge!' },
+  },
+  idempotency_key: 'webhook-delivery-123',
+});
+
+console.log(`Job enqueued: ${job.id}`);
+```
+
+### 3. Run Worker
+
+**TypeScript Worker:**
+```bash
+cd services/worker-ts
+cp .env.example .env
+# Edit .env with your Supabase credentials
+
+pnpm install
+pnpm run dev    # Development mode
+pnpm start      # Production mode
+```
+
+**Python Worker:**
+```bash
+cd services/worker-py
+cp .env.example .env
+# Edit .env with your Supabase credentials
+
+pip install -r requirements.txt
+python -m jobforge_worker.cli run    # Loop mode
+python -m jobforge_worker.cli once   # Run once
+```
+
+See [Workers Documentation](docs/workers.md) for details.
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      PostgreSQL/Supabase                     │
+│  ┌────────────────┐  ┌──────────────┐  ┌─────────────────┐ │
+│  │ jobforge_jobs  │  │ RPC Functions│  │  RLS Policies   │ │
+│  │ (job queue)    │  │ - enqueue    │  │ (tenant guard)  │ │
+│  │                │  │ - claim      │  │                 │ │
+│  │ + results      │  │ - complete   │  │                 │ │
+│  │ + attempts     │  │ - heartbeat  │  │                 │ │
+│  └────────────────┘  └──────────────┘  └─────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                              ▲
+                              │ RPC calls
+         ┌────────────────────┼────────────────────┐
+         │                    │                    │
+    ┌────▼─────┐         ┌────▼─────┐       ┌─────▼────┐
+    │ TS SDK   │         │ Py SDK   │       │ Next.js  │
+    │ (client) │         │ (client) │       │ (enqueue)│
+    └──────────┘         └──────────┘       └──────────┘
+         │                    │
+    ┌────▼─────┐         ┌────▼─────┐
+    │ TS Worker│         │ Py Worker│
+    │ (process)│         │ (process)│
+    └──────────┘         └──────────┘
+```
+
+- **Database Layer**: Postgres tables + RPC functions + RLS policies
+- **SDK Layer**: Server-only clients for enqueuing and querying jobs
+- **Worker Layer**: Poll and process jobs with registered handlers
+- **Connector Layer**: Built-in handlers (HTTP, webhook, report, etc.)
+
+See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for in-depth design.
 
 ## Monorepo Structure
 
 ```
 jobforge/
-├── apps/
-│   └── web/              # Next.js web UI
+├── supabase/
+│   ├── migrations/          # SQL migrations
+│   ├── sql/                 # Helper scripts
+│   ├── tests/               # RLS isolation tests
+│   └── README.md
 ├── packages/
-│   ├── database/         # Prisma schema & client
-│   ├── errors/           # Error handling & correlation IDs
-│   ├── fetch/            # Resilient HTTP client
-│   ├── python-worker/    # Python worker framework ⭐
-│   ├── design-system/    # Design tokens
-│   ├── ui/               # React components
-│   └── config/           # Shared ESLint config
+│   ├── sdk-ts/              # TypeScript SDK
+│   ├── sdk-py/              # Python SDK
+│   ├── shared/              # Shared types & constants
+│   └── adapters/            # Integration adapters
+│       ├── settler/         # Contract management
+│       ├── readylayer/      # CDN/asset delivery
+│       ├── aias/            # AI agent system
+│       └── keys/            # API key management
+├── services/
+│   ├── worker-ts/           # TypeScript worker
+│   └── worker-py/           # Python worker
+├── docs/
+│   ├── ARCHITECTURE.md      # System design
+│   ├── RUNBOOK.md           # Operations guide
+│   ├── SECURITY.md          # Security model
+│   └── integrations/        # Product-specific guides
+└── apps/
+    └── demo-next/           # Demo Next.js app
 ```
+
+## Built-in Connectors
+
+JobForge includes production-ready connectors:
+
+- **connector.http.request** - HTTP requests with SSRF protection
+- **connector.webhook.deliver** - Webhook delivery with HMAC signing
+- **connector.report.generate** - Report generation (JSON/HTML/CSV)
+
+See [Connectors Documentation](docs/connectors.md) for usage.
+
+## Integration Adapters
+
+Drop-in modules for common SaaS products:
+
+- **@jobforge/adapter-settler** - Contract processing, notifications
+- **@jobforge/adapter-readylayer** - Asset optimization, CDN purge
+- **@jobforge/adapter-aias** - AI agent execution, knowledge indexing
+- **@jobforge/adapter-keys** - API key usage aggregation, rotation
+
+See [Integration Guides](docs/integrations/) for copy-paste examples.
 
 ## Development
 
@@ -57,18 +176,38 @@ jobforge/
 # Install dependencies
 pnpm install
 
-# Run all checks
-pnpm run verify:fast  # format + lint + typecheck
-pnpm run verify:full  # verify:fast + test + build
+# Run fast verification (lint + typecheck + build)
+pnpm run verify:fast
 
-# Run individual checks
+# Run full verification (includes tests)
+pnpm run verify:full
+
+# Format code
 pnpm run format
+
+# Run specific checks
 pnpm run lint
 pnpm run typecheck
 pnpm run test
 pnpm run build
 ```
 
+## Documentation
+
+- [Database Schema](supabase/README.md) - Tables, RPC functions, RLS policies
+- [Architecture](docs/ARCHITECTURE.md) - Concurrency model, idempotency, retries
+- [Runbook](docs/RUNBOOK.md) - Operations, monitoring, troubleshooting
+- [Security](docs/SECURITY.md) - SSRF protection, webhook signing, RLS
+- [Integration Guides](docs/integrations/) - Product-specific examples
+
 ## License
 
-MIT
+MIT - See [LICENSE](LICENSE) for details.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+---
+
+**JobForge** - Boring, correct, Postgres-native job processing.
