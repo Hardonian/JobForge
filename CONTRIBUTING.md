@@ -60,11 +60,21 @@ packages/      # Shared packages (UI, config, utils)
 internal/      # Agent notes (gitignored, never commit)
 ```
 
+## OSS Hygiene
+
+**CRITICAL:** Never commit files from `internal/` directory.
+
+- The `internal/` directory is for agent notes, planning, and strategy
+- CI will fail if internal files are tracked
+- Keep all production code OSS-safe and professional
+- Remove dead code, commented experiments, and unused assets
+
 ## Commit Guidelines
 
 - Write clear, descriptive commit messages
 - Reference issue numbers where applicable
 - Keep commits atomic and focused
+- Run `verify:fast` before committing
 
 ## Questions?
 
