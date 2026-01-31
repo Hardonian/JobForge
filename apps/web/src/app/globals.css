@@ -2,19 +2,90 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-rgb: 255, 255, 255;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
+  /* CSS Variables for theming */
   :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-rgb: 0, 0, 0;
+    --foreground-rgb: 0, 0, 0;
+    --background-rgb: 255, 255, 255;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --foreground-rgb: 255, 255, 255;
+      --background-rgb: 0, 0, 0;
+    }
+  }
+
+  /* Prevent layout shift with proper sizing */
+  html {
+    overflow-y: scroll; /* Force vertical scrollbar */
+  }
+
+  /* Smooth scroll for in-page navigation */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Respect reduced motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Improve text rendering */
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Focus visible styles for keyboard navigation */
+  *:focus-visible {
+    outline: 2px solid rgb(59 130 246);
+    outline-offset: 2px;
   }
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-rgb));
+@layer utilities {
+  /* Screen reader only utility */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  .not-sr-only {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+
+  /* Prevent layout shift with aspect ratio */
+  .aspect-square {
+    aspect-ratio: 1 / 1;
+  }
+
+  .aspect-video {
+    aspect-ratio: 16 / 9;
+  }
 }
