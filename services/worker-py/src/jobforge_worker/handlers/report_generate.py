@@ -1,8 +1,9 @@
 """Report Generation Connector - Python implementation."""
 
 import json
-from datetime import datetime, timezone
-from typing import Any, Callable
+from collections.abc import Callable
+from datetime import UTC, datetime
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -49,7 +50,7 @@ def usage_summary_generator(inputs: dict[str, Any], options: dict[str, Any]) -> 
             "unique_users": len({e.get("user_id") for e in events if "user_id" in e}),
             "total_actions": len(events),
         },
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
     }
 
 
@@ -71,7 +72,7 @@ def job_analytics_generator(inputs: dict[str, Any], options: dict[str, Any]) -> 
         "total_jobs": len(jobs),
         "status_breakdown": status_counts,
         "avg_attempts": avg_attempts,
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
     }
 
 
@@ -82,7 +83,7 @@ def tenant_usage_generator(inputs: dict[str, Any], options: dict[str, Any]) -> d
         "job_count": len(inputs.get("jobs", [])),
         "connector_count": len(inputs.get("connectors", [])),
         "period": inputs.get("period", "unknown"),
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
     }
 
 
@@ -171,7 +172,7 @@ def report_generate_handler(payload: dict[str, Any], context: dict[str, Any]) ->
 
     # Generate report JSON
     report_json = generator(inputs_data, validated.options)
-    generated_at = datetime.now(timezone.utc).isoformat()
+    generated_at = datetime.now(UTC).isoformat()
 
     # Calculate output size
     output_size_bytes = len(json.dumps(report_json))

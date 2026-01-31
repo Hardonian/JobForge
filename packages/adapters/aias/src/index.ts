@@ -3,7 +3,7 @@
  * JobForge adapter for AIAS (AI Agent System)
  */
 
-import { z } from "zod";
+import { z } from 'zod'
 
 /**
  * Job Type: aias.agent.execute
@@ -13,21 +13,21 @@ export const AiasAgentExecutePayloadSchema = z.object({
   agent_id: z.string().uuid(),
   tenant_id: z.string().uuid(),
   input_data: z.record(z.unknown()),
-  model: z.string().default("gpt-4"),
+  model: z.string().default('gpt-4'),
   max_tokens: z.number().int().positive().default(4096),
   temperature: z.number().min(0).max(2).default(0.7),
   tools: z.array(z.string()).optional(),
-});
+})
 
-export type AiasAgentExecutePayload = z.infer<typeof AiasAgentExecutePayloadSchema>;
+export type AiasAgentExecutePayload = z.infer<typeof AiasAgentExecutePayloadSchema>
 
 export interface AiasAgentExecuteResult {
-  agent_id: string;
-  execution_id: string;
-  output: Record<string, unknown>;
-  tokens_used: number;
-  steps_executed: number;
-  artifacts: string[];
+  agent_id: string
+  execution_id: string
+  output: Record<string, unknown>
+  tokens_used: number
+  steps_executed: number
+  artifacts: string[]
 }
 
 /**
@@ -40,14 +40,14 @@ export const AiasKnowledgeIndexPayloadSchema = z.object({
   index_name: z.string(),
   chunk_size: z.number().int().positive().default(512),
   overlap: z.number().int().nonnegative().default(50),
-});
+})
 
-export type AiasKnowledgeIndexPayload = z.infer<typeof AiasKnowledgeIndexPayloadSchema>;
+export type AiasKnowledgeIndexPayload = z.infer<typeof AiasKnowledgeIndexPayloadSchema>
 
 export interface AiasKnowledgeIndexResult {
-  indexed_documents: number;
-  total_chunks: number;
-  index_name: string;
+  indexed_documents: number
+  total_chunks: number
+  index_name: string
 }
 
 export const AIAS_INTEGRATION_EXAMPLE = `
@@ -74,4 +74,4 @@ export async function POST(request: Request) {
 
   return Response.json({ job_id: job.id });
 }
-`;
+`

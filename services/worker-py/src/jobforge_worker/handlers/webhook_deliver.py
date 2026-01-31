@@ -5,7 +5,7 @@ import hmac
 import json
 import os
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
@@ -73,7 +73,7 @@ def webhook_deliver_handler(payload: dict[str, Any], context: dict[str, Any]) ->
     """
     validated = WebhookDeliverPayload.model_validate(payload)
 
-    timestamp = datetime.now(timezone.utc).isoformat()
+    timestamp = datetime.now(UTC).isoformat()
 
     # Prepare webhook payload
     webhook_payload = {

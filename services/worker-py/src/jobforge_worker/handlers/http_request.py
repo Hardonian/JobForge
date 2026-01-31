@@ -133,10 +133,7 @@ def http_request_handler(payload: dict[str, Any], context: dict[str, Any]) -> di
         # Prepare request body
         body_data = None
         if validated.body and validated.method not in ["GET", "HEAD"]:
-            if isinstance(validated.body, dict):
-                body_data = validated.body
-            else:
-                body_data = validated.body
+            body_data = validated.body
 
         # Make request
         response = client.request(
@@ -156,10 +153,10 @@ def http_request_handler(payload: dict[str, Any], context: dict[str, Any]) -> di
             response_headers[key] = value
 
     # Read response body with size limit
-    MAX_BODY_SIZE = 1_000_000  # 1MB
+    max_body_size = 1_000_000  # 1MB
     body_text = response.text
-    if len(body_text) > MAX_BODY_SIZE:
-        response_body_preview = body_text[:MAX_BODY_SIZE] + "... (truncated)"
+    if len(body_text) > max_body_size:
+        response_body_preview = body_text[:max_body_size] + "... (truncated)"
     else:
         response_body_preview = body_text
 

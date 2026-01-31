@@ -36,12 +36,12 @@ See [Database Schema Docs](supabase/README.md) for details.
 ### 2. Enqueue a Job (TypeScript)
 
 ```typescript
-import { JobForgeClient } from '@jobforge/sdk-ts';
+import { JobForgeClient } from '@jobforge/sdk-ts'
 
 const client = new JobForgeClient({
   supabaseUrl: process.env.SUPABASE_URL!,
   supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
-});
+})
 
 // Enqueue HTTP request job
 const job = await client.enqueueJob({
@@ -53,14 +53,15 @@ const job = await client.enqueueJob({
     body: { message: 'Hello from JobForge!' },
   },
   idempotency_key: 'webhook-delivery-123',
-});
+})
 
-console.log(`Job enqueued: ${job.id}`);
+console.log(`Job enqueued: ${job.id}`)
 ```
 
 ### 3. Run Worker
 
 **TypeScript Worker:**
+
 ```bash
 cd services/worker-ts
 cp .env.example .env
@@ -72,6 +73,7 @@ pnpm start      # Production mode
 ```
 
 **Python Worker:**
+
 ```bash
 cd services/worker-py
 cp .env.example .env

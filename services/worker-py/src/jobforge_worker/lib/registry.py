@@ -1,7 +1,7 @@
 """Job handler registry."""
 
-from typing import Any, Callable
-
+from collections.abc import Callable
+from typing import Any
 
 JobHandler = Callable[[dict[str, Any], dict[str, Any]], Any]
 

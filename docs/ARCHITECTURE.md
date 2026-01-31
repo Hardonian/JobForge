@@ -16,12 +16,14 @@ This document describes JobForge's design, concurrency model, and key invariants
 ### 1. Database Layer (Postgres/Supabase)
 
 **Tables:**
+
 - `jobforge_jobs` - Job queue with status, payload, locking fields
 - `jobforge_job_results` - Execution results storage
 - `jobforge_job_attempts` - Attempt history for debugging
 - `jobforge_connector_configs` - Tenant connector configurations
 
 **RPC Functions:**
+
 - `jobforge_enqueue_job()` - Enqueue with idempotency
 - `jobforge_claim_jobs()` - Claim jobs for processing (concurrency-safe)
 - `jobforge_heartbeat_job()` - Update heartbeat timestamp
@@ -31,6 +33,7 @@ This document describes JobForge's design, concurrency model, and key invariants
 - `jobforge_list_jobs()` - List jobs with filters
 
 **RLS Policies:**
+
 - Tenants can SELECT their own jobs only
 - INSERT/UPDATE/DELETE blocked (use RPC)
 - Cross-tenant reads prevented via `app.tenant_id` setting
@@ -38,11 +41,13 @@ This document describes JobForge's design, concurrency model, and key invariants
 ### 2. SDK Layer
 
 **TypeScript SDK (`@jobforge/sdk-ts`):**
+
 - Server-only client (never expose service keys)
 - Wraps Supabase RPC calls
 - Type-safe with Zod validation
 
 **Python SDK (`@jobforge/sdk-py`):**
+
 - Pydantic models for payloads/results
 - HTTP client calling Supabase REST API
 - Strict env validation via pydantic-settings
@@ -50,6 +55,7 @@ This document describes JobForge's design, concurrency model, and key invariants
 ### 3. Worker Layer
 
 **TypeScript Worker:**
+
 - Polls `claim_jobs` RPC
 - Handler registry (Map<jobType, handler>)
 - Heartbeat loop for long jobs
@@ -57,6 +63,7 @@ This document describes JobForge's design, concurrency model, and key invariants
 - Structured JSON logs
 
 **Python Worker:**
+
 - Equivalent behavior to TS worker
 - asyncio for concurrency
 - No native dependencies (Termux-friendly)
@@ -64,6 +71,7 @@ This document describes JobForge's design, concurrency model, and key invariants
 ### 4. Connector Layer
 
 Built-in job handlers:
+
 - `connector.http.request` - HTTP with SSRF protection
 - `connector.webhook.deliver` - Webhook with HMAC signing
 - `connector.report.generate` - Report generation (JSON/HTML/CSV)
@@ -86,6 +94,7 @@ RETURNING *;
 ```
 
 **Why SKIP LOCKED?**
+
 - Multiple workers can claim jobs concurrently without blocking
 - Each worker gets different jobs (no duplicates)
 - No race conditions even with 100+ workers
@@ -124,6 +133,7 @@ RETURNING *;
 ```
 
 **Use Cases:**
+
 - Webhook delivery: `idempotency_key = "webhook-{event_id}"`
 - Contract processing: `idempotency_key = "process-{contract_id}"`
 - Report generation: `idempotency_key = "report-{tenant_id}-{month}"`
@@ -131,6 +141,7 @@ RETURNING *;
 ### Handler Idempotency
 
 Handlers should be idempotent (safe to retry):
+
 - Use external idempotency keys when calling APIs
 - Store results in database with unique constraints
 - Avoid side effects in validation logic
@@ -174,6 +185,7 @@ END IF;
 ```
 
 **Recovery Options:**
+
 1. Reschedule via `jobforge_reschedule_job()`
 2. Increase `max_attempts` and reschedule
 3. Fix issue and manually reset to `queued`
@@ -230,16 +242,17 @@ CREATE POLICY jobforge_jobs_select_policy ON jobforge_jobs
 ```
 
 **Client Usage:**
+
 ```typescript
 // Set tenant context before querying
 await supabase.rpc('set_config', {
   setting: 'app.tenant_id',
   value: tenantId,
-  is_local: true
-});
+  is_local: true,
+})
 
 // Now queries only see tenant's data
-const { data } = await supabase.from('jobforge_jobs').select('*');
+const { data } = await supabase.from('jobforge_jobs').select('*')
 ```
 
 ### RPC Tenant Validation
@@ -296,6 +309,7 @@ ORDER BY attempt_no DESC;
 ```
 
 Shows:
+
 - When each attempt started/finished
 - Error details for failed attempts
 - Useful for debugging retry behavior
@@ -310,6 +324,7 @@ Shows:
 - No coordination needed
 
 **Deployment:**
+
 ```bash
 # Kubernetes: scale replicas
 kubectl scale deployment worker-ts --replicas=5
@@ -383,8 +398,8 @@ Claim multiple jobs per poll:
 ```typescript
 const jobs = await client.claimJobs({
   worker_id: workerId,
-  limit: 10,  // Process 10 jobs concurrently
-});
+  limit: 10, // Process 10 jobs concurrently
+})
 ```
 
 ## Security Model

@@ -5,7 +5,6 @@ from typing import Any
 from uuid import UUID
 
 import httpx
-from pydantic import ValidationError
 
 from .models import (
     CancelJobParams,

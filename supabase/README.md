@@ -5,6 +5,7 @@
 ### Apply Migrations
 
 For **Supabase**:
+
 ```bash
 # Option 1: Via Supabase CLI
 supabase db push
@@ -14,6 +15,7 @@ supabase db push
 ```
 
 For **Standalone Postgres**:
+
 ```bash
 psql -U postgres -d your_database -f supabase/migrations/001_jobforge_core.sql
 ```
@@ -56,6 +58,7 @@ All mutations happen via RPC (Row Level Security enforced):
 ### Indexes
 
 Optimized for:
+
 - Job claiming (status, run_at)
 - Idempotency lookups
 - Type and status filtering
@@ -81,6 +84,7 @@ running → canceled (admin only)
 ## Idempotency
 
 Jobs with the same `(tenant_id, type, idempotency_key)` are deduplicated:
+
 - First enqueue: creates job
 - Subsequent enqueues: returns existing job (no-op)
 

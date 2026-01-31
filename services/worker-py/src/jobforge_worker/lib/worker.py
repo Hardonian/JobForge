@@ -1,6 +1,7 @@
 """JobForge Python Worker."""
 
 import asyncio
+import contextlib
 import os
 import signal
 import sys
@@ -129,6 +130,8 @@ class Worker:
         heartbeat_task = asyncio.create_task(self._heartbeat_loop(job_id, job_logger))
         self.heartbeat_tasks[job_id] = heartbeat_task
 
+        handler_timeout = 300.0  # Default timeout
+
         try:
             registration = self.registry.get(job.type)
 
@@ -147,10 +150,13 @@ class Worker:
                 "trace_id": trace_id,
             }
 
+            # Save timeout for error handling
+            handler_timeout = registration.timeout_s
+
             # Execute handler with timeout
             result = await asyncio.wait_for(
                 asyncio.to_thread(registration.handler, job.payload, context),
-                timeout=registration.timeout_s,
+                timeout=handler_timeout,
             )
 
             # Complete job successfully
@@ -165,10 +171,10 @@ class Worker:
 
             job_logger.info("Job succeeded")
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             job_logger.error("Job timeout")
             self._complete_job_failed(
-                job_id, {"error": "Handler timeout", "timeout_s": registration.timeout_s}
+                job_id, {"error": "Handler timeout", "timeout_s": handler_timeout}
             )
 
         except Exception as e:
@@ -183,10 +189,8 @@ class Worker:
         finally:
             # Cancel heartbeat task
             heartbeat_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await heartbeat_task
-            except asyncio.CancelledError:
-                pass
             self.heartbeat_tasks.pop(job_id, None)
             self.active_jobs.discard(job_id)
 

@@ -7,10 +7,10 @@ import type {
   JobHandlerOptions,
   JobHandlerRegistration,
   JobTypeRegistry,
-} from "@jobforge/shared";
+} from '@jobforge/shared'
 
 export class HandlerRegistry implements JobTypeRegistry {
-  private handlers = new Map<string, JobHandlerRegistration>();
+  private handlers = new Map<string, JobHandlerRegistration>()
 
   register<TPayload = unknown, TResult = unknown>(
     type: string,
@@ -18,21 +18,21 @@ export class HandlerRegistry implements JobTypeRegistry {
     options?: JobHandlerOptions
   ): void {
     if (this.handlers.has(type)) {
-      throw new Error(`Handler already registered for type: ${type}`);
+      throw new Error(`Handler already registered for type: ${type}`)
     }
 
-    this.handlers.set(type, { handler, options });
+    this.handlers.set(type, { handler, options })
   }
 
   get(type: string): JobHandlerRegistration | undefined {
-    return this.handlers.get(type);
+    return this.handlers.get(type)
   }
 
   has(type: string): boolean {
-    return this.handlers.has(type);
+    return this.handlers.has(type)
   }
 
   list(): string[] {
-    return Array.from(this.handlers.keys());
+    return Array.from(this.handlers.keys())
   }
 }
