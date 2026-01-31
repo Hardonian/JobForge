@@ -1,0 +1,11 @@
+node_modules
+dist
+build
+.next
+.turbo
+out
+coverage
+internal
+.agent-artifacts
+.claude
+pnpm-lock.yaml
