@@ -1,0 +1,5 @@
+# Production dependencies
+psycopg[binary,pool]>=3.1.18
+pydantic>=2.6.0
+pydantic-settings>=2.1.0
+httpx>=0.26.0

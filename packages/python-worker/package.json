@@ -1,0 +1,16 @@
+{
+  "name": "@jobforge/python-worker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Python worker framework for JobForge",
+  "scripts": {
+    "test": "make test",
+    "lint": "make lint",
+    "typecheck": "make typecheck",
+    "format": "make format",
+    "format:check": "make format-check",
+    "verify:fast": "make format-check lint typecheck",
+    "verify:full": "make check",
+    "clean": "make clean"
+  }
+}
