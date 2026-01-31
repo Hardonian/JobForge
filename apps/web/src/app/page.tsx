@@ -1,8 +1,20 @@
+'use client'
+
+import { useState } from 'react'
+import { Navigation } from '@/components/Navigation'
+import { Dashboard } from '@/components/Dashboard'
+import { ApplicationList } from '@/components/ApplicationList'
+import { StatusBoard } from '@/components/StatusBoard'
+
 export default function Home() {
+  const [activeView, setActiveView] = useState<'dashboard' | 'list' | 'board'>('dashboard')
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      <h1 className="text-4xl font-bold">JobForge</h1>
-      <p className="mt-4 text-lg">Professional job application tracking</p>
+    <main>
+      <Navigation activeView={activeView} onViewChange={setActiveView} />
+      {activeView === 'dashboard' && <Dashboard />}
+      {activeView === 'list' && <ApplicationList />}
+      {activeView === 'board' && <StatusBoard />}
     </main>
   )
 }

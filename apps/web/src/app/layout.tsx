@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import '../env'
+import { ApplicationProvider } from '@/contexts/ApplicationContext'
 
 export const metadata: Metadata = {
   title: 'JobForge',
@@ -10,7 +11,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <ApplicationProvider>{children}</ApplicationProvider>
+      </body>
     </html>
   )
 }
