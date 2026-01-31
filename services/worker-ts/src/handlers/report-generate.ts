@@ -56,13 +56,13 @@ const reportGenerators: Record<
     // Example: Analyze job execution data
     const jobs = (inputs.jobs as Array<Record<string, unknown>>) || []
 
-    const statusCounts = jobs.reduce(
+    const statusCounts = jobs.reduce<Record<string, number>>(
       (acc, job) => {
         const status = String(job.status || 'unknown')
         acc[status] = (acc[status] || 0) + 1
         return acc
       },
-      {} as Record<string, number>
+      {}
     )
 
     return {

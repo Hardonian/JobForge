@@ -21,7 +21,7 @@ export class HandlerRegistry implements JobTypeRegistry {
       throw new Error(`Handler already registered for type: ${type}`)
     }
 
-    this.handlers.set(type, { handler, options })
+    this.handlers.set(type, { handler: handler as JobHandler, options })
   }
 
   get(type: string): JobHandlerRegistration | undefined {
