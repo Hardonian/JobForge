@@ -12,6 +12,10 @@
     "typecheck": {
       "outputs": []
     },
+    "test": {
+      "dependsOn": ["^test"],
+      "outputs": ["coverage/**"]
+    },
     "dev": {
       "cache": false,
       "persistent": true

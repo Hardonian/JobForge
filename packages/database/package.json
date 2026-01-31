@@ -1,0 +1,30 @@
+{
+  "name": "@jobforge/database",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "lint": "eslint \"**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.8.1"
+  },
+  "devDependencies": {
+    "@jobforge/config": "workspace:*",
+    "@jobforge/typescript-config": "workspace:*",
+    "@types/node": "^20.11.0",
+    "eslint": "^8.56.0",
+    "prisma": "^5.8.1",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
+  }
+}

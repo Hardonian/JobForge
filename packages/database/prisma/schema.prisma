@@ -1,0 +1,123 @@
+// Prisma schema for JobForge
+// Job orchestration with production constraints and indexes
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["tracing"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Job definition and configuration
+model Job {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  // Job configuration as JSONB for flexibility
+  config      Json     @default("{}")
+  // Job status: pending, running, completed, failed, cancelled
+  status      String   @default("pending")
+  // Priority for job execution (higher = more important)
+  priority    Int      @default(0)
+  // Maximum retry attempts
+  maxRetries  Int      @default(3)
+  // Current retry count
+  retryCount  Int      @default(0)
+  // Scheduled execution time
+  scheduledAt DateTime?
+  // When the job started executing
+  startedAt   DateTime?
+  // When the job completed (success or failure)
+  completedAt DateTime?
+  // Error message if job failed
+  error       String?
+  // Correlation ID for tracing
+  correlationId String?
+  // Created and updated timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  executions JobExecution[]
+
+  // Indexes for common queries
+  @@index([status, priority, scheduledAt], name: "idx_job_execution_queue")
+  @@index([status, createdAt], name: "idx_job_status_created")
+  @@index([correlationId], name: "idx_job_correlation")
+  @@index([createdAt], name: "idx_job_created")
+  @@map("jobs")
+}
+
+// Job execution history
+model JobExecution {
+  id            String   @id @default(cuid())
+  jobId         String
+  // Execution status: running, completed, failed
+  status        String
+  // When this execution started
+  startedAt     DateTime @default(now())
+  // When this execution completed
+  completedAt   DateTime?
+  // Duration in milliseconds
+  duration      Int?
+  // Error message if execution failed
+  error         String?
+  // Execution logs (optional, for debugging)
+  logs          String?
+  // Correlation ID for tracing
+  correlationId String?
+  // Worker/instance that executed this job
+  workerId      String?
+
+  // Relations
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  // Indexes for common queries
+  @@index([jobId, startedAt], name: "idx_execution_job_started")
+  @@index([status, startedAt], name: "idx_execution_status")
+  @@index([correlationId], name: "idx_execution_correlation")
+  @@map("job_executions")
+}
+
+// Job schedule/cron configuration
+model JobSchedule {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  // Cron expression for scheduling
+  cronExpression String
+  // Job configuration to create
+  jobConfig   Json
+  // Whether this schedule is active
+  enabled     Boolean  @default(true)
+  // Last time a job was created from this schedule
+  lastRunAt   DateTime?
+  // Next scheduled run time
+  nextRunAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Indexes
+  @@index([enabled, nextRunAt], name: "idx_schedule_active")
+  @@map("job_schedules")
+}
+
+// Distributed lock for job processing
+model JobLock {
+  id         String   @id @default(cuid())
+  // Resource being locked (e.g., "job:123")
+  resource   String   @unique
+  // Instance/worker holding the lock
+  ownerId    String
+  // When the lock was acquired
+  acquiredAt DateTime @default(now())
+  // When the lock expires
+  expiresAt  DateTime
+
+  // Indexes
+  @@index([expiresAt], name: "idx_lock_expiry")
+  @@map("job_locks")
+}
