@@ -1,0 +1,16 @@
+{
+  "name": "@jobforge/design-system",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "lint": "eslint \"**/*.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@jobforge/typescript-config": "workspace:*",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
+  }
+}
