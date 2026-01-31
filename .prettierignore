@@ -9,3 +9,13 @@ internal
 .agent-artifacts
 .claude
 pnpm-lock.yaml
+
+# Python
+__pycache__
+*.pyc
+.mypy_cache
+.pytest_cache
+.ruff_cache
+*.egg-info
+venv
+.venv
