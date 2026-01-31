@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import '../env'
 
 export const metadata: Metadata = {
   title: 'JobForge',

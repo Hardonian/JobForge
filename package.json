@@ -16,14 +16,17 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,mdx}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,mdx}\"",
     "verify:fast": "pnpm run format:check && pnpm run lint && pnpm run typecheck",
-    "verify:full": "pnpm run verify:fast && pnpm run build",
-    "clean": "turbo run clean && rm -rf node_modules"
+    "verify:full": "pnpm run verify:fast && pnpm run build && pnpm audit --prod --audit-level=critical",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
+    "husky": "^9.0.0",
+    "lint-staged": "^15.2.0",
     "prettier": "^3.2.5",
     "turbo": "^1.12.0",
     "typescript": "^5.3.3"
