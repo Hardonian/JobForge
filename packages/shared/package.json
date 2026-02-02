@@ -15,8 +15,10 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "clean": "rm -rf dist *.tsbuildinfo",
-    "lint": "eslint src/",
-    "typecheck": "tsc --noEmit"
+    "lint": "eslint src/ test/",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "zod": "^3.22.4"
@@ -25,6 +27,7 @@
     "@jobforge/typescript-config": "workspace:*",
     "@types/node": "^20.11.0",
     "eslint": "^8.56.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
   }
 }

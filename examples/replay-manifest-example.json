@@ -1,0 +1,16 @@
+{
+  "version": "1.0",
+  "exportedAt": "2024-01-15T12:00:00.000Z",
+  "files": {
+    "replay.json": "replay-run-550e8400-e29b-41d4-a716-446655440000-2024-01-15T12-00-00-000Z.json",
+    "manifest.json": "manifest-run-550e8400-e29b-41d4-a716-446655440000.json"
+  },
+  "runId": "run-550e8400-e29b-41d4-a716-446655440000",
+  "tenantId": "tenant-acme-corp",
+  "jobType": "connector.http.request",
+  "replayInfo": {
+    "exportReason": "audit_trail",
+    "retentionDays": 90,
+    "compliance": ["SOC2", "ISO27001"]
+  }
+}

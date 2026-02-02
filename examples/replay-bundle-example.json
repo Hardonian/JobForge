@@ -1,0 +1,66 @@
+{
+  "version": "1.0",
+  "provenance": {
+    "runId": "run-550e8400-e29b-41d4-a716-446655440000",
+    "tenantId": "tenant-acme-corp",
+    "projectId": "proj-website-migration",
+    "jobType": "connector.http.request",
+    "inputs": {
+      "canonicalJson": "{\"body\":{\"message\":\"Hello from JobForge!\",\"timestamp\":\"2024-01-15T10:30:00Z\"},\"headers\":{\"Content-Type\":\"application/json\",\"X-Request-ID\":\"req-123\"},\"method\":\"POST\",\"timeout\":30000,\"url\":\"https://api.example.com/webhook\"}",
+      "hash": "7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa5d4277f5f7b3c1ba1b9b5a7",
+      "originalKeys": ["url", "method", "body", "headers", "timeout"],
+      "timestamp": "2024-01-15T10:30:00.000Z"
+    },
+    "code": {
+      "gitSha": "a1b2c3d4e5f6789012345678901234567890abcd",
+      "gitBranch": "main",
+      "gitDirty": false,
+      "timestamp": "2024-01-15T10:30:00.000Z"
+    },
+    "runtime": {
+      "nodeVersion": "v20.11.0",
+      "pnpmVersion": "8.15.0",
+      "platform": "linux",
+      "arch": "x64",
+      "timestamp": "2024-01-15T10:30:00.000Z"
+    },
+    "dependencies": {
+      "lockfileHash": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "packageHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "dependencyCount": 147,
+      "timestamp": "2024-01-15T10:30:00.000Z"
+    },
+    "environment": {
+      "identifiers": {
+        "NODE_ENV": "production",
+        "JOBFORGE_EVENTS_ENABLED": "false",
+        "JOBFORGE_TRIGGERS_ENABLED": "true",
+        "VERCEL_ENV": "production",
+        "AWS_REGION": "us-east-1"
+      },
+      "envType": "production",
+      "featureFlags": {
+        "JOBFORGE_EVENTS_ENABLED": false,
+        "JOBFORGE_TRIGGERS_ENABLED": true,
+        "JOBFORGE_AUTOPILOT_JOBS_ENABLED": true,
+        "REPLAY_PACK_ENABLED": true
+      },
+      "timestamp": "2024-01-15T10:30:00.000Z"
+    },
+    "createdAt": "2024-01-15T10:30:00.000Z"
+  },
+  "manifestRef": "manifest-run-550e8400-e29b-41d4-a716-446655440000.json",
+  "logRefs": [
+    "logs/run-550e8400-e29b-41d4-a716-446655440000/execution.log",
+    "logs/run-550e8400-e29b-41d4-a716-446655440000/stdout.log"
+  ],
+  "artifactRefs": [
+    "artifacts/run-550e8400-e29b-41d4-a716-446655440000/response.json",
+    "artifacts/run-550e8400-e29b-41d4-a716-446655440000/webhook-receipt.txt"
+  ],
+  "metadata": {
+    "exportedAt": "2024-01-15T12:00:00.000Z",
+    "exportedBy": "replay-cli",
+    "isDryRun": false
+  }
+}

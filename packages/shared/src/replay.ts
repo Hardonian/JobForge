@@ -242,19 +242,79 @@ export function getRuntimeFingerprint(): RuntimeFingerprint {
 
 /**
  * Get dependency fingerprint
- * In production, this would read actual lockfile
+ * Reads pnpm-lock.yaml and package.json for deterministic dependency tracking
  */
 export async function getDependencyFingerprint(): Promise<DependencyFingerprint> {
-  // In a real implementation, this would:
-  // 1. Read pnpm-lock.yaml
-  // 2. Hash the lockfile
-  // 3. Count dependencies
+  const { createHash } = await import('crypto')
+  const { readFile, stat } = await import('fs/promises')
+  const { join } = await import('path')
 
-  // For now, return null values (will be populated in production)
+  let lockfileHash: string | null = null
+  let packageHash: string | null = null
+  let dependencyCount: number | null = null
+
+  try {
+    // Find lockfile by walking up from current directory
+    let lockfilePath: string | null = null
+    let packagePath: string | null = null
+    let currentDir = process.cwd()
+
+    // Walk up at most 10 levels to find lockfile
+    for (let i = 0; i < 10; i++) {
+      const possibleLockfile = join(currentDir, 'pnpm-lock.yaml')
+      const possiblePackage = join(currentDir, 'package.json')
+
+      try {
+        await stat(possibleLockfile)
+        lockfilePath = possibleLockfile
+      } catch {
+        // Lockfile not at this level
+      }
+
+      try {
+        await stat(possiblePackage)
+        packagePath = possiblePackage
+      } catch {
+        // package.json not at this level
+      }
+
+      if (lockfilePath && packagePath) {
+        break
+      }
+
+      const parentDir = join(currentDir, '..')
+      if (parentDir === currentDir) {
+        break
+      }
+      currentDir = parentDir
+    }
+
+    // Read and hash lockfile
+    if (lockfilePath) {
+      const lockfileContent = await readFile(lockfilePath, 'utf-8')
+      lockfileHash = createHash('sha256').update(lockfileContent).digest('hex')
+
+      // Count dependencies from lockfile (metadata.packages section)
+      const packagesMatch = lockfileContent.match(/^packages:/m)
+      if (packagesMatch) {
+        const packageEntries = lockfileContent.match(/^ {2}[^ ]+:/gm)
+        dependencyCount = packageEntries ? packageEntries.length : null
+      }
+    }
+
+    // Read and hash package.json
+    if (packagePath) {
+      const packageContent = await readFile(packagePath, 'utf-8')
+      packageHash = createHash('sha256').update(packageContent).digest('hex')
+    }
+  } catch {
+    // File system operations not available (browser/sandboxed environment)
+  }
+
   return {
-    lockfileHash: null,
-    packageHash: null,
-    dependencyCount: null,
+    lockfileHash,
+    packageHash,
+    dependencyCount,
     timestamp: new Date().toISOString(),
   }
 }
