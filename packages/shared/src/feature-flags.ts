@@ -197,6 +197,12 @@ export function isManifestGenerationAvailable(): boolean {
 }
 
 /**
+ * Enable observability features (structured logging, trace correlation)
+ * Default: false (0) - disabled by default for backwards compatibility
+ */
+export const OBS_ENABLED = parseBool(getEnvVar('OBS_ENABLED', '0'))
+
+/**
  * Get feature flag summary for diagnostics
  */
 export function getFeatureFlagSummary(): Record<string, boolean | string> {
@@ -209,5 +215,6 @@ export function getFeatureFlagSummary(): Record<string, boolean | string> {
     manifests_enabled: JOBFORGE_MANIFESTS_ENABLED,
     require_policy_tokens: JOBFORGE_REQUIRE_POLICY_TOKENS,
     policy_token_secret_set: JOBFORGE_POLICY_TOKEN_SECRET.length > 0,
+    obs_enabled: OBS_ENABLED,
   }
 }

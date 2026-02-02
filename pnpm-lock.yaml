@@ -198,6 +198,31 @@ importers:
         specifier: ^1.0.0
         version: 1.6.1(@types/node@20.19.30)
 
+  packages/observability:
+    dependencies:
+      '@jobforge/errors':
+        specifier: workspace:*
+        version: link:../errors
+      '@jobforge/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      '@jobforge/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^20.11.0
+        version: 20.19.30
+      eslint:
+        specifier: ^8.56.0
+        version: 8.57.1
+      typescript:
+        specifier: ^5.3.3
+        version: 5.9.3
+      vitest:
+        specifier: ^1.2.0
+        version: 1.6.1(@types/node@20.19.30)
+
   packages/python-worker: {}
 
   packages/sdk-py: {}
