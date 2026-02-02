@@ -370,35 +370,8 @@ export async function executeRequestBundleHandler(
     const policyCheck = verifyPolicyToken(validated.policy_token, bundle)
     const policyTokenValid = policyCheck.valid
 
-    if (!policyCheck.valid && bundle.requests.some((r) => r.is_action_job)) {
-      // If policy token is invalid and there are action jobs, fail early
-      const manifest = createManifest(
-        context,
-        'failed',
-        [],
-        { duration_ms: Date.now() - startTime },
-        { message: policyCheck.reason, code: 'POLICY_TOKEN_INVALID' }
-      )
-
-      return {
-        success: false,
-        bundle_run_id: context.job_id,
-        child_runs: [],
-        bundle_manifest_ref: `bundle-manifest-${context.job_id}.json`,
-        summary: {
-          total: bundle.requests.length,
-          accepted: 0,
-          denied: bundle.requests.length,
-          skipped: 0,
-          queued: 0,
-          executed: 0,
-          errors: 0,
-          action_jobs_blocked: bundle.requests.filter((r) => r.is_action_job).length,
-        },
-        dry_run: validated.mode === 'dry_run',
-        manifest,
-      }
-    }
+    // Process bundle - policy token invalidity is handled per-job in processBundle
+    // We still process all jobs, but action jobs will be denied
 
     // Process the bundle
     const { childRuns, summary } = processBundle(
@@ -412,7 +385,8 @@ export async function executeRequestBundleHandler(
     // Calculate success based on results
     const hasErrors = childRuns.some((r) => r.status === 'error')
     const allDenied = childRuns.every((r) => r.status === 'denied')
-    const success = !hasErrors && !allDenied && summary.errors === 0
+    const hasBlockedActionJobs = summary.action_jobs_blocked > 0
+    const success = !hasErrors && !allDenied && summary.errors === 0 && !hasBlockedActionJobs
 
     // Create outputs
     const bundleResult = {
