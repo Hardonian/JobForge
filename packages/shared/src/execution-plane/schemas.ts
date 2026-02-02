@@ -310,3 +310,71 @@ export const createEventTriggerParamsSchema = z.object({
   enabled: z.boolean().default(false),
   dry_run: z.boolean().default(false),
 })
+
+// ============================================================================
+// Bundle Trigger Rule Schemas
+// ============================================================================
+
+export const bundleSourceSchema = z.enum(['inline', 'artifact_ref'])
+
+export const bundleTriggerMatchSchema = z.object({
+  event_type_allowlist: z.array(z.string()).min(1),
+  source_module_allowlist: z.array(z.string()).optional(),
+  severity_threshold: z.string().optional(),
+  priority_threshold: z.string().optional(),
+})
+
+export const bundleTriggerActionSchema = z.object({
+  bundle_source: bundleSourceSchema,
+  bundle_ref: z.string().optional(),
+  bundle_builder: z.string().optional(),
+  mode: z.enum(['dry_run', 'execute']).default('dry_run'),
+})
+
+export const bundleTriggerSafetySchema = z.object({
+  cooldown_seconds: z.number().int().min(0).default(60),
+  max_runs_per_hour: z.number().int().min(1).default(10),
+  dedupe_key_template: z.string().optional(),
+  allow_action_jobs: z.boolean().default(false),
+})
+
+export const bundleTriggerRuleSchema = z.object({
+  rule_id: z.string().uuid(),
+  tenant_id: z.string().uuid(),
+  project_id: z.string().uuid().nullable(),
+  name: z.string(),
+  enabled: z.boolean().default(false),
+  match: bundleTriggerMatchSchema,
+  action: bundleTriggerActionSchema,
+  safety: bundleTriggerSafetySchema,
+  created_at: z.string().datetime(),
+  updated_at: z.string().datetime(),
+  last_fired_at: z.string().datetime().nullable(),
+  fire_count: z.number().int().min(0).default(0),
+})
+
+export const createBundleTriggerRuleParamsSchema = z.object({
+  tenant_id: z.string().uuid(),
+  project_id: z.string().uuid().optional(),
+  name: z.string(),
+  enabled: z.boolean().default(false),
+  match: bundleTriggerMatchSchema,
+  action: bundleTriggerActionSchema,
+  safety: bundleTriggerSafetySchema.optional(),
+})
+
+export const triggerEvaluationResultSchema = z.object({
+  rule_id: z.string().uuid(),
+  event_id: z.string(),
+  evaluated_at: z.string().datetime(),
+  matched: z.boolean(),
+  decision: z.enum(['fire', 'skip', 'rate_limited', 'cooldown', 'disabled', 'error']),
+  reason: z.string(),
+  bundle_run_id: z.string().optional(),
+  dry_run: z.boolean(),
+  safety_checks: z.object({
+    cooldown_passed: z.boolean(),
+    rate_limit_passed: z.boolean(),
+    dedupe_passed: z.boolean(),
+  }),
+})

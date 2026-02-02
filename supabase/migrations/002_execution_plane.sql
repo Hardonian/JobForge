@@ -796,3 +796,281 @@ COMMENT ON TABLE jobforge_triggers IS 'Scheduling triggers for cron and event-dr
 
 -- Update version marker
 COMMENT ON TABLE jobforge_jobs IS 'JobForge job queue with multi-tenant isolation (Execution Plane v0.2.0)';
+
+-- ============================================================================
+-- EXTENSION: Bundle Trigger Rules (v0.3.0)
+-- Event-driven auto-triggering for bundle execution
+-- ============================================================================
+
+-- ============================================================================
+-- TABLE: jobforge_bundle_trigger_rules
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS jobforge_bundle_trigger_rules (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL,
+  project_id UUID,
+  name TEXT NOT NULL,
+  enabled BOOLEAN NOT NULL DEFAULT FALSE,
+  -- Match configuration
+  match_event_type_allowlist TEXT[] NOT NULL,
+  match_source_module_allowlist TEXT[],
+  match_severity_threshold TEXT,
+  match_priority_threshold TEXT,
+  -- Action configuration
+  action_bundle_source TEXT NOT NULL CHECK (action_bundle_source IN ('inline', 'artifact_ref')),
+  action_bundle_ref TEXT,
+  action_bundle_builder TEXT,
+  action_mode TEXT NOT NULL DEFAULT 'dry_run' CHECK (action_mode IN ('dry_run', 'execute')),
+  -- Safety configuration
+  safety_cooldown_seconds INT NOT NULL DEFAULT 60,
+  safety_max_runs_per_hour INT NOT NULL DEFAULT 10,
+  safety_dedupe_key_template TEXT,
+  safety_allow_action_jobs BOOLEAN NOT NULL DEFAULT FALSE,
+  -- Metadata
+  last_fired_at TIMESTAMPTZ,
+  fire_count INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Indexes for trigger rules
+CREATE INDEX IF NOT EXISTS idx_jobforge_bundle_trigger_rules_tenant 
+  ON jobforge_bundle_trigger_rules (tenant_id, enabled);
+CREATE INDEX IF NOT EXISTS idx_jobforge_bundle_trigger_rules_event_types 
+  ON jobforge_bundle_trigger_rules USING GIN (match_event_type_allowlist);
+
+-- ============================================================================
+-- TABLE: jobforge_trigger_evaluations
+-- Audit trail of trigger rule evaluations
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS jobforge_trigger_evaluations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL,
+  rule_id UUID NOT NULL REFERENCES jobforge_bundle_trigger_rules(id) ON DELETE CASCADE,
+  event_id UUID NOT NULL REFERENCES jobforge_events(id) ON DELETE CASCADE,
+  evaluated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  matched BOOLEAN NOT NULL,
+  decision TEXT NOT NULL CHECK (decision IN ('fire', 'skip', 'rate_limited', 'cooldown', 'disabled', 'error')),
+  reason TEXT NOT NULL,
+  bundle_run_id UUID,
+  dry_run BOOLEAN NOT NULL,
+  safety_cooldown_passed BOOLEAN NOT NULL,
+  safety_rate_limit_passed BOOLEAN NOT NULL,
+  safety_dedupe_passed BOOLEAN NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Indexes for evaluations
+CREATE INDEX IF NOT EXISTS idx_jobforge_trigger_evaluations_rule 
+  ON jobforge_trigger_evaluations (rule_id, evaluated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_jobforge_trigger_evaluations_event 
+  ON jobforge_trigger_evaluations (event_id);
+
+-- Trigger for updated_at
+CREATE TRIGGER jobforge_bundle_trigger_rules_update_timestamp
+  BEFORE UPDATE ON jobforge_bundle_trigger_rules
+  FOR EACH ROW
+  EXECUTE FUNCTION jobforge_update_updated_at();
+
+-- ============================================================================
+-- RPC: jobforge_create_bundle_trigger_rule
+-- ============================================================================
+CREATE OR REPLACE FUNCTION jobforge_create_bundle_trigger_rule(
+  p_tenant_id UUID,
+  p_name TEXT,
+  p_match_event_type_allowlist TEXT[],
+  p_action_bundle_source TEXT,
+  p_action_mode TEXT DEFAULT 'dry_run',
+  p_project_id UUID DEFAULT NULL,
+  p_match_source_module_allowlist TEXT[] DEFAULT NULL,
+  p_match_severity_threshold TEXT DEFAULT NULL,
+  p_match_priority_threshold TEXT DEFAULT NULL,
+  p_action_bundle_ref TEXT DEFAULT NULL,
+  p_action_bundle_builder TEXT DEFAULT NULL,
+  p_enabled BOOLEAN DEFAULT FALSE,
+  p_safety_cooldown_seconds INT DEFAULT 60,
+  p_safety_max_runs_per_hour INT DEFAULT 10,
+  p_safety_allow_action_jobs BOOLEAN DEFAULT FALSE
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_rule_row jobforge_bundle_trigger_rules%ROWTYPE;
+BEGIN
+  IF p_tenant_id IS NULL OR p_name IS NULL OR p_match_event_type_allowlist IS NULL THEN
+    RAISE EXCEPTION 'tenant_id, name, and match_event_type_allowlist are required';
+  END IF;
+
+  INSERT INTO jobforge_bundle_trigger_rules (
+    tenant_id,
+    project_id,
+    name,
+    enabled,
+    match_event_type_allowlist,
+    match_source_module_allowlist,
+    match_severity_threshold,
+    match_priority_threshold,
+    action_bundle_source,
+    action_bundle_ref,
+    action_bundle_builder,
+    action_mode,
+    safety_cooldown_seconds,
+    safety_max_runs_per_hour,
+    safety_allow_action_jobs
+  )
+  VALUES (
+    p_tenant_id,
+    p_project_id,
+    p_name,
+    p_enabled,
+    p_match_event_type_allowlist,
+    p_match_source_module_allowlist,
+    p_match_severity_threshold,
+    p_match_priority_threshold,
+    p_action_bundle_source,
+    p_action_bundle_ref,
+    p_action_bundle_builder,
+    p_action_mode,
+    p_safety_cooldown_seconds,
+    p_safety_max_runs_per_hour,
+    p_safety_allow_action_jobs
+  )
+  RETURNING * INTO v_rule_row;
+
+  RETURN row_to_json(v_rule_row)::jsonb;
+END;
+$$;
+
+-- ============================================================================
+-- RPC: jobforge_list_bundle_trigger_rules
+-- ============================================================================
+CREATE OR REPLACE FUNCTION jobforge_list_bundle_trigger_rules(
+  p_tenant_id UUID,
+  p_project_id UUID DEFAULT NULL
+)
+RETURNS SETOF jobforge_bundle_trigger_rules
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT *
+  FROM jobforge_bundle_trigger_rules
+  WHERE tenant_id = p_tenant_id
+    AND (p_project_id IS NULL OR project_id = p_project_id)
+  ORDER BY created_at DESC;
+END;
+$$;
+
+-- ============================================================================
+-- RPC: jobforge_record_trigger_evaluation
+-- ============================================================================
+CREATE OR REPLACE FUNCTION jobforge_record_trigger_evaluation(
+  p_tenant_id UUID,
+  p_rule_id UUID,
+  p_event_id UUID,
+  p_matched BOOLEAN,
+  p_decision TEXT,
+  p_reason TEXT,
+  p_dry_run BOOLEAN,
+  p_safety_cooldown_passed BOOLEAN,
+  p_safety_rate_limit_passed BOOLEAN,
+  p_safety_dedupe_passed BOOLEAN,
+  p_bundle_run_id UUID DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_eval_row jobforge_trigger_evaluations%ROWTYPE;
+BEGIN
+  INSERT INTO jobforge_trigger_evaluations (
+    tenant_id,
+    rule_id,
+    event_id,
+    matched,
+    decision,
+    reason,
+    dry_run,
+    bundle_run_id,
+    safety_cooldown_passed,
+    safety_rate_limit_passed,
+    safety_dedupe_passed
+  )
+  VALUES (
+    p_tenant_id,
+    p_rule_id,
+    p_event_id,
+    p_matched,
+    p_decision,
+    p_reason,
+    p_dry_run,
+    p_bundle_run_id,
+    p_safety_cooldown_passed,
+    p_safety_rate_limit_passed,
+    p_safety_dedupe_passed
+  )
+  RETURNING * INTO v_eval_row;
+
+  -- Update rule stats if fired
+  IF p_decision = 'fire' THEN
+    UPDATE jobforge_bundle_trigger_rules
+    SET last_fired_at = NOW(),
+        fire_count = fire_count + 1,
+        updated_at = NOW()
+    WHERE id = p_rule_id;
+  END IF;
+
+  RETURN row_to_json(v_eval_row)::jsonb;
+END;
+$$;
+
+-- ============================================================================
+-- RLS POLICIES for Bundle Trigger Tables
+-- ============================================================================
+
+ALTER TABLE jobforge_bundle_trigger_rules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE jobforge_trigger_evaluations ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY jobforge_bundle_trigger_rules_select_policy ON jobforge_bundle_trigger_rules
+  FOR SELECT
+  USING (
+    tenant_id::text = current_setting('app.tenant_id', true)
+    OR current_setting('app.tenant_id', true) IS NULL
+  );
+
+CREATE POLICY jobforge_bundle_trigger_rules_write_policy ON jobforge_bundle_trigger_rules
+  FOR ALL
+  USING (false);
+
+CREATE POLICY jobforge_trigger_evaluations_select_policy ON jobforge_trigger_evaluations
+  FOR SELECT
+  USING (
+    tenant_id::text = current_setting('app.tenant_id', true)
+    OR current_setting('app.tenant_id', true) IS NULL
+  );
+
+CREATE POLICY jobforge_trigger_evaluations_write_policy ON jobforge_trigger_evaluations
+  FOR ALL
+  USING (false);
+
+-- ============================================================================
+-- GRANTS for Bundle Trigger Functions
+-- ============================================================================
+
+GRANT EXECUTE ON FUNCTION jobforge_create_bundle_trigger_rule TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION jobforge_list_bundle_trigger_rules TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION jobforge_record_trigger_evaluation TO authenticated, service_role;
+
+GRANT SELECT ON jobforge_bundle_trigger_rules TO authenticated, anon;
+GRANT SELECT ON jobforge_trigger_evaluations TO authenticated, anon;
+
+-- ============================================================================
+-- COMMENTS
+-- ============================================================================
+
+COMMENT ON TABLE jobforge_bundle_trigger_rules IS 'Bundle trigger rules for event-driven bundle execution (v0.3.0)';
+COMMENT ON TABLE jobforge_trigger_evaluations IS 'Audit trail of bundle trigger rule evaluations';

@@ -100,6 +100,26 @@ export const REPLAY_PACK_ENABLED = parseBool(getEnvVar('REPLAY_PACK_ENABLED', '0
  */
 export const VERIFY_PACK_ENABLED = parseBool(getEnvVar('VERIFY_PACK_ENABLED', '0'))
 
+/**
+ * Enable bundle trigger rules (auto-trigger bundles from events)
+ * Default: false (0)
+ */
+export function isBundleTriggersEnabled(): boolean {
+  return parseBool(getEnvVar('JOBFORGE_BUNDLE_TRIGGERS_ENABLED', '0'))
+}
+
+export const JOBFORGE_BUNDLE_TRIGGERS_ENABLED = isBundleTriggersEnabled()
+
+/**
+ * Enable bundle executor for request bundles
+ * Default: false (0)
+ */
+export function isBundleExecutorEnabled(): boolean {
+  return parseBool(getEnvVar('JOBFORGE_BUNDLE_EXECUTOR_ENABLED', '0'))
+}
+
+export const JOBFORGE_BUNDLE_EXECUTOR_ENABLED = isBundleExecutorEnabled()
+
 // ============================================================================
 // Feature Flag Summary Updates
 // ============================================================================
@@ -119,6 +139,8 @@ export function getExtendedFeatureFlagSummary(): Record<string, boolean | string
     rate_limiting_enabled: JOBFORGE_RATE_LIMITING_ENABLED,
     replay_pack_enabled: REPLAY_PACK_ENABLED,
     verify_pack_enabled: VERIFY_PACK_ENABLED,
+    bundle_triggers_enabled: JOBFORGE_BUNDLE_TRIGGERS_ENABLED,
+    bundle_executor_enabled: JOBFORGE_BUNDLE_EXECUTOR_ENABLED,
     require_policy_tokens: JOBFORGE_REQUIRE_POLICY_TOKENS,
     policy_token_secret_set: JOBFORGE_POLICY_TOKEN_SECRET.length > 0,
   }
