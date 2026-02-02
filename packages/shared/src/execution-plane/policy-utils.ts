@@ -3,8 +3,11 @@
  * Token generation and validation for write action authorization
  */
 
-import { JOBFORGE_POLICY_TOKEN_SECRET, JOBFORGE_POLICY_TOKEN_EXPIRY_HOURS } from '../feature-flags'
-import type { PolicyToken, PolicyCheckResult, ValidatePolicyTokenParams } from './policy'
+import {
+  JOBFORGE_POLICY_TOKEN_SECRET,
+  JOBFORGE_POLICY_TOKEN_EXPIRY_HOURS,
+} from '../feature-flags.js'
+import type { PolicyToken, PolicyCheckResult, ValidatePolicyTokenParams } from './policy.js'
 
 /**
  * Generate a policy token for write actions

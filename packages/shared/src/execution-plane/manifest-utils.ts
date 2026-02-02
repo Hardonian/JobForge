@@ -10,7 +10,7 @@ import type {
   EnvFingerprint,
   ToolVersions,
   ManifestReportOptions,
-} from './manifests'
+} from './manifests.js'
 
 /**
  * Generate environment fingerprint

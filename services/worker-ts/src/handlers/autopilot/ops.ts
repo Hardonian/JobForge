@@ -12,7 +12,7 @@
 import { z } from 'zod'
 import type { JobContext } from '@jobforge/shared'
 import type { ArtifactManifest, ArtifactOutput } from '@jobforge/shared'
-import { JOBFORGE_AUTOPILOT_JOBS_ENABLED, JOBFORGE_ACTION_JOBS_ENABLED } from '@jobforge/shared'
+import { isAutopilotJobsEnabled, isActionJobsEnabled } from '@jobforge/shared'
 
 // ============================================================================
 // Shared Types & Helpers

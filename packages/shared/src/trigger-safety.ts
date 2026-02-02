@@ -4,8 +4,8 @@
  * All triggers remain OFF unless JOBFORGE_TRIGGERS_ENABLED=1
  */
 
-import { checkDuplicateEvent, checkRateLimit, writeAuditLog, redactObject } from './security'
-import { JOBFORGE_TRIGGERS_ENABLED } from './feature-flags'
+import { checkDuplicateEvent, checkRateLimit, writeAuditLog, redactObject } from './security.js'
+import { JOBFORGE_TRIGGERS_ENABLED } from './feature-flags.js'
 import { randomUUID } from 'crypto'
 
 // ============================================================================
@@ -20,7 +20,7 @@ const DEFAULT_DRY_RUN = true // Default to dry-run mode for safety
 // Trigger Safety Types
 // ============================================================================
 
-import type { TriggerType } from './execution-plane/triggers'
+import type { TriggerType } from './execution-plane/triggers.js'
 
 export interface TriggerSafetyConfig {
   // Loop prevention

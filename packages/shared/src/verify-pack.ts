@@ -14,14 +14,14 @@ import { existsSync, readFileSync, statSync } from 'fs'
 import { createHash } from 'crypto'
 import { resolve, isAbsolute } from 'path'
 import { z } from 'zod'
-import type { JobContext } from './types'
+import type { JobContext } from './types.js'
 import type {
   ArtifactManifest,
   ArtifactOutput,
   RunMetrics,
   EnvFingerprint,
   ToolVersions,
-} from './execution-plane/manifests'
+} from './execution-plane/manifests.js'
 
 // ============================================================================
 // Zod Schemas

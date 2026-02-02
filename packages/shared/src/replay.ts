@@ -6,8 +6,8 @@
 
 import { createHash } from 'crypto'
 import { randomUUID } from 'crypto'
-import { REPLAY_PACK_ENABLED } from './feature-flags'
-import { redactObject } from './security'
+import { REPLAY_PACK_ENABLED } from './feature-flags.js'
+import { redactObject } from './security.js'
 
 // ============================================================================
 // Replay Types

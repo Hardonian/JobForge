@@ -40,17 +40,23 @@ export const JOBFORGE_TRIGGERS_ENABLED = parseBool(getEnvVar('JOBFORGE_TRIGGERS_
  * Enable autopilot job templates
  * Default: false (0)
  */
-export const JOBFORGE_AUTOPILOT_JOBS_ENABLED = parseBool(
-  getEnvVar('JOBFORGE_AUTOPILOT_JOBS_ENABLED', '0')
-)
+export function isAutopilotJobsEnabled(): boolean {
+  return parseBool(getEnvVar('JOBFORGE_AUTOPILOT_JOBS_ENABLED', '0'))
+}
+
+// Backwards compatibility - constant evaluates at import time
+export const JOBFORGE_AUTOPILOT_JOBS_ENABLED = isAutopilotJobsEnabled()
 
 /**
  * Enable action jobs (write operations that require policy tokens)
  * Default: false (0)
  */
-export const JOBFORGE_ACTION_JOBS_ENABLED = parseBool(
-  getEnvVar('JOBFORGE_ACTION_JOBS_ENABLED', '0')
-)
+export function isActionJobsEnabled(): boolean {
+  return parseBool(getEnvVar('JOBFORGE_ACTION_JOBS_ENABLED', '0'))
+}
+
+// Backwards compatibility - constant evaluates at import time
+export const JOBFORGE_ACTION_JOBS_ENABLED = isActionJobsEnabled()
 
 /**
  * Enable audit logging
