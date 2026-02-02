@@ -1,0 +1,68 @@
+{
+  "manifest_version": "1.0",
+  "run_id": "2d73b552-c0b7-460b-be68-96602f64a1fb",
+  "tenant_id": "2bd9cfc7-92f3-4c85-82e5-cb15e606fa50",
+  "job_type": "autopilot.readylayer.verify_pack",
+  "created_at": "2026-02-02T14:50:12.502Z",
+  "logs_ref": "logs/verify-pack-2d73b552-c0b7-460b-be68-96602f64a1fb.log",
+  "outputs": [
+    {
+      "name": "verify_report",
+      "type": "json",
+      "ref": "verify-report-2d73b552-c0b7-460b-be68-96602f64a1fb.json",
+      "size": 24309,
+      "mime_type": "application/json"
+    },
+    {
+      "name": "issues_log",
+      "type": "json",
+      "ref": "issues-2d73b552-c0b7-460b-be68-96602f64a1fb.json",
+      "size": 366,
+      "mime_type": "application/json"
+    }
+  ],
+  "metrics": {
+    "duration_ms": 21222,
+    "file_count": 144585,
+    "total_size_bytes": 2736563871
+  },
+  "env_fingerprint": {
+    "os": "win32",
+    "arch": "x64",
+    "node_version": "v25.5.0"
+  },
+  "tool_versions": {
+    "jobforge": "0.2.0",
+    "connectors": {
+      "readylayer": "1.0.0"
+    },
+    "package_manager": "pnpm",
+    "node_version": "v25.5.0"
+  },
+  "status": "failed",
+  "error": {
+    "issues": [
+      {
+        "severity": "error",
+        "message": "Lint failed with exit code 1",
+        "command": "pnpm run lint"
+      },
+      {
+        "severity": "error",
+        "message": "Typecheck failed with exit code 1",
+        "command": "pnpm run typecheck"
+      },
+      {
+        "severity": "error",
+        "message": "Build failed with exit code 1",
+        "command": "pnpm run build"
+      },
+      {
+        "severity": "error",
+        "message": "Tests failed with exit code 1",
+        "command": "pnpm run test"
+      }
+    ],
+    "failed_count": 4
+  }
+}

@@ -4,11 +4,8 @@
  */
 
 import { Worker } from './lib/worker'
-import { HandlerRegistry } from './lib/registry'
 import { logger } from './lib/logger'
-
-// Load handlers
-import './handlers'
+import { createDefaultRegistry } from './handlers'
 
 // Get config from environment
 const config = {
@@ -40,8 +37,8 @@ if (intervalArg) {
   }
 }
 
-// Initialize worker
-const registry = new HandlerRegistry()
+// Initialize worker with registered handlers
+const registry = createDefaultRegistry()
 const worker = new Worker(config, registry)
 
 // Run worker

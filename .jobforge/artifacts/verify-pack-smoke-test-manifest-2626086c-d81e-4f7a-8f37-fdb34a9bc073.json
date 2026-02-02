@@ -1,0 +1,24 @@
+{
+  "manifest_version": "1.0",
+  "run_id": "2626086c-d81e-4f7a-8f37-fdb34a9bc073",
+  "tenant_id": "d240f90f-b6cb-4c39-8534-d9752f952220",
+  "job_type": "autopilot.readylayer.verify_pack",
+  "created_at": "2026-02-02T14:48:19.794Z",
+  "outputs": [],
+  "metrics": {
+    "duration_ms": 0
+  },
+  "env_fingerprint": {
+    "os": "win32",
+    "arch": "x64",
+    "node_version": "v25.5.0"
+  },
+  "tool_versions": {
+    "jobforge": "0.2.0"
+  },
+  "status": "failed",
+  "error": {
+    "message": "Feature flag check failed: JOBFORGE_AUTOPILOT_JOBS_ENABLED is not enabled (set to 1 to enable)",
+    "code": "FEATURE_FLAG_DISABLED"
+  }
+}

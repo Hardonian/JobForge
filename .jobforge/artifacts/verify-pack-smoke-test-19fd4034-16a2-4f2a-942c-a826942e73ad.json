@@ -1,0 +1,25 @@
+{
+  "repo_path": "",
+  "pack": "fast",
+  "summary": {
+    "total": 0,
+    "passed": 0,
+    "failed": 0,
+    "skipped": 1,
+    "duration_ms": 0
+  },
+  "commands": [],
+  "fingerprints": {
+    "package_json_hash": null,
+    "lockfile_hash": null,
+    "file_count": 0,
+    "total_size_bytes": 0
+  },
+  "issues": [
+    {
+      "severity": "error",
+      "message": "Feature flag check failed: JOBFORGE_AUTOPILOT_JOBS_ENABLED is not enabled (set to 1 to enable)"
+    }
+  ],
+  "generated_at": "2026-02-02T14:48:44.740Z"
+}

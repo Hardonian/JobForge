@@ -7,6 +7,7 @@ import { HandlerRegistry } from '../lib/registry'
 import { httpRequestHandler } from './http-request'
 import { webhookDeliverHandler } from './webhook-deliver'
 import { reportGenerateHandler } from './report-generate'
+import { verifyPackHandler, VerifyPackPayloadSchema } from '@jobforge/shared'
 
 /**
  * Create and configure the default handler registry
@@ -41,6 +42,15 @@ export function createDefaultRegistry(): HandlerRegistry {
     timeoutMs: 300_000, // 5 minutes for complex reports
     validate: (payload) => {
       return typeof payload === 'object' && payload !== null && 'report_type' in payload
+    },
+  })
+
+  // Register ReadyLayer verify_pack handler (autopilot job)
+  registry.register('autopilot.readylayer.verify_pack', verifyPackHandler, {
+    timeoutMs: 600_000, // 10 minutes for full verification
+    validate: (payload) => {
+      const result = VerifyPackPayloadSchema.safeParse(payload)
+      return result.success
     },
   })
 

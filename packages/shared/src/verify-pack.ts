@@ -12,6 +12,7 @@
 import { execSync } from 'child_process'
 import { existsSync, readFileSync, statSync } from 'fs'
 import { createHash } from 'crypto'
+import { resolve, isAbsolute } from 'path'
 import { z } from 'zod'
 import type { JobContext } from './types'
 import type {
@@ -21,7 +22,6 @@ import type {
   EnvFingerprint,
   ToolVersions,
 } from './execution-plane/manifests'
-import { VERIFY_PACK_ENABLED, JOBFORGE_AUTOPILOT_JOBS_ENABLED } from './feature-flags'
 
 // ============================================================================
 // Zod Schemas
@@ -93,18 +93,27 @@ export interface VerifyPackResult {
 }
 
 // ============================================================================
-// Feature Flag Check
+// Feature Flag Check (Dynamic - checks at runtime, not import time)
 // ============================================================================
 
 function checkFeatureFlags(): { enabled: true } | { enabled: false; reason: string } {
-  if (!JOBFORGE_AUTOPILOT_JOBS_ENABLED) {
+  // Check environment variables at runtime (not cached at import)
+  const autopilotEnabled =
+    process.env.JOBFORGE_AUTOPILOT_JOBS_ENABLED === '1' ||
+    process.env.JOBFORGE_AUTOPILOT_JOBS_ENABLED?.toLowerCase() === 'true'
+
+  const verifyPackEnabled =
+    process.env.VERIFY_PACK_ENABLED === '1' ||
+    process.env.VERIFY_PACK_ENABLED?.toLowerCase() === 'true'
+
+  if (!autopilotEnabled) {
     return {
       enabled: false,
       reason: 'JOBFORGE_AUTOPILOT_JOBS_ENABLED is not enabled (set to 1 to enable)',
     }
   }
 
-  if (!VERIFY_PACK_ENABLED) {
+  if (!verifyPackEnabled) {
     return {
       enabled: false,
       reason: 'VERIFY_PACK_ENABLED is not enabled (set to 1 to enable)',
@@ -121,10 +130,7 @@ function checkFeatureFlags(): { enabled: true } | { enabled: false; reason: stri
 function resolveRepoPath(repoPath?: string, repoRef?: string): string {
   // If repoPath is provided, use it
   if (repoPath) {
-    const resolved =
-      repoPath.startsWith('/') || repoPath.startsWith('\\')
-        ? repoPath
-        : `${process.cwd()}/${repoPath}`
+    const resolved = isAbsolute(repoPath) ? repoPath : resolve(process.cwd(), repoPath)
 
     if (!existsSync(resolved)) {
       throw new Error(`Repository path does not exist: ${resolved}`)
