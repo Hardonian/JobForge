@@ -120,6 +120,32 @@ export function isBundleExecutorEnabled(): boolean {
 
 export const JOBFORGE_BUNDLE_EXECUTOR_ENABLED = isBundleExecutorEnabled()
 
+/**
+ * Enable system doctor diagnostics
+ * Default: false (0)
+ */
+export const JOBFORGE_DOCTOR_ENABLED = parseBool(getEnvVar('JOBFORGE_DOCTOR_ENABLED', '0'))
+
+/**
+ * Enable policy guard (governance and safety checks)
+ * Default: false (0)
+ */
+export const JOBFORGE_POLICY_GUARD_ENABLED = parseBool(
+  getEnvVar('JOBFORGE_POLICY_GUARD_ENABLED', '0')
+)
+
+/**
+ * Enable impact mapping (TruthCore-lite)
+ * Default: false (0)
+ */
+export const JOBFORGE_IMPACT_MAP_ENABLED = parseBool(getEnvVar('JOBFORGE_IMPACT_MAP_ENABLED', '0'))
+
+/**
+ * Enable daily run command
+ * Default: false (0)
+ */
+export const JOBFORGE_DAILY_RUN_ENABLED = parseBool(getEnvVar('JOBFORGE_DAILY_RUN_ENABLED', '0'))
+
 // ============================================================================
 // Feature Flag Summary Updates
 // ============================================================================
@@ -141,6 +167,10 @@ export function getExtendedFeatureFlagSummary(): Record<string, boolean | string
     verify_pack_enabled: VERIFY_PACK_ENABLED,
     bundle_triggers_enabled: JOBFORGE_BUNDLE_TRIGGERS_ENABLED,
     bundle_executor_enabled: JOBFORGE_BUNDLE_EXECUTOR_ENABLED,
+    doctor_enabled: JOBFORGE_DOCTOR_ENABLED,
+    policy_guard_enabled: JOBFORGE_POLICY_GUARD_ENABLED,
+    impact_map_enabled: JOBFORGE_IMPACT_MAP_ENABLED,
+    daily_run_enabled: JOBFORGE_DAILY_RUN_ENABLED,
     require_policy_tokens: JOBFORGE_REQUIRE_POLICY_TOKENS,
     policy_token_secret_set: JOBFORGE_POLICY_TOKEN_SECRET.length > 0,
   }

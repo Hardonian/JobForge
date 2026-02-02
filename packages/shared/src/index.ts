@@ -17,5 +17,11 @@ export * from './contract-tests.js'
 export * from './replay-bundles.js'
 export * from './policy-tokens.js'
 
+// Solo-Founder Accelerator Layer
+export * from './doctor.js'
+export * from './policy-guard.js'
+export * from './impact-map.js'
+export * from './upgrade-lane.js'
+
 // Explicit re-exports to resolve ambiguities
 export type { TriggerType } from './execution-plane/triggers.js'
