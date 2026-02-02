@@ -65,7 +65,7 @@ export function validatePolicyToken(params: ValidatePolicyTokenParams): PolicyCh
     const token = decodeToken(params.token)
 
     // Verify tenant match
-    if (token.tenant_id !== params.tenantId) {
+    if (token.tenant_id !== params.tenant_id) {
       return {
         allowed: false,
         reason: 'Token tenant mismatch',
@@ -75,7 +75,7 @@ export function validatePolicyToken(params: ValidatePolicyTokenParams): PolicyCh
     }
 
     // Verify project match (if specified)
-    if (params.projectId && token.project_id !== params.projectId) {
+    if (params.project_id && token.project_id !== params.project_id) {
       return {
         allowed: false,
         reason: 'Token project mismatch',
@@ -85,7 +85,7 @@ export function validatePolicyToken(params: ValidatePolicyTokenParams): PolicyCh
     }
 
     // Verify actor match (if specified)
-    if (params.actorId && token.actor_id !== params.actorId) {
+    if (params.actor_id && token.actor_id !== params.actor_id) {
       return {
         allowed: false,
         reason: 'Token actor mismatch',
@@ -126,7 +126,9 @@ export function validatePolicyToken(params: ValidatePolicyTokenParams): PolicyCh
 
     // Check required scopes
     const grantedScopes = new Set(token.scopes)
-    const missingScopes = params.requiredScopes.filter((scope) => !grantedScopes.has(scope))
+    const missingScopes = params.required_scopes.filter(
+      (scope: string) => !grantedScopes.has(scope)
+    )
 
     if (missingScopes.length > 0) {
       return {

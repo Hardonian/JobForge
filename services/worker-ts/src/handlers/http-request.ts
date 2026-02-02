@@ -123,7 +123,7 @@ export async function httpRequestHandler(
 
     return {
       status: response.status,
-      duration_ms,
+      duration_ms: _duration_ms,
       response_headers,
       response_body_preview,
       success: response.ok,
