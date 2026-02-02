@@ -14,8 +14,23 @@ import type {
   CancelJobParams,
   RescheduleJobParams,
   ListJobsParams,
+  // Execution plane types
+  SubmitEventParams,
+  EventRow,
+  ListEventsParams,
+  RequestJobParams,
+  RequestJobResult,
+  GetManifestParams,
+  ManifestRow,
 } from '@jobforge/shared'
-import { enqueueJobParamsSchema, completeJobParamsSchema } from '@jobforge/shared'
+import {
+  enqueueJobParamsSchema,
+  completeJobParamsSchema,
+  submitEventParamsSchema,
+  requestJobParamsSchema,
+  getManifestParamsSchema,
+  isEventIngestionAvailable,
+} from '@jobforge/shared'
 
 export interface JobForgeClientConfig {
   supabaseUrl: string
@@ -198,5 +213,125 @@ export class JobForgeClient {
     }
 
     return data as JobResultRow
+  }
+
+  // ============================================================================
+  // Execution Plane Methods
+  // ============================================================================
+
+  /**
+   * Submit an event envelope
+   * Requires JOBFORGE_EVENTS_ENABLED=1
+   */
+  async submitEvent(params: SubmitEventParams): Promise<EventRow> {
+    // Check if feature is enabled (client-side guard)
+    if (!isEventIngestionAvailable()) {
+      throw new Error('Event ingestion is disabled. Set JOBFORGE_EVENTS_ENABLED=1 to enable.')
+    }
+
+    // Validate params
+    const validated = submitEventParamsSchema.parse(params)
+
+    const { data, error } = await this.supabase.rpc('jobforge_submit_event', {
+      p_tenant_id: validated.tenant_id,
+      p_event_type: validated.event_type,
+      p_trace_id: validated.trace_id,
+      p_source_app: validated.source_app,
+      p_payload: validated.payload,
+      p_project_id: validated.project_id || null,
+      p_actor_id: validated.actor_id || null,
+      p_source_module: validated.source_module || null,
+      p_subject_type: validated.subject_type || null,
+      p_subject_id: validated.subject_id || null,
+      p_contains_pii: validated.contains_pii,
+      p_redaction_hints: validated.redaction_hints || null,
+      p_event_version: validated.event_version,
+    })
+
+    if (error) {
+      throw new Error(`Failed to submit event: ${error.message}`)
+    }
+
+    return data as EventRow
+  }
+
+  /**
+   * List events with filters
+   * Requires JOBFORGE_EVENTS_ENABLED=1
+   */
+  async listEvents(params: ListEventsParams): Promise<EventRow[]> {
+    if (!isEventIngestionAvailable()) {
+      throw new Error('Event ingestion is disabled. Set JOBFORGE_EVENTS_ENABLED=1 to enable.')
+    }
+
+    const filters = {
+      event_type: params.filters?.event_type || null,
+      source_app: params.filters?.source_app || null,
+      processed: params.filters?.processed ?? null,
+      from_time: params.filters?.from_time || null,
+      to_time: params.filters?.to_time || null,
+      limit: params.filters?.limit || 100,
+      offset: params.filters?.offset || 0,
+    }
+
+    const { data, error } = await this.supabase.rpc('jobforge_list_events', {
+      p_tenant_id: params.tenant_id,
+      p_project_id: params.project_id || null,
+      p_filters: filters,
+    })
+
+    if (error) {
+      throw new Error(`Failed to list events: ${error.message}`)
+    }
+
+    return (data as EventRow[]) || []
+  }
+
+  /**
+   * Request execution of an autopilot job from a template
+   * Requires JOBFORGE_AUTOPILOT_JOBS_ENABLED=1
+   */
+  async requestJob(params: RequestJobParams): Promise<RequestJobResult> {
+    // Note: Template enablement is checked server-side
+    const validated = requestJobParamsSchema.parse(params)
+
+    const { data, error } = await this.supabase.rpc('jobforge_request_job', {
+      p_tenant_id: validated.tenant_id,
+      p_template_key: validated.template_key,
+      p_inputs: validated.inputs,
+      p_project_id: validated.project_id || null,
+      p_trace_id: validated.trace_id || null,
+      p_actor_id: validated.actor_id || null,
+      p_dry_run: validated.dry_run,
+    })
+
+    if (error) {
+      throw new Error(`Failed to request job: ${error.message}`)
+    }
+
+    return data as RequestJobResult
+  }
+
+  /**
+   * Get artifact manifest for a run
+   * Requires JOBFORGE_MANIFESTS_ENABLED=1
+   */
+  async getRunManifest(params: GetManifestParams): Promise<ManifestRow | null> {
+    const validated = getManifestParamsSchema.parse(params)
+
+    const { data, error } = await this.supabase.rpc('jobforge_get_manifest', {
+      p_run_id: validated.run_id,
+      p_tenant_id: validated.tenant_id,
+    })
+
+    if (error) {
+      throw new Error(`Failed to get manifest: ${error.message}`)
+    }
+
+    if (!data) {
+      return null
+    }
+
+    return data as ManifestRow
   }
 }
