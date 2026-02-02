@@ -63,7 +63,7 @@ describe('Replay System', () => {
         z: { b: 1, a: 2 },
         a: { z: 3, a: 4 },
       }
-      const result = canonicalizeObject(input)
+      const result = JSON.parse(canonicalizeObject(input))
 
       expect(Object.keys(result)).toEqual(['a', 'z'])
       expect(Object.keys(result.a)).toEqual(['a', 'z'])
@@ -72,7 +72,7 @@ describe('Replay System', () => {
 
     it('should handle arrays without sorting', () => {
       const input = { z: [3, 1, 2], a: 'value' }
-      const result = canonicalizeObject(input)
+      const result = JSON.parse(canonicalizeObject(input))
 
       expect(Object.keys(result)).toEqual(['a', 'z'])
       expect(result.z).toEqual([3, 1, 2]) // Array order preserved
@@ -80,7 +80,7 @@ describe('Replay System', () => {
 
     it('should handle null and undefined', () => {
       const input = { z: null, a: undefined, b: 'value' }
-      const result = canonicalizeObject(input)
+      const result = JSON.parse(canonicalizeObject(input))
 
       expect(Object.keys(result)).toEqual(['a', 'b', 'z'])
       expect(result.z).toBeNull()
@@ -115,8 +115,8 @@ describe('Replay System', () => {
   })
 
   describe('Fingerprinting', () => {
-    it('should capture code fingerprint', () => {
-      const fingerprint = getCodeFingerprint()
+    it('should capture code fingerprint', async () => {
+      const fingerprint = await getCodeFingerprint()
 
       expect(fingerprint.gitSha).toBeDefined()
       expect(fingerprint.gitBranch).toBeDefined()
@@ -135,8 +135,9 @@ describe('Replay System', () => {
     it('should capture environment fingerprint', () => {
       const fingerprint = getEnvironmentFingerprint()
 
-      expect(fingerprint.nodeVersion).toBeDefined()
-      expect(fingerprint.platform).toBeDefined()
+      expect(fingerprint.identifiers).toBeDefined()
+      expect(fingerprint.envType).toBeDefined()
+      expect(fingerprint.featureFlags).toBeDefined()
       expect(fingerprint.timestamp).toBeDefined()
     })
   })
@@ -152,8 +153,8 @@ describe('Replay System', () => {
       expect(result?.tenantId).toBe('tenant-1')
       expect(result?.jobType).toBe('test.job')
       expect(result?.inputs.hash).toBeDefined()
-      expect(result?.codeFingerprint).toBeDefined()
-      expect(result?.runtimeFingerprint).toBeDefined()
+      expect(result?.code).toBeDefined()
+      expect(result?.runtime).toBeDefined()
     })
 
     it('should return null when REPLAY_PACK_ENABLED=0', async () => {
@@ -227,7 +228,7 @@ describe('Replay System', () => {
       if (bundle1 && bundle2) {
         const comparison = compareBundles(bundle1, bundle2)
 
-        expect(comparison.identical).toBe(true)
+        expect(comparison.equal).toBe(true)
         expect(comparison.differences).toHaveLength(0)
       }
     })
@@ -244,8 +245,8 @@ describe('Replay System', () => {
       if (bundle1 && bundle2) {
         const comparison = compareBundles(bundle1, bundle2)
 
-        expect(comparison.identical).toBe(false)
-        expect(comparison.differences.some((d) => d.field === 'provenance.inputs.hash')).toBe(true)
+        expect(comparison.equal).toBe(false)
+        expect(comparison.differences).toContain('inputs.hash')
       }
     })
 
@@ -264,7 +265,7 @@ describe('Replay System', () => {
         const comparison = compareBundles(bundle1, bundle2)
 
         // Should have runtime differences but identical inputs
-        expect(comparison.differences.some((d) => d.field.startsWith('runtime'))).toBe(true)
+        expect(comparison.differences.some((d) => d.startsWith('runtime'))).toBe(true)
       }
     })
   })
@@ -284,10 +285,10 @@ describe('Replay System', () => {
       expect(original).not.toBeNull()
 
       if (original) {
-        const result = await replayDryRun(original, { key: 'value' })
+        const result = await replayDryRun(original, { compareResults: true })
 
-        expect(result.canReplay).toBe(true)
-        expect(result.inputComparison.match).toBe(true)
+        expect(result.success).toBe(true)
+        expect(result.differences).toHaveLength(0)
       }
     })
 
@@ -305,18 +306,17 @@ describe('Replay System', () => {
       expect(original).not.toBeNull()
 
       if (original) {
-        const result = await replayDryRun(original, { key: 'different' })
+        const result = await replayDryRun(original, { compareResults: true })
 
-        expect(result.canReplay).toBe(false)
-        expect(result.inputComparison.match).toBe(false)
-        expect(result.inputComparison.differences).toBeDefined()
+        expect(result.success).toBe(true)
+        expect(result.differences.length).toBeGreaterThan(0)
       }
     })
 
     it('should return null when REPLAY_PACK_ENABLED=0', async () => {
       process.env.REPLAY_PACK_ENABLED = '0'
 
-      const result = await replayDryRun({} as ReplayBundle, { key: 'value' })
+      const result = await replayDryRun({} as ReplayBundle, { compareResults: true })
 
       expect(result).toBeNull()
     })
