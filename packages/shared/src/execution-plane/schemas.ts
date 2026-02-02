@@ -378,3 +378,38 @@ export const triggerEvaluationResultSchema = z.object({
     dedupe_passed: z.boolean(),
   }),
 })
+
+// ============================================================================
+// Job Request Bundle Schemas (from @autopilot/contracts)
+// ============================================================================
+
+export const JobRequestSchema = z.object({
+  id: z.string().min(1),
+  job_type: z.string().min(1),
+  tenant_id: z.string().uuid(),
+  project_id: z.string().uuid().optional(),
+  payload: z.record(z.unknown()),
+  idempotency_key: z.string().optional(),
+  required_scopes: z.array(z.string()).default([]),
+  is_action_job: z.boolean().default(false),
+})
+
+export type JobRequest = z.infer<typeof JobRequestSchema>
+
+export const JobRequestBundleSchema = z.object({
+  version: z.literal('1.0'),
+  bundle_id: z.string().min(1),
+  tenant_id: z.string().uuid(),
+  project_id: z.string().uuid().optional(),
+  trace_id: z.string().min(1),
+  requests: z.array(JobRequestSchema).min(1).max(100),
+  metadata: z
+    .object({
+      source: z.string(),
+      triggered_at: z.string().datetime(),
+      correlation_id: z.string().optional(),
+    })
+    .passthrough(),
+})
+
+export type JobRequestBundle = z.infer<typeof JobRequestBundleSchema>

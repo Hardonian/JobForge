@@ -5,7 +5,8 @@
   "description": "TypeScript worker for JobForge",
   "main": "./dist/index.js",
   "bin": {
-    "jobforge-worker": "./dist/cli.js"
+    "jobforge-worker": "./dist/cli.js",
+    "jobforge-console": "./dist/console.js"
   },
   "scripts": {
     "build": "tsc",

@@ -1,0 +1,71 @@
+{
+  "version": "1.0",
+  "bundle_id": "ops-autopilot-safe-scan-001",
+  "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+  "project_id": "550e8400-e29b-41d4-a716-446655440001",
+  "trace_id": "ops-trace-safe-001",
+  "requests": [
+    {
+      "id": "ops-scan-infra",
+      "job_type": "autopilot.ops.scan",
+      "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+      "project_id": "550e8400-e29b-41d4-a716-446655440001",
+      "payload": {
+        "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+        "project_id": "550e8400-e29b-41d4-a716-446655440001",
+        "scan_type": "health",
+        "targets": ["database", "api", "workers"],
+        "options": {
+          "depth": "surface",
+          "include_logs": false,
+          "time_range_hours": 24
+        }
+      },
+      "idempotency_key": "ops-scan-infra-2024-01-15",
+      "required_scopes": ["ops:read"],
+      "is_action_job": false
+    },
+    {
+      "id": "ops-diagnose-alert",
+      "job_type": "autopilot.ops.diagnose",
+      "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+      "project_id": "550e8400-e29b-41d4-a716-446655440001",
+      "payload": {
+        "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+        "project_id": "550e8400-e29b-41d4-a716-446655440001",
+        "symptom": "High latency in API responses",
+        "affected_resources": ["api-gateway", "database-primary"],
+        "options": {
+          "correlation_window_minutes": 60,
+          "include_recommendations": true
+        }
+      },
+      "idempotency_key": "ops-diagnose-alert-2024-01-15",
+      "required_scopes": ["ops:read"],
+      "is_action_job": false
+    },
+    {
+      "id": "ops-recommend-optimizations",
+      "job_type": "autopilot.ops.recommend",
+      "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+      "project_id": "550e8400-e29b-41d4-a716-446655440001",
+      "payload": {
+        "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+        "project_id": "550e8400-e29b-41d4-a716-446655440001",
+        "category": "optimization",
+        "constraints": {
+          "risk_tolerance": "medium",
+          "implementation_timeframe": "short"
+        }
+      },
+      "idempotency_key": "ops-recommend-optimizations-2024-01-15",
+      "required_scopes": ["ops:read"],
+      "is_action_job": false
+    }
+  ],
+  "metadata": {
+    "source": "ops-autopilot",
+    "triggered_at": "2024-01-15T10:00:00Z",
+    "correlation_id": "ops-correlation-safe-001"
+  }
+}

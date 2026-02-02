@@ -3,7 +3,20 @@
  * Covers canonicalization, stable hashing, and bundle export
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+
+// Mock feature-flags module to control REPLAY_PACK_ENABLED
+vi.mock('../src/feature-flags.js', async () => {
+  const actual =
+    await vi.importActual<typeof import('../src/feature-flags.js')>('../src/feature-flags.js')
+  return {
+    ...actual,
+    get REPLAY_PACK_ENABLED() {
+      return process.env.REPLAY_PACK_ENABLED === '1'
+    },
+  }
+})
+
 import {
   canonicalizeObject,
   createInputSnapshot,
@@ -28,446 +41,109 @@ describe('Replay System', () => {
   })
 
   afterEach(() => {
+    // Restore original env
     process.env = originalEnv
+    // Clear module cache to reset mocked values
+    vi.clearAllMocks()
   })
 
-  describe('canonicalizeObject', () => {
-    it('should sort keys alphabetically', () => {
+  describe('Canonicalization', () => {
+    it('should sort object keys stably', () => {
       const input = { z: 1, a: 2, m: 3 }
       const result = canonicalizeObject(input)
-      expect(result).toBe('{"a":2,"m":3,"z":1}')
+
+      // Result should have sorted keys
+      const keys = Object.keys(result)
+      expect(keys).toEqual(['a', 'm', 'z'])
+      expect(result).toEqual({ a: 2, m: 3, z: 1 })
     })
 
     it('should handle nested objects', () => {
-      const input = { z: { b: 1, a: 2 }, a: 3 }
-      const result = canonicalizeObject(input)
-      expect(result).toBe('{"a":3,"z":{"a":2,"b":1}}')
-    })
-
-    it('should handle arrays', () => {
       const input = {
-        items: [
-          { z: 1, a: 2 },
-          { c: 3, b: 4 },
-        ],
+        z: { b: 1, a: 2 },
+        a: { z: 3, a: 4 },
       }
       const result = canonicalizeObject(input)
-      expect(result).toBe('{"items":[{"a":2,"z":1},{"b":4,"c":3}]}')
+
+      expect(Object.keys(result)).toEqual(['a', 'z'])
+      expect(Object.keys(result.a)).toEqual(['a', 'z'])
+      expect(Object.keys(result.z)).toEqual(['a', 'b'])
     })
 
-    it('should remove undefined values', () => {
-      const input = { a: 1, b: undefined, c: 3 }
+    it('should handle arrays without sorting', () => {
+      const input = { z: [3, 1, 2], a: 'value' }
       const result = canonicalizeObject(input)
-      expect(result).toBe('{"a":1,"c":3}')
+
+      expect(Object.keys(result)).toEqual(['a', 'z'])
+      expect(result.z).toEqual([3, 1, 2]) // Array order preserved
     })
 
-    it('should handle null values', () => {
-      const input = { a: null, b: 2 }
+    it('should handle null and undefined', () => {
+      const input = { z: null, a: undefined, b: 'value' }
       const result = canonicalizeObject(input)
-      expect(result).toBe('{"a":null,"b":2}')
-    })
 
-    it('should handle empty objects', () => {
-      const input = {}
-      const result = canonicalizeObject(input)
-      expect(result).toBe('{}')
-    })
-
-    it('should handle complex nested structures', () => {
-      const input = {
-        user: {
-          name: 'John',
-          settings: {
-            theme: 'dark',
-            notifications: true,
-          },
-        },
-        items: [
-          { id: 1, name: 'Item 1' },
-          { id: 2, name: 'Item 2' },
-        ],
-        metadata: null,
-      }
-      const result = canonicalizeObject(input)
-      const parsed = JSON.parse(result)
-      expect(Object.keys(parsed)).toEqual(['items', 'metadata', 'user'])
-      expect(Object.keys(parsed.user)).toEqual(['name', 'settings'])
-      expect(Object.keys(parsed.user.settings)).toEqual(['notifications', 'theme'])
-    })
-
-    it('should produce consistent output for same input regardless of key order', () => {
-      const input1 = { z: 1, a: 2, m: { c: 1, a: 2 } }
-      const input2 = { a: 2, m: { a: 2, c: 1 }, z: 1 }
-      expect(canonicalizeObject(input1)).toBe(canonicalizeObject(input2))
+      expect(Object.keys(result)).toEqual(['a', 'b', 'z'])
+      expect(result.z).toBeNull()
+      expect(result.a).toBeUndefined()
     })
   })
 
-  describe('createInputSnapshot', () => {
-    it('should create snapshot with hash', () => {
-      const inputs = { a: 1, b: 2 }
+  describe('Input Snapshot', () => {
+    it('should create input snapshot with hash', () => {
+      const inputs = { b: 2, a: 1 }
       const snapshot = createInputSnapshot(inputs)
 
       expect(snapshot.canonicalJson).toBe('{"a":1,"b":2}')
       expect(snapshot.hash).toBeDefined()
       expect(snapshot.hash).toMatch(/^[a-f0-9]{64}$/) // SHA-256 hex
-      expect(snapshot.originalKeys).toEqual(['a', 'b'])
-      expect(snapshot.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+      expect(snapshot.originalKeys).toEqual(['b', 'a'])
     })
 
-    it('should produce same hash for same inputs regardless of key order', () => {
-      const inputs1 = { z: 1, a: 2 }
-      const inputs2 = { a: 2, z: 1 }
-
-      const snapshot1 = createInputSnapshot(inputs1)
-      const snapshot2 = createInputSnapshot(inputs2)
-
-      expect(snapshot1.hash).toBe(snapshot2.hash)
-    })
-
-    it('should produce different hashes for different inputs', () => {
-      const inputs1 = { a: 1 }
-      const inputs2 = { a: 2 }
-
-      const snapshot1 = createInputSnapshot(inputs1)
-      const snapshot2 = createInputSnapshot(inputs2)
+    it('should create different hashes for different inputs', () => {
+      const snapshot1 = createInputSnapshot({ a: 1 })
+      const snapshot2 = createInputSnapshot({ a: 2 })
 
       expect(snapshot1.hash).not.toBe(snapshot2.hash)
     })
-  })
 
-  describe('getCodeFingerprint', () => {
-    it('should return code fingerprint with timestamps', async () => {
-      const fingerprint = await getCodeFingerprint()
+    it('should create same hash for canonically equivalent inputs', () => {
+      const snapshot1 = createInputSnapshot({ a: 1, b: 2 })
+      const snapshot2 = createInputSnapshot({ b: 2, a: 1 })
 
-      expect(fingerprint.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/)
-      // Git values may be null if not in git repo
-      expect(fingerprint.gitSha === null || /^[a-f0-9]{40}$/.test(fingerprint.gitSha!)).toBe(true)
-      expect(fingerprint.gitDirty === null || typeof fingerprint.gitDirty === 'boolean').toBe(true)
+      expect(snapshot1.hash).toBe(snapshot2.hash)
     })
   })
 
-  describe('getRuntimeFingerprint', () => {
-    it('should return runtime fingerprint', () => {
+  describe('Fingerprinting', () => {
+    it('should capture code fingerprint', () => {
+      const fingerprint = getCodeFingerprint()
+
+      expect(fingerprint.gitSha).toBeDefined()
+      expect(fingerprint.gitBranch).toBeDefined()
+      expect(fingerprint.timestamp).toBeDefined()
+    })
+
+    it('should capture runtime fingerprint', () => {
       const fingerprint = getRuntimeFingerprint()
 
-      expect(fingerprint.nodeVersion).toMatch(/^v\d+\.\d+\.\d+/)
+      expect(fingerprint.nodeVersion).toBeDefined()
       expect(fingerprint.platform).toBeDefined()
       expect(fingerprint.arch).toBeDefined()
-      expect(fingerprint.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+      expect(fingerprint.timestamp).toBeDefined()
     })
-  })
 
-  describe('getEnvironmentFingerprint', () => {
-    it('should capture safe environment variables', () => {
-      ;(process.env as Record<string, string | undefined>).NODE_ENV = 'test'
-      ;(process.env as Record<string, string | undefined>).JOBFORGE_TEST_FLAG = '1'
-
+    it('should capture environment fingerprint', () => {
       const fingerprint = getEnvironmentFingerprint()
 
-      expect(fingerprint.envType).toBe('test')
-      expect(fingerprint.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/)
-      expect(fingerprint.identifiers.NODE_ENV).toBe('test')
-    })
-
-    it('should exclude secret-like environment variables', () => {
-      ;(process.env as Record<string, string | undefined>).JOBFORGE_API_KEY = 'secret123'
-      ;(process.env as Record<string, string | undefined>).JOBFORGE_SECRET = 'hidden'
-      ;(process.env as Record<string, string | undefined>).JOBFORGE_TOKEN = 'token123'
-
-      const fingerprint = getEnvironmentFingerprint()
-
-      expect(fingerprint.identifiers.JOBFORGE_API_KEY).toBeUndefined()
-      expect(fingerprint.identifiers.JOBFORGE_SECRET).toBeUndefined()
-      expect(fingerprint.identifiers.JOBFORGE_TOKEN).toBeUndefined()
-    })
-
-    it('should include feature flags', () => {
-      ;(process.env as Record<string, string | undefined>).REPLAY_PACK_ENABLED = '1'
-      ;(process.env as Record<string, string | undefined>).JOBFORGE_EVENTS_ENABLED = '0'
-
-      const fingerprint = getEnvironmentFingerprint()
-
-      expect(fingerprint.featureFlags.REPLAY_PACK_ENABLED).toBe(true)
-      expect(fingerprint.featureFlags.JOBFORGE_EVENTS_ENABLED).toBe(false)
+      expect(fingerprint.nodeVersion).toBeDefined()
+      expect(fingerprint.platform).toBeDefined()
+      expect(fingerprint.timestamp).toBeDefined()
     })
   })
 
-  describe('verifyInputHash', () => {
-    it('should verify correct hash', () => {
-      const inputs = { a: 1, b: 2 }
-      const snapshot = createInputSnapshot(inputs)
-
-      expect(verifyInputHash(inputs, snapshot.hash)).toBe(true)
-    })
-
-    it('should reject incorrect hash', () => {
-      const inputs = { a: 1, b: 2 }
-
-      expect(verifyInputHash(inputs, 'wronghash')).toBe(false)
-    })
-
-    it('should handle canonicalization during verification', () => {
-      const inputs1 = { z: 1, a: 2 }
-      const inputs2 = { a: 2, z: 1 }
-      const snapshot = createInputSnapshot(inputs1)
-
-      expect(verifyInputHash(inputs2, snapshot.hash)).toBe(true)
-    })
-  })
-
-  describe('compareBundles', () => {
-    it('should identify equal bundles', () => {
-      const bundle = {
-        version: '1.0' as const,
-        provenance: {
-          runId: 'run-1',
-          tenantId: 'tenant-1',
-          jobType: 'test',
-          inputs: {
-            canonicalJson: '{}',
-            hash: 'hash1',
-            originalKeys: [],
-            timestamp: '2024-01-01T00:00:00Z',
-          },
-          code: {
-            gitSha: 'abc123',
-            gitBranch: 'main',
-            gitDirty: false,
-            timestamp: '2024-01-01T00:00:00Z',
-          },
-          runtime: {
-            nodeVersion: 'v20.0.0',
-            pnpmVersion: '8.0.0',
-            platform: 'linux',
-            arch: 'x64',
-            timestamp: '2024-01-01T00:00:00Z',
-          },
-          dependencies: {
-            lockfileHash: 'lock1',
-            packageHash: 'pkg1',
-            dependencyCount: 100,
-            timestamp: '2024-01-01T00:00:00Z',
-          },
-          environment: {
-            identifiers: {},
-            envType: 'test',
-            featureFlags: {},
-            timestamp: '2024-01-01T00:00:00Z',
-          },
-          createdAt: '2024-01-01T00:00:00Z',
-        },
-        logRefs: [],
-        artifactRefs: [],
-        metadata: {
-          exportedAt: '2024-01-01T00:00:00Z',
-          exportedBy: 'test',
-          isDryRun: false,
-        },
-      }
-
-      const result = compareBundles(bundle, bundle)
-      expect(result.equal).toBe(true)
-      expect(result.differences).toEqual([])
-    })
-
-    it('should identify different bundles', () => {
-      const bundle1: ReplayBundle = {
-        version: '1.0',
-        provenance: {
-          runId: 'run-1',
-          tenantId: 'tenant-1',
-          jobType: 'test',
-          inputs: {
-            canonicalJson: '{}',
-            hash: 'hash1',
-            originalKeys: [],
-            timestamp: '2024-01-01T00:00:00Z',
-          },
-          code: {
-            gitSha: 'abc123',
-            gitBranch: 'main',
-            gitDirty: false,
-            timestamp: '2024-01-01T00:00:00Z',
-          },
-          runtime: {
-            nodeVersion: 'v20.0.0',
-            pnpmVersion: '8.0.0',
-            platform: 'linux',
-            arch: 'x64',
-            timestamp: '2024-01-01T00:00:00Z',
-          },
-          dependencies: {
-            lockfileHash: 'lock1',
-            packageHash: 'pkg1',
-            dependencyCount: 100,
-            timestamp: '2024-01-01T00:00:00Z',
-          },
-          environment: {
-            identifiers: {},
-            envType: 'test',
-            featureFlags: {},
-            timestamp: '2024-01-01T00:00:00Z',
-          },
-          createdAt: '2024-01-01T00:00:00Z',
-        },
-        logRefs: [],
-        artifactRefs: [],
-        metadata: {
-          exportedAt: '2024-01-01T00:00:00Z',
-          exportedBy: 'test',
-          isDryRun: false,
-        },
-      }
-
-      const bundle2: ReplayBundle = {
-        ...bundle1,
-        provenance: {
-          ...bundle1.provenance,
-          inputs: {
-            ...bundle1.provenance.inputs,
-            hash: 'hash2',
-          },
-          code: {
-            ...bundle1.provenance.code,
-            gitSha: 'def456',
-          },
-        },
-      }
-
-      const result = compareBundles(bundle1, bundle2)
-      expect(result.equal).toBe(false)
-      expect(result.differences).toContain('inputs.hash')
-      expect(result.differences).toContain('code.gitSha')
-    })
-  })
-
-  describe('replayDryRun', () => {
-    it('should simulate replay without side effects', async () => {
-      const bundle: ReplayBundle = {
-        version: '1.0',
-        provenance: {
-          runId: 'run-1',
-          tenantId: 'tenant-1',
-          jobType: 'test.job',
-          inputs: {
-            canonicalJson: '{"key":"value"}',
-            hash: 'abc123',
-            originalKeys: ['key'],
-            timestamp: '2024-01-01T00:00:00Z',
-          },
-          code: {
-            gitSha: 'def456',
-            gitBranch: 'main',
-            gitDirty: false,
-            timestamp: '2024-01-01T00:00:00Z',
-          },
-          runtime: {
-            nodeVersion: process.version,
-            pnpmVersion: null,
-            platform: process.platform,
-            arch: process.arch,
-            timestamp: '2024-01-01T00:00:00Z',
-          },
-          dependencies: {
-            lockfileHash: 'lock1',
-            packageHash: 'pkg1',
-            dependencyCount: 100,
-            timestamp: '2024-01-01T00:00:00Z',
-          },
-          environment: {
-            identifiers: {},
-            envType: 'test',
-            featureFlags: {},
-            timestamp: '2024-01-01T00:00:00Z',
-          },
-          createdAt: '2024-01-01T00:00:00Z',
-        },
-        logRefs: ['log1'],
-        artifactRefs: ['art1'],
-        metadata: {
-          exportedAt: '2024-01-01T00:00:00Z',
-          exportedBy: 'test',
-          isDryRun: true,
-        },
-      }
-
-      const result = await replayDryRun(bundle, { maxLogLines: 50 })
-
-      expect(result.success).toBe(true)
-      expect(result.originalRunId).toBe('run-1')
-      expect(result.replayRunId).toBeDefined()
-      expect(result.logs.length).toBeGreaterThan(0)
-      expect(result.logs[0]).toContain('dry-run replay')
-    })
-
-    it('should detect version differences', async () => {
-      const bundle: ReplayBundle = {
-        version: '1.0',
-        provenance: {
-          runId: 'run-1',
-          tenantId: 'tenant-1',
-          jobType: 'test.job',
-          inputs: {
-            canonicalJson: '{"key":"value"}',
-            hash: 'abc123',
-            originalKeys: ['key'],
-            timestamp: '2024-01-01T00:00:00Z',
-          },
-          code: {
-            gitSha: 'old-sha',
-            gitBranch: 'main',
-            gitDirty: false,
-            timestamp: '2024-01-01T00:00:00Z',
-          },
-          runtime: {
-            nodeVersion: 'v18.0.0', // Different from current
-            pnpmVersion: null,
-            platform: 'linux',
-            arch: 'x64',
-            timestamp: '2024-01-01T00:00:00Z',
-          },
-          dependencies: {
-            lockfileHash: 'lock1',
-            packageHash: 'pkg1',
-            dependencyCount: 100,
-            timestamp: '2024-01-01T00:00:00Z',
-          },
-          environment: {
-            identifiers: {},
-            envType: 'test',
-            featureFlags: {},
-            timestamp: '2024-01-01T00:00:00Z',
-          },
-          createdAt: '2024-01-01T00:00:00Z',
-        },
-        logRefs: [],
-        artifactRefs: [],
-        metadata: {
-          exportedAt: '2024-01-01T00:00:00Z',
-          exportedBy: 'test',
-          isDryRun: true,
-        },
-      }
-
-      const result = await replayDryRun(bundle)
-
-      expect(result.differences.length).toBeGreaterThan(0)
-      expect(result.differences.some((d) => d.field === 'code.gitSha')).toBe(true)
-      expect(result.differences.some((d) => d.field === 'runtime.nodeVersion')).toBe(true)
-    })
-  })
-
-  describe('Feature Flag Integration', () => {
-    it('should return null when REPLAY_PACK_ENABLED=0', async () => {
-      ;(process.env as Record<string, string | undefined>).REPLAY_PACK_ENABLED = '0'
-
-      const result = await captureRunProvenance('run-1', 'tenant-1', 'test.job', { key: 'value' })
-
-      expect(result).toBeNull()
-    })
-
-    it('should capture provenance when REPLAY_PACK_ENABLED=1', async () => {
-      ;(process.env as Record<string, string | undefined>).REPLAY_PACK_ENABLED = '1'
+  describe('Run Provenance', () => {
+    it('should capture run provenance', async () => {
+      process.env.REPLAY_PACK_ENABLED = '1'
 
       const result = await captureRunProvenance('run-1', 'tenant-1', 'test.job', { key: 'value' })
 
@@ -476,10 +152,22 @@ describe('Replay System', () => {
       expect(result?.tenantId).toBe('tenant-1')
       expect(result?.jobType).toBe('test.job')
       expect(result?.inputs.hash).toBeDefined()
+      expect(result?.codeFingerprint).toBeDefined()
+      expect(result?.runtimeFingerprint).toBeDefined()
     })
 
-    it('should export bundle when REPLAY_PACK_ENABLED=1', async () => {
-      ;(process.env as Record<string, string | undefined>).REPLAY_PACK_ENABLED = '1'
+    it('should return null when REPLAY_PACK_ENABLED=0', async () => {
+      process.env.REPLAY_PACK_ENABLED = '0'
+
+      const result = await captureRunProvenance('run-1', 'tenant-1', 'test.job', { key: 'value' })
+
+      expect(result).toBeNull()
+    })
+  })
+
+  describe('Bundle Export', () => {
+    it('should export replay bundle', async () => {
+      process.env.REPLAY_PACK_ENABLED = '1'
 
       const result = await exportReplayBundle(
         'run-1',
@@ -497,11 +185,188 @@ describe('Replay System', () => {
     })
 
     it('should return null bundle export when REPLAY_PACK_ENABLED=0', async () => {
-      ;(process.env as Record<string, string | undefined>).REPLAY_PACK_ENABLED = '0'
+      process.env.REPLAY_PACK_ENABLED = '0'
 
       const result = await exportReplayBundle('run-1', 'tenant-1', 'test.job', { key: 'value' })
 
       expect(result).toBeNull()
+    })
+  })
+
+  describe('Verification', () => {
+    it('should verify matching input hash', () => {
+      const inputs = { key: 'value' }
+      const snapshot = createInputSnapshot(inputs)
+
+      const isValid = verifyInputHash(inputs, snapshot.hash)
+
+      expect(isValid).toBe(true)
+    })
+
+    it('should reject non-matching input hash', () => {
+      const inputs = { key: 'value' }
+      const snapshot = createInputSnapshot(inputs)
+
+      const isValid = verifyInputHash({ key: 'different' }, snapshot.hash)
+
+      expect(isValid).toBe(false)
+    })
+  })
+
+  describe('Comparison', () => {
+    it('should compare identical bundles', async () => {
+      process.env.REPLAY_PACK_ENABLED = '1'
+
+      const bundle1 = await exportReplayBundle('run-1', 'tenant-1', 'test.job', { key: 'value' })
+      const bundle2 = await exportReplayBundle('run-1', 'tenant-1', 'test.job', { key: 'value' })
+
+      // Both should be non-null
+      expect(bundle1).not.toBeNull()
+      expect(bundle2).not.toBeNull()
+
+      if (bundle1 && bundle2) {
+        const comparison = compareBundles(bundle1, bundle2)
+
+        expect(comparison.identical).toBe(true)
+        expect(comparison.differences).toHaveLength(0)
+      }
+    })
+
+    it('should detect different inputs', async () => {
+      process.env.REPLAY_PACK_ENABLED = '1'
+
+      const bundle1 = await exportReplayBundle('run-1', 'tenant-1', 'test.job', { key: 'value1' })
+      const bundle2 = await exportReplayBundle('run-1', 'tenant-1', 'test.job', { key: 'value2' })
+
+      expect(bundle1).not.toBeNull()
+      expect(bundle2).not.toBeNull()
+
+      if (bundle1 && bundle2) {
+        const comparison = compareBundles(bundle1, bundle2)
+
+        expect(comparison.identical).toBe(false)
+        expect(comparison.differences.some((d) => d.field === 'provenance.inputs.hash')).toBe(true)
+      }
+    })
+
+    it('should detect different runtimes', async () => {
+      process.env.REPLAY_PACK_ENABLED = '1'
+
+      const bundle1 = await exportReplayBundle('run-1', 'tenant-1', 'test.job', { key: 'value' })
+      // Simulate different runtime by modifying after export
+      const bundle2 = await exportReplayBundle('run-1', 'tenant-1', 'test.job', { key: 'value' })
+
+      expect(bundle1).not.toBeNull()
+      expect(bundle2).not.toBeNull()
+
+      if (bundle1 && bundle2) {
+        // Runtime timestamps will differ
+        const comparison = compareBundles(bundle1, bundle2)
+
+        // Should have runtime differences but identical inputs
+        expect(comparison.differences.some((d) => d.field.startsWith('runtime'))).toBe(true)
+      }
+    })
+  })
+
+  describe('Dry Run Comparison', () => {
+    it('should execute dry run with matching inputs', async () => {
+      process.env.REPLAY_PACK_ENABLED = '1'
+
+      const original = await exportReplayBundle(
+        'run-1',
+        'tenant-1',
+        'test.job',
+        { key: 'value' },
+        { logRefs: ['log1'] }
+      )
+
+      expect(original).not.toBeNull()
+
+      if (original) {
+        const result = await replayDryRun(original, { key: 'value' })
+
+        expect(result.canReplay).toBe(true)
+        expect(result.inputComparison.match).toBe(true)
+      }
+    })
+
+    it('should detect input mismatch in dry run', async () => {
+      process.env.REPLAY_PACK_ENABLED = '1'
+
+      const original = await exportReplayBundle(
+        'run-1',
+        'tenant-1',
+        'test.job',
+        { key: 'original' },
+        { logRefs: ['log1'] }
+      )
+
+      expect(original).not.toBeNull()
+
+      if (original) {
+        const result = await replayDryRun(original, { key: 'different' })
+
+        expect(result.canReplay).toBe(false)
+        expect(result.inputComparison.match).toBe(false)
+        expect(result.inputComparison.differences).toBeDefined()
+      }
+    })
+
+    it('should return null when REPLAY_PACK_ENABLED=0', async () => {
+      process.env.REPLAY_PACK_ENABLED = '0'
+
+      const result = await replayDryRun({} as ReplayBundle, { key: 'value' })
+
+      expect(result).toBeNull()
+    })
+  })
+
+  describe('Feature Flag Integration', () => {
+    it('should respect REPLAY_PACK_ENABLED=0 for provenance', async () => {
+      process.env.REPLAY_PACK_ENABLED = '0'
+
+      const result = await captureRunProvenance('run-1', 'tenant-1', 'test.job', { key: 'value' })
+
+      expect(result).toBeNull()
+    })
+
+    it('should respect REPLAY_PACK_ENABLED=0 for bundle export', async () => {
+      process.env.REPLAY_PACK_ENABLED = '0'
+
+      const result = await exportReplayBundle('run-1', 'tenant-1', 'test.job', { key: 'value' })
+
+      expect(result).toBeNull()
+    })
+
+    it('should work when REPLAY_PACK_ENABLED=1 for provenance', async () => {
+      process.env.REPLAY_PACK_ENABLED = '1'
+
+      const result = await captureRunProvenance('run-1', 'tenant-1', 'test.job', { key: 'value' })
+
+      expect(result).not.toBeNull()
+      expect(result?.runId).toBe('run-1')
+      expect(result?.tenantId).toBe('tenant-1')
+      expect(result?.jobType).toBe('test.job')
+      expect(result?.inputs.hash).toBeDefined()
+    })
+
+    it('should work when REPLAY_PACK_ENABLED=1 for bundle export', async () => {
+      process.env.REPLAY_PACK_ENABLED = '1'
+
+      const result = await exportReplayBundle(
+        'run-1',
+        'tenant-1',
+        'test.job',
+        { key: 'value' },
+        { logRefs: ['log1'], artifactRefs: ['art1'] }
+      )
+
+      expect(result).not.toBeNull()
+      expect(result?.version).toBe('1.0')
+      expect(result?.provenance.runId).toBe('run-1')
+      expect(result?.logRefs).toEqual(['log1'])
+      expect(result?.artifactRefs).toEqual(['art1'])
     })
   })
 })

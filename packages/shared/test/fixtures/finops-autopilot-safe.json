@@ -1,0 +1,60 @@
+{
+  "version": "1.0",
+  "bundle_id": "finops-autopilot-safe-reconcile-001",
+  "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+  "project_id": "550e8400-e29b-41d4-a716-446655440001",
+  "trace_id": "finops-trace-safe-001",
+  "requests": [
+    {
+      "id": "finops-reconcile-billing",
+      "job_type": "autopilot.finops.reconcile",
+      "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+      "project_id": "550e8400-e29b-41d4-a716-446655440001",
+      "payload": {
+        "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+        "project_id": "550e8400-e29b-41d4-a716-446655440001",
+        "period_start": "2024-01-01T00:00:00Z",
+        "period_end": "2024-01-31T23:59:59Z",
+        "sources": ["stripe", "aws"]
+      },
+      "idempotency_key": "finops-reconcile-billing-2024-01-15",
+      "required_scopes": ["finops:read"],
+      "is_action_job": false
+    },
+    {
+      "id": "finops-anomaly-scan",
+      "job_type": "autopilot.finops.anomaly_scan",
+      "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+      "project_id": "550e8400-e29b-41d4-a716-446655440001",
+      "payload": {
+        "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+        "project_id": "550e8400-e29b-41d4-a716-446655440001",
+        "time_range": "last_30_days",
+        "threshold_pct": 25
+      },
+      "idempotency_key": "finops-anomaly-scan-2024-01-15",
+      "required_scopes": ["finops:read"],
+      "is_action_job": false
+    },
+    {
+      "id": "finops-churn-risk",
+      "job_type": "autopilot.finops.churn_risk_report",
+      "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+      "project_id": "550e8400-e29b-41d4-a716-446655440001",
+      "payload": {
+        "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+        "project_id": "550e8400-e29b-41d4-a716-446655440001",
+        "segment": "enterprise",
+        "timeframe": "last_90_days"
+      },
+      "idempotency_key": "finops-churn-risk-2024-01-15",
+      "required_scopes": ["finops:read"],
+      "is_action_job": false
+    }
+  ],
+  "metadata": {
+    "source": "finops-autopilot",
+    "triggered_at": "2024-01-15T10:00:00Z",
+    "correlation_id": "finops-correlation-safe-001"
+  }
+}
