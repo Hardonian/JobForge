@@ -1,0 +1,38 @@
+{
+  "name": "@jobforge/mcp-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MCP Server for JobForge - exposes execution plane and ReadyLayer governance via Model Context Protocol",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "jobforge-mcp": "./dist/server.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "mcp:dev": "MCP_ENABLED=1 node dist/server.js"
+  },
+  "dependencies": {
+    "@jobforge/client": "workspace:*",
+    "@jobforge/database": "workspace:*",
+    "@jobforge/errors": "workspace:*",
+    "@jobforge/observability": "workspace:*",
+    "@jobforge/shared": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.25.3",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@jobforge/config": "workspace:*",
+    "@jobforge/typescript-config": "workspace:*",
+    "@types/node": "^20.11.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
+  }
+}
