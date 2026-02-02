@@ -1,20 +1,26 @@
 {
   "name": "@jobforge/adapter-keys",
   "version": "0.1.0",
-  "description": "JobForge adapter for KEYS",
+  "description": "JobForge adapter for Keys (API key management) - INTEGRATION ENABLED",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc",
+    "lint": "eslint src/**/*.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@jobforge/integration": "workspace:*",
     "@jobforge/sdk-ts": "workspace:*",
     "@jobforge/shared": "workspace:*",
     "zod": "^3.22.4"
   },
   "devDependencies": {
     "@jobforge/typescript-config": "workspace:*",
-    "typescript": "^5.9.3"
+    "@types/node": "^20.10.0",
+    "typescript": "^5.9.3",
+    "vitest": "^1.0.0"
   }
 }
