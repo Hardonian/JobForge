@@ -16,8 +16,8 @@ import { z } from 'zod'
 import type { JobContext } from '@jobforge/shared'
 import type { ArtifactManifest, ArtifactOutput } from '@jobforge/shared'
 import {
-  JOBFORGE_AUTOPILOT_JOBS_ENABLED,
-  JOBFORGE_ACTION_JOBS_ENABLED,
+  isAutopilotJobsEnabled,
+  isActionJobsEnabled,
   JOBFORGE_POLICY_TOKEN_SECRET,
 } from '@jobforge/shared'
 
@@ -103,10 +103,10 @@ export interface ExecuteBundleResult {
 // ============================================================================
 
 function checkAutopilotEnabled(): { enabled: true } | { enabled: false; reason: string } {
-  if (!JOBFORGE_AUTOPILOT_JOBS_ENABLED) {
+  if (!isAutopilotJobsEnabled()) {
     return {
       enabled: false,
-      reason: 'JOBFORGE_AUTOPILOT_JOBS_ENABLED is not enabled (set to 1 to enable)',
+      reason: 'Autopilot jobs are not enabled (set JOBFORGE_AUTOPILOT_JOBS_ENABLED=1 to enable)',
     }
   }
   return { enabled: true }
@@ -123,10 +123,10 @@ function verifyPolicyToken(
   }
 
   // Action jobs require the feature flag
-  if (!JOBFORGE_ACTION_JOBS_ENABLED) {
+  if (!isActionJobsEnabled()) {
     return {
       valid: false,
-      reason: 'Action jobs are disabled (JOBFORGE_ACTION_JOBS_ENABLED=0)',
+      reason: 'Action jobs are disabled (set JOBFORGE_ACTION_JOBS_ENABLED=1 to enable)',
     }
   }
 

@@ -11,7 +11,7 @@
 import { z } from 'zod'
 import type { JobContext } from '@jobforge/shared'
 import type { ArtifactManifest, ArtifactOutput } from '@jobforge/shared'
-import { JOBFORGE_AUTOPILOT_JOBS_ENABLED } from '@jobforge/shared'
+import { isAutopilotJobsEnabled } from '@jobforge/shared'
 
 // ============================================================================
 // Shared Types & Helpers
@@ -65,10 +65,10 @@ function createManifest(
 }
 
 function checkAutopilotEnabled(): { enabled: true } | { enabled: false; reason: string } {
-  if (!JOBFORGE_AUTOPILOT_JOBS_ENABLED) {
+  if (!isAutopilotJobsEnabled()) {
     return {
       enabled: false,
-      reason: 'JOBFORGE_AUTOPILOT_JOBS_ENABLED is not enabled (set to 1 to enable)',
+      reason: 'Autopilot jobs are not enabled (set JOBFORGE_AUTOPILOT_JOBS_ENABLED=1 to enable)',
     }
   }
   return { enabled: true }

@@ -66,7 +66,7 @@ function createManifest(
 }
 
 function checkAutopilotEnabled(): { enabled: true } | { enabled: false; reason: string } {
-  if (!JOBFORGE_AUTOPILOT_JOBS_ENABLED) {
+  if (!isAutopilotJobsEnabled()) {
     return {
       enabled: false,
       reason: 'JOBFORGE_AUTOPILOT_JOBS_ENABLED is not enabled (set to 1 to enable)',
@@ -81,7 +81,7 @@ function checkActionJobsEnabled(): { enabled: true } | { enabled: false; reason:
     return { enabled: false, reason: autopilotCheck.reason }
   }
 
-  if (!JOBFORGE_ACTION_JOBS_ENABLED) {
+  if (!isActionJobsEnabled()) {
     return {
       enabled: false,
       reason: 'JOBFORGE_ACTION_JOBS_ENABLED is not enabled (set to 1 to enable action jobs)',
