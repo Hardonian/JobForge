@@ -161,6 +161,52 @@ JobForge includes production-ready connectors:
 
 See [Connectors Documentation](docs/connectors.md) for usage.
 
+## Autopilot Job Templates (Beta)
+
+JobForge includes runnerless autopilot job templates for common operations:
+
+**Ops Jobs:**
+
+- `autopilot.ops.scan` - Infrastructure health/security/cost scanning
+- `autopilot.ops.diagnose` - Root cause analysis
+- `autopilot.ops.recommend` - Generate optimization recommendations
+- `autopilot.ops.apply` - Apply recommendations (action job - requires policy token)
+
+**Support Jobs:**
+
+- `autopilot.support.triage` - Ticket classification and routing
+- `autopilot.support.draft_reply` - Draft support responses
+- `autopilot.support.propose_kb_patch` - Draft KB article updates
+
+**Growth Jobs:**
+
+- `autopilot.growth.seo_scan` - SEO analysis and recommendations
+- `autopilot.growth.experiment_propose` - A/B test recommendations
+- `autopilot.growth.content_draft` - Marketing content generation
+
+**FinOps Jobs:**
+
+- `autopilot.finops.reconcile` - Billing reconciliation
+- `autopilot.finops.anomaly_scan` - Cost anomaly detection
+- `autopilot.finops.churn_risk_report` - Customer churn risk analysis
+
+**Bundle Executor:**
+
+- `jobforge.autopilot.execute_request_bundle` - Execute multiple jobs atomically
+
+### Enabling Autopilot Jobs
+
+```bash
+# Enable autopilot jobs (required for all autopilot job types)
+JOBFORGE_AUTOPILOT_JOBS_ENABLED=1
+
+# Enable action jobs (required for autopilot.ops.apply)
+JOBFORGE_ACTION_JOBS_ENABLED=1
+JOBFORGE_POLICY_TOKEN_SECRET=your-secret-here
+```
+
+See [AUTOPILOT_IMPLEMENTATION.md](AUTOPILOT_IMPLEMENTATION.md) for implementation details.
+
 ## Integration Adapters
 
 Drop-in modules for common SaaS products:
