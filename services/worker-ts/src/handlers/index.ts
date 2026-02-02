@@ -9,6 +9,54 @@ import { webhookDeliverHandler } from './webhook-deliver'
 import { reportGenerateHandler } from './report-generate'
 import { verifyPackHandler, VerifyPackPayloadSchema } from '@jobforge/shared'
 
+// Autopilot Ops handlers
+import {
+  opsScanHandler,
+  OpsScanPayloadSchema,
+  opsDiagnoseHandler,
+  OpsDiagnosePayloadSchema,
+  opsRecommendHandler,
+  OpsRecommendPayloadSchema,
+  opsApplyHandler,
+  OpsApplyPayloadSchema,
+} from './autopilot/ops'
+
+// Autopilot Support handlers
+import {
+  supportTriageHandler,
+  SupportTriagePayloadSchema,
+  supportDraftReplyHandler,
+  SupportDraftReplyPayloadSchema,
+  supportProposeKbPatchHandler,
+  SupportProposeKbPatchPayloadSchema,
+} from './autopilot/support'
+
+// Autopilot Growth handlers
+import {
+  growthSeoScanHandler,
+  GrowthSeoScanPayloadSchema,
+  growthExperimentProposeHandler,
+  GrowthExperimentProposePayloadSchema,
+  growthContentDraftHandler,
+  GrowthContentDraftPayloadSchema,
+} from './autopilot/growth'
+
+// Autopilot FinOps handlers
+import {
+  finopsReconcileHandler,
+  FinopsReconcilePayloadSchema,
+  finopsAnomalyScanHandler,
+  FinopsAnomalyScanPayloadSchema,
+  finopsChurnRiskReportHandler,
+  FinopsChurnRiskReportPayloadSchema,
+} from './autopilot/finops'
+
+// Autopilot Bundle executor
+import {
+  executeRequestBundleHandler,
+  ExecuteRequestBundlePayloadSchema,
+} from './autopilot/execute-bundle'
+
 /**
  * Create and configure the default handler registry
  */
@@ -54,8 +102,109 @@ export function createDefaultRegistry(): HandlerRegistry {
     },
   })
 
+  // ============================================================================
+  // Autopilot Ops Job Templates
+  // ============================================================================
+
+  registry.register('autopilot.ops.scan', opsScanHandler, {
+    timeoutMs: 300_000, // 5 minutes
+    validate: (payload) => OpsScanPayloadSchema.safeParse(payload).success,
+  })
+
+  registry.register('autopilot.ops.diagnose', opsDiagnoseHandler, {
+    timeoutMs: 300_000, // 5 minutes
+    validate: (payload) => OpsDiagnosePayloadSchema.safeParse(payload).success,
+  })
+
+  registry.register('autopilot.ops.recommend', opsRecommendHandler, {
+    timeoutMs: 300_000, // 5 minutes
+    validate: (payload) => OpsRecommendPayloadSchema.safeParse(payload).success,
+  })
+
+  registry.register('autopilot.ops.apply', opsApplyHandler, {
+    timeoutMs: 600_000, // 10 minutes for action jobs
+    validate: (payload) => OpsApplyPayloadSchema.safeParse(payload).success,
+  })
+
+  // ============================================================================
+  // Autopilot Support Job Templates
+  // ============================================================================
+
+  registry.register('autopilot.support.triage', supportTriageHandler, {
+    timeoutMs: 60_000, // 1 minute
+    validate: (payload) => SupportTriagePayloadSchema.safeParse(payload).success,
+  })
+
+  registry.register('autopilot.support.draft_reply', supportDraftReplyHandler, {
+    timeoutMs: 120_000, // 2 minutes
+    validate: (payload) => SupportDraftReplyPayloadSchema.safeParse(payload).success,
+  })
+
+  registry.register('autopilot.support.propose_kb_patch', supportProposeKbPatchHandler, {
+    timeoutMs: 180_000, // 3 minutes
+    validate: (payload) => SupportProposeKbPatchPayloadSchema.safeParse(payload).success,
+  })
+
+  // ============================================================================
+  // Autopilot Growth Job Templates
+  // ============================================================================
+
+  registry.register('autopilot.growth.seo_scan', growthSeoScanHandler, {
+    timeoutMs: 300_000, // 5 minutes
+    validate: (payload) => GrowthSeoScanPayloadSchema.safeParse(payload).success,
+  })
+
+  registry.register('autopilot.growth.experiment_propose', growthExperimentProposeHandler, {
+    timeoutMs: 120_000, // 2 minutes
+    validate: (payload) => GrowthExperimentProposePayloadSchema.safeParse(payload).success,
+  })
+
+  registry.register('autopilot.growth.content_draft', growthContentDraftHandler, {
+    timeoutMs: 180_000, // 3 minutes
+    validate: (payload) => GrowthContentDraftPayloadSchema.safeParse(payload).success,
+  })
+
+  // ============================================================================
+  // Autopilot FinOps Job Templates
+  // ============================================================================
+
+  registry.register('autopilot.finops.reconcile', finopsReconcileHandler, {
+    timeoutMs: 300_000, // 5 minutes
+    validate: (payload) => FinopsReconcilePayloadSchema.safeParse(payload).success,
+  })
+
+  registry.register('autopilot.finops.anomaly_scan', finopsAnomalyScanHandler, {
+    timeoutMs: 300_000, // 5 minutes
+    validate: (payload) => FinopsAnomalyScanPayloadSchema.safeParse(payload).success,
+  })
+
+  registry.register('autopilot.finops.churn_risk_report', finopsChurnRiskReportHandler, {
+    timeoutMs: 300_000, // 5 minutes
+    validate: (payload) => FinopsChurnRiskReportPayloadSchema.safeParse(payload).success,
+  })
+
+  // ============================================================================
+  // JobForge Bundle Executor (First-class job type)
+  // ============================================================================
+
+  registry.register('jobforge.autopilot.execute_request_bundle', executeRequestBundleHandler, {
+    timeoutMs: 600_000, // 10 minutes for bundle processing
+    validate: (payload) => ExecuteRequestBundlePayloadSchema.safeParse(payload).success,
+  })
+
   return registry
 }
 
 // Export handlers for testing
 export { httpRequestHandler, webhookDeliverHandler, reportGenerateHandler }
+
+// Export autopilot handlers for testing
+export { opsScanHandler, opsDiagnoseHandler, opsRecommendHandler, opsApplyHandler }
+
+export { supportTriageHandler, supportDraftReplyHandler, supportProposeKbPatchHandler }
+
+export { growthSeoScanHandler, growthExperimentProposeHandler, growthContentDraftHandler }
+
+export { finopsReconcileHandler, finopsAnomalyScanHandler, finopsChurnRiskReportHandler }
+
+export { executeRequestBundleHandler }

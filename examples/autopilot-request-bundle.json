@@ -1,0 +1,83 @@
+{
+  "version": "1.0",
+  "bundle_id": "example-bundle-001",
+  "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+  "project_id": "550e8400-e29b-41d4-a716-446655440001",
+  "trace_id": "trace-example-001",
+  "requests": [
+    {
+      "id": "req-scan-001",
+      "job_type": "autopilot.ops.scan",
+      "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+      "project_id": "550e8400-e29b-41d4-a716-446655440001",
+      "payload": {
+        "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+        "project_id": "550e8400-e29b-41d4-a716-446655440001",
+        "scan_type": "health",
+        "targets": ["database", "api", "workers"]
+      },
+      "idempotency_key": "scan-001-2024-01-15",
+      "required_scopes": ["ops:read"],
+      "is_action_job": false
+    },
+    {
+      "id": "req-triage-001",
+      "job_type": "autopilot.support.triage",
+      "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+      "project_id": "550e8400-e29b-41d4-a716-446655440001",
+      "payload": {
+        "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+        "project_id": "550e8400-e29b-41d4-a716-446655440001",
+        "ticket_id": "TICKET-12345",
+        "ticket_content": {
+          "subject": "Login issues after update",
+          "body": "I can't login after the latest update..."
+        },
+        "customer_context": {
+          "customer_id": "cust-123",
+          "tier": "pro"
+        }
+      },
+      "idempotency_key": "triage-001-2024-01-15",
+      "required_scopes": ["support:read"],
+      "is_action_job": false
+    },
+    {
+      "id": "req-seo-001",
+      "job_type": "autopilot.growth.seo_scan",
+      "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+      "project_id": "550e8400-e29b-41d4-a716-446655440001",
+      "payload": {
+        "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+        "project_id": "550e8400-e29b-41d4-a716-446655440001",
+        "target_url": "https://example.com",
+        "scan_depth": "surface",
+        "focus_areas": ["technical"]
+      },
+      "idempotency_key": "seo-001-2024-01-15",
+      "required_scopes": ["growth:read"],
+      "is_action_job": false
+    },
+    {
+      "id": "req-reconcile-001",
+      "job_type": "autopilot.finops.reconcile",
+      "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+      "project_id": "550e8400-e29b-41d4-a716-446655440001",
+      "payload": {
+        "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+        "project_id": "550e8400-e29b-41d4-a716-446655440001",
+        "period_start": "2024-01-01T00:00:00Z",
+        "period_end": "2024-01-31T23:59:59Z",
+        "sources": ["stripe"]
+      },
+      "idempotency_key": "reconcile-001-2024-01-15",
+      "required_scopes": ["finops:read"],
+      "is_action_job": false
+    }
+  ],
+  "metadata": {
+    "source": "autopilot-suite",
+    "triggered_at": "2024-01-15T10:00:00Z",
+    "correlation_id": "corr-example-001"
+  }
+}

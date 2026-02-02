@@ -1,0 +1,44 @@
+{
+  "version": "1.0",
+  "bundle_id": "example-bundle-action-001",
+  "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+  "project_id": "550e8400-e29b-41d4-a716-446655440001",
+  "trace_id": "trace-action-001",
+  "requests": [
+    {
+      "id": "req-scan-001",
+      "job_type": "autopilot.ops.scan",
+      "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+      "project_id": "550e8400-e29b-41d4-a716-446655440001",
+      "payload": {
+        "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+        "project_id": "550e8400-e29b-41d4-a716-446655440001",
+        "scan_type": "health"
+      },
+      "idempotency_key": "scan-action-001-2024-01-15",
+      "required_scopes": ["ops:read"],
+      "is_action_job": false
+    },
+    {
+      "id": "req-apply-001",
+      "job_type": "autopilot.ops.apply",
+      "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+      "project_id": "550e8400-e29b-41d4-a716-446655440001",
+      "payload": {
+        "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+        "project_id": "550e8400-e29b-41d4-a716-446655440001",
+        "policy_token": "PLACEHOLDER_TOKEN",
+        "recommendation_id": "rec-12345",
+        "apply_strategy": "immediate"
+      },
+      "idempotency_key": "apply-001-2024-01-15",
+      "required_scopes": ["ops:write"],
+      "is_action_job": true
+    }
+  ],
+  "metadata": {
+    "source": "autopilot-suite",
+    "triggered_at": "2024-01-15T10:00:00Z",
+    "correlation_id": "corr-action-001"
+  }
+}
