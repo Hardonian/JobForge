@@ -224,6 +224,10 @@ function processBundle(
     action_jobs_blocked: 0,
   }
 
+  // Check if bundle has action jobs but policy token is invalid
+  const hasActionJobs = bundle.requests.some((r) => r.is_action_job)
+  const policyFailure = hasActionJobs && !policyTokenValid
+
   // Track deduplication keys
   const seenIds = new Set<string>()
   const seenIdempotencyKeys = new Set<string>()
@@ -280,16 +284,20 @@ function processBundle(
       continue
     }
 
-    // Check action job policy
-    if (request.is_action_job && !policyTokenValid) {
+    // Check action job policy - deny ALL jobs if policy token invalid and action jobs present
+    if (policyFailure) {
       childRuns.push({
         request_id: request.id,
         job_type: request.job_type,
         status: 'denied',
-        reason: 'Action job blocked: policy token required but invalid/missing',
+        reason: request.is_action_job
+          ? 'Action job blocked: policy token required but invalid/missing'
+          : 'Denied due to policy token failure for action jobs in bundle',
       })
       summary.denied++
-      summary.action_jobs_blocked++
+      if (request.is_action_job) {
+        summary.action_jobs_blocked++
+      }
       continue
     }
 

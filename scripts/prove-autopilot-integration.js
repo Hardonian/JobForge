@@ -451,10 +451,10 @@ async function testTenantScoping() {
       {
         id: 'req-002',
         job_type: 'autopilot.ops.scan',
-        tenant_id: 'wrong-tenant-id', // Wrong tenant
+        tenant_id: '660e8400-e29b-41d4-a716-446655440999', // Different tenant (valid UUID)
         project_id: TEST_PROJECT_ID,
         payload: {
-          tenant_id: 'wrong-tenant-id',
+          tenant_id: '660e8400-e29b-41d4-a716-446655440999',
           project_id: TEST_PROJECT_ID,
           scan_type: 'security',
         },
