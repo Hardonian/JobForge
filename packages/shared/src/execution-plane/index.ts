@@ -3,10 +3,10 @@
  * Types and schemas for runnerless autopilot modules
  */
 
-export * from './events'
-export * from './manifests'
-export * from './templates'
-export * from './policy'
-export * from './triggers'
-export * from './policy-utils'
-export * from './manifest-utils'
+export * from './events.js'
+export * from './manifests.js'
+export * from './templates.js'
+export * from './policy.js'
+export * from './triggers.js'
+export * from './policy-utils.js'
+export * from './manifest-utils.js'
