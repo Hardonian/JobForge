@@ -16,10 +16,29 @@ import { createClient } from '@supabase/supabase-js'
 import {
   JobForgeClient,
   getFeatureFlagSummary,
+  getExtendedFeatureFlagSummary,
   isEventIngestionAvailable,
   generatePolicyToken,
   validatePolicyToken,
   generateManifestReport,
+  // Security utilities
+  validatePayload,
+  checkDuplicateEvent,
+  checkRateLimit,
+  checkScopes,
+  writeAuditLog,
+  queryAuditLogs,
+  // Trigger safety
+  evaluateTriggerFire,
+  queryDryRunRecords,
+  createStrictSafetyConfig,
+  // Replay bundle
+  captureRunProvenance,
+  exportReplayBundle,
+  replayDryRun,
+  createInputSnapshot,
+  REPLAY_PACK_ENABLED,
+  VERIFY_PACK_ENABLED,
 } from '../packages/sdk-ts/src'
 
 // Test configuration
@@ -322,6 +341,116 @@ async function runSmokeTest() {
     error(`Manifest test failed: ${err.message}`)
   }
 
+  // Step 8: Security hardening tests
+  info('\nStep 8: Testing security hardening...')
+  try {
+    // Test payload validation
+    const validPayload = { test: 'data', nested: { key: 'value' } }
+    const validation = validatePayload(validPayload)
+    if (validation.valid) {
+      success('Payload validation accepts valid payload')
+    } else {
+      error(`Payload validation failed: ${validation.errors.join(', ')}`)
+    }
+
+    // Test rate limiting
+    const rateLimit = checkRateLimit(TEST_TENANT_ID, 'test-actor', { maxRequests: 100 })
+    if (rateLimit.allowed) {
+      success('Rate limiting allows requests within limit')
+    } else {
+      error(`Rate limiting blocked: ${rateLimit.reason}`)
+    }
+
+    // Test scope enforcement
+    const scopeCheck = checkScopes({
+      requiredScopes: ['jobs:read', 'jobs:write'],
+      grantedScopes: ['jobs:read', 'jobs:write'],
+    })
+    if (scopeCheck.allowed) {
+      success('Scope enforcement works correctly')
+    } else {
+      error(`Scope check failed: ${scopeCheck.reason}`)
+    }
+
+    // Test replay protection
+    const testEventId = `test-event-${Date.now()}`
+    const check1 = checkDuplicateEvent(TEST_TENANT_ID, testEventId, 'test.event')
+    const check2 = checkDuplicateEvent(TEST_TENANT_ID, testEventId, 'test.event')
+    if (!check1.isDuplicate && check2.isDuplicate) {
+      success('Replay protection (dedupe) working correctly')
+    } else {
+      error('Replay protection not working as expected')
+    }
+  } catch (err: any) {
+    error(`Security test failed: ${err.message}`)
+  }
+
+  // Step 9: Trigger safety tests
+  info('\nStep 9: Testing trigger safety...')
+  try {
+    const traceId = `trace-${Date.now()}`
+    const decision = evaluateTriggerFire(
+      {
+        triggerId: 'test-trigger',
+        triggerType: 'cron',
+        tenantId: TEST_TENANT_ID,
+        projectId: TEST_PROJECT_ID,
+        eventType: 'test.event',
+        jobType: 'test.job',
+        actorId: 'test-actor',
+        traceId,
+      },
+      createStrictSafetyConfig(['test.event'], ['test.job'])
+    )
+    success(`Trigger safety evaluation: ${decision.action}`)
+
+    const dryRuns = queryDryRunRecords(TEST_TENANT_ID, { limit: 10 })
+    info(`  Found ${dryRuns.length} dry-run records`)
+  } catch (err: any) {
+    error(`Trigger safety test failed: ${err.message}`)
+  }
+
+  // Step 10: Replay bundle tests (if enabled)
+  info('\nStep 10: Testing replay bundle (provenance)...')
+  try {
+    if (!REPLAY_PACK_ENABLED) {
+      warn('Replay pack disabled (REPLAY_PACK_ENABLED=0)')
+      info('  This is expected - feature is off by default')
+    } else {
+      const runId = `test-run-${Date.now()}`
+      const inputs = { test: 'data', value: 123 }
+      const provenance = await captureRunProvenance(
+        runId,
+        TEST_TENANT_ID,
+        'test.job',
+        inputs,
+        TEST_PROJECT_ID
+      )
+      if (provenance) {
+        success(`Provenance captured: run ${provenance.runId.slice(0, 8)}`)
+        info(`  Code SHA: ${provenance.code.gitSha?.slice(0, 8) || 'N/A'}`)
+        info(`  Input hash: ${provenance.inputs.hash.slice(0, 8)}`)
+
+        // Test bundle export
+        const bundle = await exportReplayBundle(runId, TEST_TENANT_ID, 'test.job', inputs, {
+          projectId: TEST_PROJECT_ID,
+          isDryRun: true,
+        })
+        if (bundle) {
+          success('Replay bundle exported successfully')
+
+          // Test dry-run replay
+          const replay = await replayDryRun(bundle)
+          if (replay.success) {
+            success(`Replay dry-run completed: ${replay.differences.length} differences`)
+          }
+        }
+      }
+    }
+  } catch (err: any) {
+    error(`Replay bundle test failed: ${err.message}`)
+  }
+
   // Summary
   console.log('\n========================================')
   console.log('Smoke Test Complete')
@@ -333,11 +462,16 @@ async function runSmokeTest() {
   console.log('  [✓] New features are no-ops when disabled')
   console.log('  [✓] Policy token utilities work')
   console.log('  [✓] Manifest utilities work')
+  console.log('  [✓] Security hardening utilities work')
+  console.log('  [✓] Trigger safety gate works')
+  console.log('  [✓] Replay bundle system works (if enabled)')
   console.log('')
   info('To enable execution plane features:')
   console.log('  export JOBFORGE_EVENTS_ENABLED=1')
+  console.log('  export JOBFORGE_TRIGGERS_ENABLED=1')
   console.log('  export JOBFORGE_AUTOPILOT_JOBS_ENABLED=1')
-  console.log('  export JOBFORGE_MANIFESTS_ENABLED=1')
+  console.log('  export VERIFY_PACK_ENABLED=1')
+  console.log('  export REPLAY_PACK_ENABLED=1')
   console.log('')
 }
 

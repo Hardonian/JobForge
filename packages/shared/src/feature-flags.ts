@@ -66,6 +66,58 @@ export const JOBFORGE_AUDIT_LOGGING_ENABLED = parseBool(
  */
 export const JOBFORGE_MANIFESTS_ENABLED = parseBool(getEnvVar('JOBFORGE_MANIFESTS_ENABLED', '0'))
 
+/**
+ * Enable security validation (payload limits, etc)
+ * Default: true (1) - always on for safety
+ */
+export const JOBFORGE_SECURITY_VALIDATION_ENABLED = parseBool(
+  getEnvVar('JOBFORGE_SECURITY_VALIDATION_ENABLED', '1')
+)
+
+/**
+ * Enable rate limiting
+ * Default: false (0)
+ */
+export const JOBFORGE_RATE_LIMITING_ENABLED = parseBool(
+  getEnvVar('JOBFORGE_RATE_LIMITING_ENABLED', '0')
+)
+
+/**
+ * Enable replay pack generation and export
+ * Default: false (0)
+ */
+export const REPLAY_PACK_ENABLED = parseBool(getEnvVar('REPLAY_PACK_ENABLED', '0'))
+
+/**
+ * Enable ReadyLayer verify pack job type
+ * Default: false (0)
+ */
+export const VERIFY_PACK_ENABLED = parseBool(getEnvVar('VERIFY_PACK_ENABLED', '0'))
+
+// ============================================================================
+// Feature Flag Summary Updates
+// ============================================================================
+
+/**
+ * Get extended feature flag summary for diagnostics
+ */
+export function getExtendedFeatureFlagSummary(): Record<string, boolean | string> {
+  return {
+    events_enabled: JOBFORGE_EVENTS_ENABLED,
+    triggers_enabled: JOBFORGE_TRIGGERS_ENABLED,
+    autopilot_jobs_enabled: JOBFORGE_AUTOPILOT_JOBS_ENABLED,
+    action_jobs_enabled: JOBFORGE_ACTION_JOBS_ENABLED,
+    audit_logging_enabled: JOBFORGE_AUDIT_LOGGING_ENABLED,
+    manifests_enabled: JOBFORGE_MANIFESTS_ENABLED,
+    security_validation_enabled: JOBFORGE_SECURITY_VALIDATION_ENABLED,
+    rate_limiting_enabled: JOBFORGE_RATE_LIMITING_ENABLED,
+    replay_pack_enabled: REPLAY_PACK_ENABLED,
+    verify_pack_enabled: VERIFY_PACK_ENABLED,
+    require_policy_tokens: JOBFORGE_REQUIRE_POLICY_TOKENS,
+    policy_token_secret_set: JOBFORGE_POLICY_TOKEN_SECRET.length > 0,
+  }
+}
+
 // ============================================================================
 // Policy Token Settings
 // ============================================================================

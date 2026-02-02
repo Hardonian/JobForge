@@ -334,4 +334,31 @@ export class JobForgeClient {
 
     return data as ManifestRow
   }
+
+  /**
+   * List artifacts for a run
+   * Returns array of artifact outputs from the run manifest
+   * Requires JOBFORGE_MANIFESTS_ENABLED=1
+   */
+  async listArtifacts(
+    runId: string,
+    tenantId: string
+  ): Promise<
+    Array<{
+      name: string
+      type: string
+      ref: string
+      size?: number
+      checksum?: string
+      mime_type?: string
+    }>
+  > {
+    const manifest = await this.getRunManifest({ run_id: runId, tenant_id: tenantId })
+
+    if (!manifest) {
+      return []
+    }
+
+    return manifest.outputs || []
+  }
 }
