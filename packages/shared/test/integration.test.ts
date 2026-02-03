@@ -16,6 +16,8 @@ import {
   getTriggerRule,
   evaluateTriggers,
   clearTriggerStorage,
+  recordTriggerFire,
+  clearDedupeStore,
   // Replay bundles
   createReplayBundle,
   convertReplayToBundle,
@@ -24,6 +26,7 @@ import {
   // Contract tests
   validateBundle,
   simulateExecutorValidation,
+  isTriggerRuleAllowed,
 } from '../src/index.js'
 
 // Test constants
@@ -256,6 +259,114 @@ describe('Policy Token System', () => {
       expect(remaining).toBeGreaterThan(3500)
       expect(remaining).toBeLessThanOrEqual(3600)
     })
+  })
+})
+
+describe('Trigger Safety Controls', () => {
+  beforeEach(() => {
+    clearTriggerStorage()
+    clearDedupeStore()
+  })
+
+  it('prevents rapid loop triggers via cooldown', () => {
+    const rule = createTriggerRule({
+      tenant_id: TEST_TENANT_ID,
+      name: 'Cooldown Guard',
+      enabled: true,
+      match: { event_type_allowlist: ['ops.alert'] },
+      action: { bundle_source: 'inline', mode: 'execute' },
+      safety: { cooldown_seconds: 60, max_runs_per_hour: 10, allow_action_jobs: false },
+    })
+
+    recordTriggerFire(rule.rule_id)
+
+    const event = {
+      schema_version: '1.0.0',
+      event_version: '1.0' as const,
+      event_type: 'ops.alert',
+      occurred_at: new Date().toISOString(),
+      trace_id: 'cooldown-test-001',
+      tenant_id: TEST_TENANT_ID,
+      source_app: 'jobforge' as const,
+      payload: { severity: 'high' },
+      contains_pii: false,
+    }
+
+    const report = evaluateTriggers(event, [rule], { bundleTriggersEnabled: true })
+
+    expect(report.results[0].decision).toBe('cooldown')
+    expect(report.results[0].safety_checks.cooldown_passed).toBe(false)
+  })
+
+  it('enforces rate limit for trigger rules', () => {
+    const rule = createTriggerRule({
+      tenant_id: TEST_TENANT_ID,
+      name: 'Rate Limit Guard',
+      enabled: true,
+      match: { event_type_allowlist: ['ops.alert'] },
+      action: { bundle_source: 'inline', mode: 'execute' },
+      safety: { cooldown_seconds: 0, max_runs_per_hour: 1, allow_action_jobs: false },
+    })
+
+    recordTriggerFire(rule.rule_id)
+
+    const event = {
+      schema_version: '1.0.0',
+      event_version: '1.0' as const,
+      event_type: 'ops.alert',
+      occurred_at: new Date().toISOString(),
+      trace_id: 'rate-limit-test-001',
+      tenant_id: TEST_TENANT_ID,
+      source_app: 'jobforge' as const,
+      payload: { severity: 'high' },
+      contains_pii: false,
+    }
+
+    const report = evaluateTriggers(event, [rule], { bundleTriggersEnabled: true })
+
+    expect(report.results[0].decision).toBe('rate_limited')
+    expect(report.results[0].safety_checks.rate_limit_passed).toBe(false)
+  })
+
+  it('deduplicates repeated events via idempotency keys', () => {
+    const rule = createTriggerRule({
+      tenant_id: TEST_TENANT_ID,
+      name: 'Dedupe Guard',
+      enabled: true,
+      match: { event_type_allowlist: ['ops.alert'] },
+      action: { bundle_source: 'inline', mode: 'execute' },
+      safety: { cooldown_seconds: 0, max_runs_per_hour: 10, allow_action_jobs: false },
+    })
+
+    const event = {
+      schema_version: '1.0.0',
+      event_version: '1.0' as const,
+      event_type: 'ops.alert',
+      occurred_at: new Date().toISOString(),
+      trace_id: 'dedupe-test-001',
+      tenant_id: TEST_TENANT_ID,
+      source_app: 'jobforge' as const,
+      payload: { idempotency_key: 'dup-key-001', severity: 'high' },
+      contains_pii: false,
+    }
+
+    const first = evaluateTriggers(event, [rule], { bundleTriggersEnabled: true })
+    const second = evaluateTriggers(event, [rule], { bundleTriggersEnabled: true })
+
+    expect(first.results[0].decision).toBe('fire')
+    expect(second.results[0].decision).toBe('skip')
+    expect(second.results[0].safety_checks.dedupe_passed).toBe(false)
+  })
+
+  it('denies execute mode when action gating is not allowed', () => {
+    const decision = isTriggerRuleAllowed({
+      action_mode: 'execute',
+      safety_allow_action_jobs: false,
+      enabled: true,
+    })
+
+    expect(decision.allowed).toBe(false)
+    expect(decision.reason).toContain('execute mode')
   })
 })
 

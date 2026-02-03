@@ -13,8 +13,11 @@ import type {
   SubmitEventParams,
 } from './execution-plane/index.js'
 import { SCHEMA_VERSION } from '@autopilot/contracts'
-import { isBundleTriggersEnabled, isBundleExecutorEnabled } from './feature-flags.js'
-import { evaluateTriggers } from './execution-plane/bundle-triggers.js'
+import {
+  isBundleTriggersEnabled,
+  isPipelineTriggersEnabled,
+} from './feature-flags.js'
+import { evaluateTriggers, recordTriggerFire } from './execution-plane/bundle-triggers.js'
 
 // ============================================================================
 // Types
@@ -30,6 +33,23 @@ export interface EventIngestionResult {
 
 export interface TriggerRuleWithBundle extends BundleTriggerRule {
   resolved_bundle?: JobRequestBundle
+}
+
+interface PipelineTriggerJobPayload {
+  tenant_id: string
+  project_id?: string
+  event: EventEnvelope
+  module_id: string
+  rule: {
+    rule_id: string
+    name: string
+    action_mode: 'dry_run' | 'execute'
+    safety_allow_action_jobs: boolean
+    enabled: boolean
+  }
+  mode: 'dry_run' | 'execute'
+  bundle_ref?: string
+  policy_token?: string
 }
 
 // ============================================================================
@@ -307,6 +327,94 @@ export function createDatabaseTriggerStorage(supabase: SupabaseClient): TriggerS
 }
 
 // ============================================================================
+// Pipeline Trigger Scheduling (Event -> Module Runner)
+// ============================================================================
+
+async function enqueueModuleRunnerJob(
+  supabase: SupabaseClient,
+  payload: PipelineTriggerJobPayload,
+  idempotencyKey: string
+): Promise<void> {
+  const { error } = await supabase.rpc('jobforge_enqueue_job', {
+    p_tenant_id: payload.tenant_id,
+    p_type: 'jobforge.autopilot.run_module_cli',
+    p_payload: payload,
+    p_idempotency_key: idempotencyKey,
+    p_run_at: new Date().toISOString(),
+    p_max_attempts: 3,
+  })
+
+  if (error) {
+    throw new Error(`Failed to enqueue module runner job: ${error.message}`)
+  }
+}
+
+function schedulePipelineEvaluation(
+  supabase: SupabaseClient,
+  event: EventEnvelope,
+  eventRowId: string
+): void {
+  if (!isPipelineTriggersEnabled()) {
+    return
+  }
+
+  setTimeout(() => {
+    void (async () => {
+      try {
+        const storage = createDatabaseTriggerStorage(supabase)
+        const rules = await storage.listRules(event.tenant_id, event.project_id)
+        if (rules.length === 0) return
+
+        const report = evaluateTriggers(event, rules, { bundleTriggersEnabled: true })
+
+        for (const result of report.results) {
+          const rule = rules.find((r) => r.rule_id === result.rule_id)
+          if (!rule) continue
+
+          await storage.recordEvaluation(eventRowId, rule.rule_id, {
+            ...result,
+            tenant_id: event.tenant_id,
+          })
+
+          if (result.decision !== 'fire') {
+            continue
+          }
+
+          const moduleId =
+            rule.action.bundle_builder || event.source_module || 'autopilot.ops.scan'
+
+          const payload: PipelineTriggerJobPayload = {
+            tenant_id: event.tenant_id,
+            project_id: event.project_id,
+            event,
+            module_id: moduleId,
+            rule: {
+              rule_id: rule.rule_id,
+              name: rule.name,
+              action_mode: rule.action.mode,
+              safety_allow_action_jobs: rule.safety.allow_action_jobs,
+              enabled: rule.enabled,
+            },
+            mode: rule.action.mode,
+            bundle_ref: rule.action.bundle_ref,
+            policy_token:
+              typeof event.payload?.policy_token === 'string'
+                ? event.payload.policy_token
+                : undefined,
+          }
+
+          const idempotencyKey = `${rule.rule_id}:${event.trace_id}`
+          await enqueueModuleRunnerJob(supabase, payload, idempotencyKey)
+          recordTriggerFire(rule.rule_id)
+        }
+      } catch (error) {
+        console.error('Pipeline trigger evaluation failed:', error)
+      }
+    })()
+  }, 0)
+}
+
+// ============================================================================
 // Event Ingestion Pipeline
 // ============================================================================
 
@@ -351,32 +459,32 @@ export async function ingestEventWithTriggers(
       throw new Error(`Failed to submit event: ${submitError.message}`)
     }
 
+    const eventEnvelope: EventEnvelope = {
+      schema_version: SCHEMA_VERSION,
+      event_version: eventParams.event_version || '1.0',
+      event_type: eventParams.event_type,
+      occurred_at: new Date().toISOString(),
+      trace_id: eventParams.trace_id,
+      tenant_id: eventParams.tenant_id,
+      project_id: eventParams.project_id,
+      actor_id: eventParams.actor_id,
+      source_app: eventParams.source_app,
+      source_module: eventParams.source_module,
+      subject:
+        eventParams.subject_type && eventParams.subject_id
+          ? { type: eventParams.subject_type, id: eventParams.subject_id }
+          : undefined,
+      payload: eventParams.payload || {},
+      contains_pii: eventParams.contains_pii || false,
+      redaction_hints: eventParams.redaction_hints,
+    }
+
     // Step 2: Evaluate triggers if enabled
     if (options?.autoEvaluateTriggers !== false && isBundleTriggersEnabled()) {
       const storage = createDatabaseTriggerStorage(supabase)
       const rules = await storage.listRules(eventParams.tenant_id, eventParams.project_id)
 
       if (rules.length > 0) {
-        const eventEnvelope: EventEnvelope = {
-          schema_version: SCHEMA_VERSION,
-          event_version: eventParams.event_version || '1.0',
-          event_type: eventParams.event_type,
-          occurred_at: new Date().toISOString(),
-          trace_id: eventParams.trace_id,
-          tenant_id: eventParams.tenant_id,
-          project_id: eventParams.project_id,
-          actor_id: eventParams.actor_id,
-          source_app: eventParams.source_app,
-          source_module: eventParams.source_module,
-          subject:
-            eventParams.subject_type && eventParams.subject_id
-              ? { type: eventParams.subject_type, id: eventParams.subject_id }
-              : undefined,
-          payload: eventParams.payload || {},
-          contains_pii: eventParams.contains_pii || false,
-          redaction_hints: eventParams.redaction_hints,
-        }
-
         evaluationReport = await evaluateTriggersForEvent(eventEnvelope, rules, {
           onBundleFire: async (rule, _event) => {
             // Build bundle from rule configuration
@@ -400,6 +508,8 @@ export async function ingestEventWithTriggers(
         })
       }
     }
+
+    schedulePipelineEvaluation(supabase, eventEnvelope, event.id)
 
     return {
       event: event as EventRow,

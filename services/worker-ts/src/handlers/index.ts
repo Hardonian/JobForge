@@ -56,6 +56,10 @@ import {
   executeRequestBundleHandler,
   ExecuteRequestBundlePayloadSchema,
 } from './autopilot/execute-bundle'
+import {
+  runModuleCliHandler,
+  RunModuleCliPayloadSchema,
+} from './autopilot/run-module-cli'
 
 /**
  * Create and configure the default handler registry
@@ -192,6 +196,11 @@ export function createDefaultRegistry(): HandlerRegistry {
     validate: (payload) => ExecuteRequestBundlePayloadSchema.safeParse(payload).success,
   })
 
+  registry.register('jobforge.autopilot.run_module_cli', runModuleCliHandler, {
+    timeoutMs: 300_000, // 5 minutes
+    validate: (payload) => RunModuleCliPayloadSchema.safeParse(payload).success,
+  })
+
   return registry
 }
 
@@ -208,3 +217,5 @@ export { growthSeoScanHandler, growthExperimentProposeHandler, growthContentDraf
 export { finopsReconcileHandler, finopsAnomalyScanHandler, finopsChurnRiskReportHandler }
 
 export { executeRequestBundleHandler }
+
+export { runModuleCliHandler }
