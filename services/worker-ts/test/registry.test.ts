@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createDefaultRegistry } from '../src/handlers/index'
+import { createDefaultRegistry, httpJsonV1Handler } from '../src/handlers/index'
 import { HttpJsonRequestSchema } from '../src/handlers/http-json-v1'
 
 describe('connector.http_json_v1 Registry Registration', () => {
@@ -87,7 +87,6 @@ describe('connector.http_json_v1 Registry Registration', () => {
 
   it('should export handler for testing', () => {
     // Verify the handler is exported from the index
-    const { httpJsonV1Handler } = require('../src/handlers/index')
     expect(typeof httpJsonV1Handler).toBe('function')
   })
 
