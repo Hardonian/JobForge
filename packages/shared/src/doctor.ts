@@ -6,7 +6,7 @@
  */
 
 import { execSync } from 'child_process'
-import { readFile, stat, access } from 'fs/promises'
+import { stat, access } from 'fs/promises'
 import { createClient } from '@supabase/supabase-js'
 import { JOBFORGE_DOCTOR_ENABLED, getExtendedFeatureFlagSummary } from './feature-flags.js'
 
