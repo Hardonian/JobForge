@@ -5,6 +5,7 @@
 
 import { HandlerRegistry } from '../lib/registry'
 import { httpRequestHandler } from './http-request'
+import { httpJsonV1Handler, HttpJsonRequestSchema } from './http-json-v1'
 import { webhookDeliverHandler } from './webhook-deliver'
 import { reportGenerateHandler } from './report-generate'
 import { verifyPackHandler, VerifyPackPayloadSchema } from '@jobforge/shared'
@@ -70,6 +71,16 @@ export function createDefaultRegistry(): HandlerRegistry {
     validate: (payload) => {
       // Basic validation - actual validation done in handler via zod
       return typeof payload === 'object' && payload !== null && 'url' in payload
+    },
+  })
+
+  // Register HTTP JSON v1 connector (advanced connector with circuit breaker, retries, SSRF protection)
+  registry.register('connector.http_json_v1', httpJsonV1Handler, {
+    timeoutMs: 120_000, // 2 minutes (allows for retries)
+    maxAttempts: 5, // Allow more attempts for retryable failures
+    validate: (payload) => {
+      const result = HttpJsonRequestSchema.safeParse(payload)
+      return result.success
     },
   })
 
@@ -202,7 +213,8 @@ export function createDefaultRegistry(): HandlerRegistry {
 }
 
 // Export handlers for testing
-export { httpRequestHandler, webhookDeliverHandler, reportGenerateHandler }
+export { httpRequestHandler, httpJsonV1Handler }
+export { webhookDeliverHandler, reportGenerateHandler }
 
 // Export autopilot handlers for testing
 export { opsScanHandler, opsDiagnoseHandler, opsRecommendHandler, opsApplyHandler }
