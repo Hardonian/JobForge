@@ -34,29 +34,62 @@
  *          REPLAY_PACK_ENABLED
  */
 
-import { JobForgeClient } from '../packages/sdk-ts/src/index'
-import { generateTraceId } from '../packages/integration/src/trace'
-import {
-  getExtendedFeatureFlagSummary,
-  isEventIngestionAvailable,
-  generatePolicyToken,
-  generateManifestReport,
-  verifyActionJobSafety,
-  captureRunProvenance,
-  exportReplayBundle,
-  REPLAY_PACK_ENABLED,
-  VERIFY_PACK_ENABLED,
-  JOBFORGE_EVENTS_ENABLED,
-  JOBFORGE_AUTOPILOT_JOBS_ENABLED,
-  JOBFORGE_MANIFESTS_ENABLED,
-  JOBFORGE_ACTION_JOBS_ENABLED,
-  JOBFORGE_POLICY_TOKEN_SECRET,
-} from '../packages/shared/src/index'
 
 // Sample tenant/project context (deterministic for reproducibility)
 const SAMPLE_TENANT_ID = '00000000-0000-0000-0000-000000000001'
 const SAMPLE_PROJECT_ID = '00000000-0000-0000-0000-000000000002'
 const SAMPLE_ACTOR_ID = 'smoke-test-runner'
+
+const EXIT_CODES = {
+  success: 0,
+  validation: 2,
+  failure: 1,
+}
+
+const DEBUG_ENABLED = process.env.DEBUG === '1' || process.env.DEBUG === 'true'
+
+function formatError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message
+  }
+  return String(error)
+}
+
+function logUnexpectedError(message: string, error: unknown): void {
+  console.error(`${message}: ${formatError(error)}`)
+  if (DEBUG_ENABLED && error instanceof Error && error.stack) {
+    console.error(error.stack)
+  }
+}
+
+function showHelp(): void {
+  console.log(`
+JobForge Runnerless Execution Plane - Final Smoke Test
+
+Usage:
+  node scripts/smoke-test-final.ts [options]
+
+Options:
+  --with-flags   Enable feature flags for full test (default: false)
+  --help, -h     Show this help and exit
+
+Notes:
+  - With flags OFF, the test is safe for CI (no side effects).
+  - With flags ON, requires local dev environment and Supabase credentials.
+
+Examples:
+  node scripts/smoke-test-final.ts
+  JOBFORGE_EVENTS_ENABLED=1 JOBFORGE_AUTOPILOT_JOBS_ENABLED=1 \\
+    JOBFORGE_MANIFESTS_ENABLED=1 VERIFY_PACK_ENABLED=1 REPLAY_PACK_ENABLED=1 \\
+    SUPABASE_URL=http://localhost:54321 SUPABASE_SERVICE_ROLE_KEY=... \\
+    node scripts/smoke-test-final.ts --with-flags
+`)
+}
+
+if (process.argv.includes('--help') || process.argv.includes('-h')) {
+  showHelp()
+  process.exit(EXIT_CODES.success)
+}
 
 // Colors for output
 const C = {
@@ -106,6 +139,25 @@ function printSummary(title: string, data: Record<string, unknown>) {
 async function runSmokeTest() {
   const withFlags = process.argv.includes('--with-flags')
 
+  const { JobForgeClient } = await import('../packages/sdk-ts/src/index')
+  const { generateTraceId } = await import('../packages/integration/src/trace')
+  const {
+    getExtendedFeatureFlagSummary,
+    isEventIngestionAvailable,
+    generatePolicyToken,
+    generateManifestReport,
+    verifyActionJobSafety,
+    captureRunProvenance,
+    exportReplayBundle,
+    REPLAY_PACK_ENABLED,
+    VERIFY_PACK_ENABLED,
+    JOBFORGE_EVENTS_ENABLED,
+    JOBFORGE_AUTOPILOT_JOBS_ENABLED,
+    JOBFORGE_MANIFESTS_ENABLED,
+    JOBFORGE_ACTION_JOBS_ENABLED,
+    JOBFORGE_POLICY_TOKEN_SECRET,
+  } = await import('../packages/shared/src/index')
+
   printSection('JobForge Runnerless Execution Plane - Final Smoke Test')
   log('info', `Mode: ${withFlags ? 'WITH FLAGS ENABLED' : 'FLAGS OFF (safe mode)'}`)
   log('info', `Timestamp: ${new Date().toISOString()}`)
@@ -144,7 +196,7 @@ async function runSmokeTest() {
     } catch (err: any) {
       if (JOBFORGE_ACTION_JOBS_ENABLED) {
         log('error', `Action job safety failed: ${err.message}`)
-        process.exit(1)
+        process.exit(EXIT_CODES.failure)
       }
     }
   } else {
@@ -537,7 +589,7 @@ async function runSmokeTest() {
       console.log(`${C.green}✓ Rollback ready: All features can be disabled instantly${C.reset}`)
     } else {
       log('error', 'UNEXPECTED STATE - Security check failed')
-      process.exit(1)
+      process.exit(EXIT_CODES.failure)
     }
   } else {
     if (eventSubmissionResult.success && verifyPackResult.success) {
@@ -585,11 +637,11 @@ if (require.main === module) {
   runSmokeTest()
     .then((result) => {
       console.log(`\nExit code: 0`)
-      process.exit(0)
+      process.exit(EXIT_CODES.success)
     })
     .catch((err) => {
-      console.error(`\n${C.red}Smoke test crashed:${C.reset}`, err)
-      process.exit(1)
+      logUnexpectedError(`${C.red}Smoke test crashed${C.reset}`, err)
+      process.exit(EXIT_CODES.failure)
     })
 }
 

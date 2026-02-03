@@ -6,16 +6,7 @@
 
 import * as fs from 'fs'
 import * as path from 'path'
-import { JobForgeClient } from '@jobforge/sdk-ts'
-import {
-  type BundleTriggerRule,
-  type EventEnvelope,
-  evaluateTriggers,
-  listTriggerRules,
-  getTriggerRule,
-  isBundleTriggersEnabled,
-  getExtendedFeatureFlagSummary,
-} from '@jobforge/shared'
+import type { BundleTriggerRule, EventEnvelope } from '@jobforge/shared'
 
 // ============================================================================
 // Types
@@ -30,6 +21,45 @@ interface ConsoleConfig {
 
 interface RedactedOutput {
   [key: string]: unknown
+}
+
+const EXIT_CODES = {
+  success: 0,
+  validation: 2,
+  failure: 1,
+}
+
+const DEBUG_ENABLED = process.env.DEBUG === '1' || process.env.DEBUG === 'true'
+
+let sharedModule: typeof import('@jobforge/shared') | null = null
+let sdkModule: typeof import('@jobforge/sdk-ts') | null = null
+
+async function loadSharedModule(): Promise<typeof import('@jobforge/shared')> {
+  if (!sharedModule) {
+    sharedModule = await import('@jobforge/shared')
+  }
+  return sharedModule
+}
+
+async function loadSdkModule(): Promise<typeof import('@jobforge/sdk-ts')> {
+  if (!sdkModule) {
+    sdkModule = await import('@jobforge/sdk-ts')
+  }
+  return sdkModule
+}
+
+function formatError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message
+  }
+  return String(error)
+}
+
+function logUnexpectedError(message: string, error: unknown): void {
+  printError(message, formatError(error))
+  if (DEBUG_ENABLED && error instanceof Error && error.stack) {
+    console.error(error.stack)
+  }
 }
 
 // ============================================================================
@@ -111,6 +141,8 @@ async function listBundles(config: ConsoleConfig, args: string[]): Promise<void>
   if (since) console.log(`Since: ${since}`)
 
   try {
+    const { JobForgeClient } = await loadSdkModule()
+
     // Use client to query bundle runs
     const client = new JobForgeClient({
       supabaseUrl: config.supabaseUrl,
@@ -153,8 +185,8 @@ async function listBundles(config: ConsoleConfig, args: string[]): Promise<void>
 
     printFooter()
   } catch (error) {
-    printError('Failed to list bundles', error instanceof Error ? error.message : String(error))
-    process.exit(1)
+    logUnexpectedError('Failed to list bundles', error)
+    process.exit(EXIT_CODES.failure)
   }
 }
 
@@ -166,12 +198,14 @@ async function showBundle(config: ConsoleConfig, args: string[]): Promise<void> 
   if (!runId) {
     printError('Missing required argument: --run=<bundle_run_id>')
     console.log('\nUsage: jobforge console bundles:show --run=<id> [--json]')
-    process.exit(1)
+    process.exit(EXIT_CODES.validation)
   }
 
   printHeader(`Bundle Run: ${runId.slice(0, 16)}...`)
 
   try {
+    const { JobForgeClient } = await loadSdkModule()
+
     const client = new JobForgeClient({
       supabaseUrl: config.supabaseUrl,
       supabaseKey: config.supabaseKey,
@@ -181,7 +215,7 @@ async function showBundle(config: ConsoleConfig, args: string[]): Promise<void> 
 
     if (!job) {
       printError('Bundle run not found')
-      process.exit(1)
+      process.exit(EXIT_CODES.validation)
     }
 
     const result = job.result_id ? await client.getResult(job.result_id, config.tenantId) : null
@@ -261,8 +295,8 @@ async function showBundle(config: ConsoleConfig, args: string[]): Promise<void> 
 
     printFooter()
   } catch (error) {
-    printError('Failed to show bundle', error instanceof Error ? error.message : String(error))
-    process.exit(1)
+    logUnexpectedError('Failed to show bundle', error)
+    process.exit(EXIT_CODES.failure)
   }
 }
 
@@ -275,6 +309,8 @@ async function listTriggers(config: ConsoleConfig, args: string[]): Promise<void
   if (projectFilter) console.log(`Project: ${projectFilter}`)
 
   try {
+    const { listTriggerRules } = await loadSharedModule()
+
     // Use in-memory storage for now (production would use DB)
     const rules = listTriggerRules(config.tenantId, projectFilter)
 
@@ -305,8 +341,8 @@ async function listTriggers(config: ConsoleConfig, args: string[]): Promise<void
 
     printFooter()
   } catch (error) {
-    printError('Failed to list triggers', error instanceof Error ? error.message : String(error))
-    process.exit(1)
+    logUnexpectedError('Failed to list triggers', error)
+    process.exit(EXIT_CODES.failure)
   }
 }
 
@@ -318,17 +354,19 @@ async function showTrigger(config: ConsoleConfig, args: string[]): Promise<void>
   if (!ruleId) {
     printError('Missing required argument: --rule=<rule_id>')
     console.log('\nUsage: jobforge console triggers:show --rule=<id> [--json]')
-    process.exit(1)
+    process.exit(EXIT_CODES.validation)
   }
 
   printHeader(`Trigger Rule: ${ruleId.slice(0, 16)}...`)
 
   try {
+    const { getTriggerRule } = await loadSharedModule()
+
     const rule = getTriggerRule(ruleId)
 
     if (!rule) {
       printError('Trigger rule not found')
-      process.exit(1)
+      process.exit(EXIT_CODES.validation)
     }
 
     if (jsonOutput) {
@@ -367,8 +405,8 @@ async function showTrigger(config: ConsoleConfig, args: string[]): Promise<void>
 
     printFooter()
   } catch (error) {
-    printError('Failed to show trigger', error instanceof Error ? error.message : String(error))
-    process.exit(1)
+    logUnexpectedError('Failed to show trigger', error)
+    process.exit(EXIT_CODES.failure)
   }
 }
 
@@ -382,7 +420,7 @@ async function dryRunTrigger(config: ConsoleConfig, args: string[]): Promise<voi
   if (!ruleId || !eventPath) {
     printError('Missing required arguments', '--rule=<id> and --event=<path>')
     console.log('\nUsage: jobforge console triggers:dryrun --rule=<id> --event=<path> [--json]')
-    process.exit(1)
+    process.exit(EXIT_CODES.validation)
   }
 
   printHeader('Trigger Dry Run')
@@ -390,10 +428,12 @@ async function dryRunTrigger(config: ConsoleConfig, args: string[]): Promise<voi
   console.log(`Event File: ${eventPath}`)
 
   try {
+    const { evaluateTriggers, getTriggerRule } = await loadSharedModule()
+
     // Load event from file
     if (!fs.existsSync(eventPath)) {
       printError('Event file not found', eventPath)
-      process.exit(1)
+      process.exit(EXIT_CODES.validation)
     }
 
     const eventContent = fs.readFileSync(eventPath, 'utf-8')
@@ -402,14 +442,14 @@ async function dryRunTrigger(config: ConsoleConfig, args: string[]): Promise<voi
     // Validate event
     if (!event.tenant_id || !event.event_type || !event.trace_id) {
       printError('Invalid event format', 'Missing required fields: tenant_id, event_type, trace_id')
-      process.exit(1)
+      process.exit(EXIT_CODES.validation)
     }
 
     // Get the rule
     const rule = getTriggerRule(ruleId)
     if (!rule) {
       printError('Trigger rule not found')
-      process.exit(1)
+      process.exit(EXIT_CODES.validation)
     }
 
     // Run evaluation
@@ -449,10 +489,11 @@ async function dryRunTrigger(config: ConsoleConfig, args: string[]): Promise<voi
   } catch (error) {
     if (error instanceof SyntaxError) {
       printError('Invalid JSON in event file', error.message)
+      process.exit(EXIT_CODES.validation)
     } else {
-      printError('Dry run failed', error instanceof Error ? error.message : String(error))
+      logUnexpectedError('Dry run failed', error)
+      process.exit(EXIT_CODES.failure)
     }
-    process.exit(1)
   }
 }
 
@@ -465,13 +506,15 @@ async function exportReplay(config: ConsoleConfig, args: string[]): Promise<void
   if (!runId) {
     printError('Missing required argument: --run=<bundle_run_id>')
     console.log('\nUsage: jobforge console replay:export --run=<id> [--output=<path>]')
-    process.exit(1)
+    process.exit(EXIT_CODES.validation)
   }
 
   printHeader('Export Replay Bundle')
   console.log(`Run ID: ${runId.slice(0, 16)}...`)
 
   try {
+    const { JobForgeClient } = await loadSdkModule()
+
     const client = new JobForgeClient({
       supabaseUrl: config.supabaseUrl,
       supabaseKey: config.supabaseKey,
@@ -481,7 +524,7 @@ async function exportReplay(config: ConsoleConfig, args: string[]): Promise<void
 
     if (!job) {
       printError('Bundle run not found')
-      process.exit(1)
+      process.exit(EXIT_CODES.validation)
     }
 
     // Build replay bundle
@@ -512,14 +555,17 @@ async function exportReplay(config: ConsoleConfig, args: string[]): Promise<void
     printSuccess(`Replay bundle exported to: ${finalOutputPath}`)
     printFooter()
   } catch (error) {
-    printError('Export failed', error instanceof Error ? error.message : String(error))
-    process.exit(1)
+    logUnexpectedError('Export failed', error)
+    process.exit(EXIT_CODES.failure)
   }
 }
 
 function showHelp(): void {
   console.log(`
 JobForge Ops Console CLI
+
+Description:
+  Operator-friendly console for inspecting bundle runs, trigger rules, and replays.
 
 USAGE:
   jobforge console <command> [options]
@@ -531,17 +577,18 @@ COMMANDS:
   triggers:show       Show trigger rule details
   triggers:dryrun     Test trigger rule against event
   replay:export       Export replay bundle for a run
+  status              Show feature flag status
   help                Show this help message
 
 OPTIONS:
-  --tenant=<id>       Tenant ID (required, or set JOBFORGE_TENANT_ID)
+  --tenant=<id>       Tenant ID (required for data commands, or set JOBFORGE_TENANT_ID)
   --project=<id>      Project ID (optional, or set JOBFORGE_PROJECT_ID)
-  --json              Output as JSON (redacted)
-  --since=<time>      Filter by time (ISO format)
-  --run=<id>          Bundle run ID
-  --rule=<id>         Trigger rule ID
-  --event=<path>      Path to event JSON file
-  --output=<path>     Output file path
+  --json              Output as JSON (redacted, default: false)
+  --since=<time>      Filter by time (ISO format, default: none)
+  --run=<id>          Bundle run ID (for bundles:show and replay:export)
+  --rule=<id>         Trigger rule ID (for triggers:show and triggers:dryrun)
+  --event=<path>      Path to event JSON file (for triggers:dryrun)
+  --output=<path>     Output file path (for replay:export)
 
 ENVIRONMENT:
   SUPABASE_URL                  Supabase project URL (required)
@@ -557,8 +604,10 @@ EXAMPLES:
 `)
 }
 
-function showStatus(): void {
+async function showStatus(): Promise<void> {
   printHeader('JobForge Ops Console Status')
+
+  const { getExtendedFeatureFlagSummary, isBundleTriggersEnabled } = await loadSharedModule()
 
   const flags = getExtendedFeatureFlagSummary()
 
@@ -578,8 +627,21 @@ function showStatus(): void {
 // Main CLI Entry Point
 // ============================================================================
 
-function main(): void {
+async function main(): Promise<void> {
   const args = process.argv.slice(2)
+
+  // Get command early for help/status
+  const command = args[0]
+
+  if (!command || command === 'help' || command === '--help' || command === '-h') {
+    showHelp()
+    process.exit(EXIT_CODES.success)
+  }
+
+  if (command === 'status') {
+    await showStatus()
+    process.exit(EXIT_CODES.success)
+  }
 
   // Parse global options
   const tenantArg = args.find((a) => a.startsWith('--tenant='))
@@ -598,20 +660,7 @@ function main(): void {
       'Missing required environment variables',
       'SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set'
     )
-    process.exit(1)
-  }
-
-  // Get command
-  const command = args[0]
-
-  if (!command || command === 'help' || command === '--help' || command === '-h') {
-    showHelp()
-    process.exit(0)
-  }
-
-  if (command === 'status') {
-    showStatus()
-    process.exit(0)
+    process.exit(EXIT_CODES.validation)
   }
 
   // Validate tenant for data commands
@@ -628,41 +677,42 @@ function main(): void {
       'Missing tenant ID',
       'Provide --tenant=<id> or set JOBFORGE_TENANT_ID environment variable'
     )
-    process.exit(1)
+    process.exit(EXIT_CODES.validation)
   }
 
   // Route to command handler
-  ;(async () => {
-    try {
-      switch (command) {
-        case 'bundles:list':
-          await listBundles(config, args)
-          break
-        case 'bundles:show':
-          await showBundle(config, args)
-          break
-        case 'triggers:list':
-          await listTriggers(config, args)
-          break
-        case 'triggers:show':
-          await showTrigger(config, args)
-          break
-        case 'triggers:dryrun':
-          await dryRunTrigger(config, args)
-          break
-        case 'replay:export':
-          await exportReplay(config, args)
-          break
-        default:
-          printError(`Unknown command: ${command}`)
-          console.log('\nRun "jobforge console help" for usage information.')
-          process.exit(1)
-      }
-    } catch (error) {
-      printError('Command failed', error instanceof Error ? error.message : String(error))
-      process.exit(1)
+  try {
+    switch (command) {
+      case 'bundles:list':
+        await listBundles(config, args)
+        break
+      case 'bundles:show':
+        await showBundle(config, args)
+        break
+      case 'triggers:list':
+        await listTriggers(config, args)
+        break
+      case 'triggers:show':
+        await showTrigger(config, args)
+        break
+      case 'triggers:dryrun':
+        await dryRunTrigger(config, args)
+        break
+      case 'replay:export':
+        await exportReplay(config, args)
+        break
+      default:
+        printError(`Unknown command: ${command}`)
+        console.log('\nRun "jobforge console help" for usage information.')
+        process.exit(EXIT_CODES.validation)
     }
-  })()
+  } catch (error) {
+    logUnexpectedError('Command failed', error)
+    process.exit(EXIT_CODES.failure)
+  }
 }
 
-main()
+main().catch((error) => {
+  logUnexpectedError('Console crashed', error)
+  process.exit(EXIT_CODES.failure)
+})

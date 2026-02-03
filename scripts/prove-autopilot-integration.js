@@ -14,10 +14,65 @@
  * 3. Verify action job gating (policy tokens)
  */
 
-const {
-  executeRequestBundleHandler,
-} = require('../services/worker-ts/dist/handlers/autopilot/execute-bundle')
-const { opsScanHandler } = require('../services/worker-ts/dist/handlers/autopilot/ops')
+let cachedHandlers = null
+
+function getHandlers() {
+  if (cachedHandlers) {
+    return cachedHandlers
+  }
+  const {
+    executeRequestBundleHandler,
+  } = require('../services/worker-ts/dist/handlers/autopilot/execute-bundle')
+  const { opsScanHandler } = require('../services/worker-ts/dist/handlers/autopilot/ops')
+  cachedHandlers = { executeRequestBundleHandler, opsScanHandler }
+  return cachedHandlers
+}
+
+const EXIT_CODES = {
+  success: 0,
+  validation: 2,
+  failure: 1,
+}
+
+const DEBUG_ENABLED = process.env.DEBUG === '1' || process.env.DEBUG === 'true'
+
+function formatError(error) {
+  if (error instanceof Error) {
+    return error.message
+  }
+  return String(error)
+}
+
+function logUnexpectedError(message, error) {
+  console.error(`${message}: ${formatError(error)}`)
+  if (DEBUG_ENABLED && error instanceof Error && error.stack) {
+    console.error(error.stack)
+  }
+}
+
+function showHelp() {
+  console.log(`
+JobForge Autopilot Integration Proving Script
+
+Usage:
+  node scripts/prove-autopilot-integration.js [options]
+
+Options:
+  --help, -h   Show this help and exit
+
+Requirements:
+  - Run "pnpm run build" to build worker-ts handlers before running.
+
+Examples:
+  pnpm run build
+  node scripts/prove-autopilot-integration.js
+`)
+}
+
+if (process.argv.includes('--help') || process.argv.includes('-h')) {
+  showHelp()
+  process.exit(EXIT_CODES.success)
+}
 
 // Test constants
 const TEST_TENANT_ID = '550e8400-e29b-41d4-a716-446655440000'
@@ -80,6 +135,7 @@ async function testDryRunDisabled() {
 
   const context = createMockContext('job-test-disabled-001')
 
+  const { executeRequestBundleHandler } = getHandlers()
   const result = await executeRequestBundleHandler(
     {
       tenant_id: TEST_TENANT_ID,
@@ -116,6 +172,7 @@ async function testDirectHandlerDisabled() {
 
   const context = createMockContext('job-test-direct-001')
 
+  const { opsScanHandler } = getHandlers()
   const result = await opsScanHandler(
     {
       tenant_id: TEST_TENANT_ID,
@@ -152,9 +209,8 @@ async function testDryRunEnabled() {
   delete require.cache[
     require.resolve('../services/worker-ts/dist/handlers/autopilot/execute-bundle')
   ]
-  const {
-    executeRequestBundleHandler: handler,
-  } = require('../services/worker-ts/dist/handlers/autopilot/execute-bundle')
+  cachedHandlers = null
+  const { executeRequestBundleHandler: handler } = getHandlers()
 
   const bundle = {
     version: '1.0',
@@ -248,9 +304,8 @@ async function testActionJobBlocked() {
   delete require.cache[
     require.resolve('../services/worker-ts/dist/handlers/autopilot/execute-bundle')
   ]
-  const {
-    executeRequestBundleHandler: handler,
-  } = require('../services/worker-ts/dist/handlers/autopilot/execute-bundle')
+  cachedHandlers = null
+  const { executeRequestBundleHandler: handler } = getHandlers()
 
   const bundle = {
     version: '1.0',
@@ -336,9 +391,8 @@ async function testDuplicateDetection() {
   delete require.cache[
     require.resolve('../services/worker-ts/dist/handlers/autopilot/execute-bundle')
   ]
-  const {
-    executeRequestBundleHandler: handler,
-  } = require('../services/worker-ts/dist/handlers/autopilot/execute-bundle')
+  cachedHandlers = null
+  const { executeRequestBundleHandler: handler } = getHandlers()
 
   const bundle = {
     version: '1.0',
@@ -429,9 +483,8 @@ async function testTenantScoping() {
   delete require.cache[
     require.resolve('../services/worker-ts/dist/handlers/autopilot/execute-bundle')
   ]
-  const {
-    executeRequestBundleHandler: handler,
-  } = require('../services/worker-ts/dist/handlers/autopilot/execute-bundle')
+  cachedHandlers = null
+  const { executeRequestBundleHandler: handler } = getHandlers()
 
   const bundle = {
     version: '1.0',
@@ -517,8 +570,8 @@ async function runAllTests() {
     results.push(await testDuplicateDetection())
     results.push(await testTenantScoping())
   } catch (error) {
-    console.error('\n💥 Test suite failed with error:', error)
-    process.exit(1)
+    logUnexpectedError('\n💥 Test suite failed with error', error)
+    process.exit(EXIT_CODES.failure)
   }
 
   const passed = results.filter((r) => r).length
@@ -530,15 +583,15 @@ async function runAllTests() {
 
   if (passed === total) {
     console.log('\n✨ All integration tests passed!')
-    process.exit(0)
+    process.exit(EXIT_CODES.success)
   } else {
     console.log('\n⚠️  Some tests failed.')
-    process.exit(1)
+    process.exit(EXIT_CODES.failure)
   }
 }
 
 // Run tests
 runAllTests().catch((error) => {
-  console.error('Unhandled error:', error)
-  process.exit(1)
+  logUnexpectedError('Unhandled error', error)
+  process.exit(EXIT_CODES.failure)
 })

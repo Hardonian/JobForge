@@ -7,13 +7,59 @@
 // Test imports
 const path = require('path')
 
+const EXIT_CODES = {
+  success: 0,
+  validation: 2,
+  failure: 1,
+}
+
+const DEBUG_ENABLED = process.env.DEBUG === '1' || process.env.DEBUG === 'true'
+
+function formatError(error) {
+  if (error instanceof Error) {
+    return error.message
+  }
+  return String(error)
+}
+
+function logUnexpectedError(message, error) {
+  console.error(`${message}: ${formatError(error)}`)
+  if (DEBUG_ENABLED && error instanceof Error && error.stack) {
+    console.error(error.stack)
+  }
+}
+
+function showHelp() {
+  console.log(`
+JobForge Autopilot Smoke Test
+
+Usage:
+  node scripts/smoke-test-autopilot.js [options]
+
+Options:
+  --help, -h   Show this help and exit
+
+Requirements:
+  - Run "pnpm run build" to build worker-ts handlers before running.
+
+Examples:
+  pnpm run build
+  node scripts/smoke-test-autopilot.js
+`)
+}
+
+if (process.argv.includes('--help') || process.argv.includes('-h')) {
+  showHelp()
+  process.exit(EXIT_CODES.success)
+}
+
 // Check if dist exists
 const distPath = path.join(__dirname, '..', 'services', 'worker-ts', 'dist')
 const fs = require('fs')
 
 if (!fs.existsSync(distPath)) {
   console.error('❌ Build output not found. Please run "pnpm run build" first.')
-  process.exit(1)
+  process.exit(EXIT_CODES.validation)
 }
 
 // Test constants
@@ -21,11 +67,19 @@ const TEST_TENANT_ID = '550e8400-e29b-41d4-a716-446655440000'
 const TEST_PROJECT_ID = '550e8400-e29b-41d4-a716-446655440001'
 const TEST_TRACE_ID = 'trace-test-001'
 
-// Load handlers from dist
-const {
-  executeRequestBundleHandler,
-} = require('../services/worker-ts/dist/handlers/autopilot/execute-bundle')
-const { opsScanHandler } = require('../services/worker-ts/dist/handlers/autopilot/ops')
+let cachedHandlers = null
+
+function getHandlers() {
+  if (cachedHandlers) {
+    return cachedHandlers
+  }
+  const {
+    executeRequestBundleHandler,
+  } = require('../services/worker-ts/dist/handlers/autopilot/execute-bundle')
+  const { opsScanHandler } = require('../services/worker-ts/dist/handlers/autopilot/ops')
+  cachedHandlers = { executeRequestBundleHandler, opsScanHandler }
+  return cachedHandlers
+}
 
 // Mock job context
 function createMockContext(jobId) {
@@ -53,6 +107,7 @@ async function testDisabled() {
 
   process.env.JOBFORGE_AUTOPILOT_JOBS_ENABLED = '0'
 
+  const { opsScanHandler } = getHandlers()
   const context = createMockContext('job-test-001')
   const result = await opsScanHandler(
     {
@@ -78,6 +133,7 @@ async function testEnabled() {
 
   process.env.JOBFORGE_AUTOPILOT_JOBS_ENABLED = '1'
 
+  const { opsScanHandler } = getHandlers()
   const context = createMockContext('job-test-002')
   const result = await opsScanHandler(
     {
@@ -125,6 +181,7 @@ async function testBundleDisabled() {
     },
   }
 
+  const { executeRequestBundleHandler } = getHandlers()
   const context = createMockContext('job-test-bundle-001')
   const result = await executeRequestBundleHandler(
     {
@@ -188,6 +245,7 @@ async function testBundleDryRun() {
     },
   }
 
+  const { executeRequestBundleHandler } = getHandlers()
   const context = createMockContext('job-test-bundle-002')
   const result = await executeRequestBundleHandler(
     {
@@ -257,6 +315,7 @@ async function testActionJobBlocked() {
     },
   }
 
+  const { executeRequestBundleHandler } = getHandlers()
   const context = createMockContext('job-test-action-001')
   const result = await executeRequestBundleHandler(
     {
@@ -299,8 +358,8 @@ async function runTests() {
     results.push(await testBundleDryRun())
     results.push(await testActionJobBlocked())
   } catch (error) {
-    console.error('\n💥 Test failed with error:', error.message)
-    process.exit(1)
+    logUnexpectedError('\n💥 Test failed with error', error)
+    process.exit(EXIT_CODES.failure)
   }
 
   const passed = results.filter((r) => r).length
@@ -312,14 +371,14 @@ async function runTests() {
 
   if (passed === total) {
     console.log('\n✨ All smoke tests passed!')
-    process.exit(0)
+    process.exit(EXIT_CODES.success)
   } else {
     console.log('\n⚠️  Some tests failed.')
-    process.exit(1)
+    process.exit(EXIT_CODES.failure)
   }
 }
 
 runTests().catch((err) => {
-  console.error('Unhandled error:', err)
-  process.exit(1)
+  logUnexpectedError('Unhandled error', err)
+  process.exit(EXIT_CODES.failure)
 })

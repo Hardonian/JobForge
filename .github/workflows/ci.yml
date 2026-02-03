@@ -49,6 +49,9 @@ jobs:
       - name: Verify (fast)
         run: pnpm run verify:fast
 
+      - name: Docs verify
+        run: pnpm run docs:verify
+
   contract-tests:
     name: Contract Tests
     runs-on: ubuntu-latest

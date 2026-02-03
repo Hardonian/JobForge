@@ -1,0 +1,9 @@
+Exporting impact map for run demo-run-001...
+
+✓ Exported to ../../output/impact-demo-run-001-2024-01-01T00-00-00-000Z.json
+
+Graph summary:
+  Nodes: 1
+  Edges: 0
+  Tenant: tenant-demo
+  Created: 2024-01-01T00:00:00.000Z

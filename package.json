@@ -20,6 +20,7 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,mdx}\"",
     "verify:fast": "pnpm run format:check && pnpm run lint && pnpm run typecheck",
     "verify:full": "pnpm run verify:fast && pnpm run test && pnpm run build",
+    "docs:verify": "node scripts/docs-verify.js",
     "clean": "turbo run clean && rm -rf node_modules",
     "jobforge:doctor": "tsx scripts/jobforge-doctor.ts",
     "jobforge:impact:show": "tsx scripts/jobforge-impact.ts show",

@@ -1,0 +1,24 @@
+{
+  "version": "1.0",
+  "runId": "demo-run-001",
+  "tenantId": "tenant-demo",
+  "projectId": "project-demo",
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "nodes": [
+    {
+      "id": "demo-run-001",
+      "type": "bundle_run",
+      "tenantId": "tenant-demo",
+      "projectId": "project-demo",
+      "timestamp": "2024-01-01T00:00:00.000Z",
+      "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "metadata": {
+        "jobType": "autopilot.ops.scan",
+        "status": "complete",
+        "inputHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    }
+  ],
+  "edges": [],
+  "rootNodeId": "demo-run-001"
+}

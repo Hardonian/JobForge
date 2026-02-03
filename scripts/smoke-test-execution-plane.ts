@@ -12,34 +12,54 @@
  *   JOBFORGE_EVENTS_ENABLED=1 ts-node scripts/smoke-test-execution-plane.ts
  */
 
-import { createClient } from '@supabase/supabase-js'
-import {
-  JobForgeClient,
-  getFeatureFlagSummary,
-  getExtendedFeatureFlagSummary,
-  isEventIngestionAvailable,
-  generatePolicyToken,
-  validatePolicyToken,
-  generateManifestReport,
-  // Security utilities
-  validatePayload,
-  checkDuplicateEvent,
-  checkRateLimit,
-  checkScopes,
-  writeAuditLog,
-  queryAuditLogs,
-  // Trigger safety
-  evaluateTriggerFire,
-  queryDryRunRecords,
-  createStrictSafetyConfig,
-  // Replay bundle
-  captureRunProvenance,
-  exportReplayBundle,
-  replayDryRun,
-  createInputSnapshot,
-  REPLAY_PACK_ENABLED,
-  VERIFY_PACK_ENABLED,
-} from '../packages/sdk-ts/src'
+
+const EXIT_CODES = {
+  success: 0,
+  validation: 2,
+  failure: 1,
+}
+
+const DEBUG_ENABLED = process.env.DEBUG === '1' || process.env.DEBUG === 'true'
+
+function formatError(err: unknown): string {
+  if (err instanceof Error) {
+    return err.message
+  }
+  return String(err)
+}
+
+function logUnexpectedError(message: string, err: unknown): void {
+  console.error(`${message}: ${formatError(err)}`)
+  if (DEBUG_ENABLED && err instanceof Error && err.stack) {
+    console.error(err.stack)
+  }
+}
+
+function showHelp(): void {
+  console.log(`
+JobForge Execution Plane Smoke Test
+
+Usage:
+  node scripts/smoke-test-execution-plane.ts [options]
+
+Options:
+  --help, -h   Show this help and exit
+
+Notes:
+  - With no SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY, DB tests are skipped.
+  - Safe to run with feature flags OFF.
+
+Examples:
+  node scripts/smoke-test-execution-plane.ts
+  JOBFORGE_EVENTS_ENABLED=1 SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... \\
+    node scripts/smoke-test-execution-plane.ts
+`)
+}
+
+if (process.argv.includes('--help') || process.argv.includes('-h')) {
+  showHelp()
+  process.exit(EXIT_CODES.success)
+}
 
 // Test configuration
 const TEST_TENANT_ID = '00000000-0000-0000-0000-000000000001'
@@ -71,6 +91,35 @@ function warn(message: string) {
 }
 
 async function runSmokeTest() {
+  const { createClient } = await import('@supabase/supabase-js')
+  const {
+    JobForgeClient,
+    getFeatureFlagSummary,
+    getExtendedFeatureFlagSummary,
+    isEventIngestionAvailable,
+    generatePolicyToken,
+    validatePolicyToken,
+    generateManifestReport,
+    // Security utilities
+    validatePayload,
+    checkDuplicateEvent,
+    checkRateLimit,
+    checkScopes,
+    writeAuditLog,
+    queryAuditLogs,
+    // Trigger safety
+    evaluateTriggerFire,
+    queryDryRunRecords,
+    createStrictSafetyConfig,
+    // Replay bundle
+    captureRunProvenance,
+    exportReplayBundle,
+    replayDryRun,
+    createInputSnapshot,
+    REPLAY_PACK_ENABLED,
+    VERIFY_PACK_ENABLED,
+  } = await import('../packages/sdk-ts/src')
+
   console.log('\n========================================')
   console.log('JobForge Execution Plane Smoke Test')
   console.log('========================================\n')
@@ -478,8 +527,8 @@ async function runSmokeTest() {
 // Run if executed directly
 if (require.main === module) {
   runSmokeTest().catch((err) => {
-    console.error('Smoke test crashed:', err)
-    process.exit(1)
+    logUnexpectedError('Smoke test crashed', err)
+    process.exit(EXIT_CODES.failure)
   })
 }
 
