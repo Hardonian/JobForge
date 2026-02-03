@@ -10,6 +10,12 @@ import {
   canonicalizeJson,
   hashCanonicalJson,
   SCHEMA_VERSION,
+  ConnectorCapabilitySchema,
+  RunnerCapabilitiesSchema,
+  ErrorEnvelopeSchema,
+  type ConnectorCapability,
+  type RunnerCapabilities,
+  type ErrorEnvelope,
 } from '@autopilot/contracts'
 
 // ============================================================================
