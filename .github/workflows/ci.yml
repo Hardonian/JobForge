@@ -49,6 +49,9 @@ jobs:
       - name: Verify (fast)
         run: pnpm run verify:fast
 
+      - name: Build
+        run: pnpm run build
+
       - name: Docs verify
         run: pnpm run docs:verify
 

@@ -152,6 +152,27 @@ export const ArtifactManifestSchema = RunManifestSchema
 export type ArtifactManifest = RunManifest
 
 // ============================================================================
+// Report Envelope
+// ============================================================================
+
+export const ReportEnvelopeSchema = z.object({
+  schema_version: z.literal(SCHEMA_VERSION),
+  report_id: z.string().min(1),
+  tenant_id: z.string().uuid(),
+  project_id: z.string().uuid(),
+  trace_id: z.string().min(1),
+  module_id: sourceModuleSchema,
+  report_type: z.string().min(1),
+  created_at: z.string().datetime(),
+  summary: z.record(z.unknown()).optional(),
+  artifacts: z.array(artifactOutputSchema).optional(),
+  payload: z.record(z.unknown()).optional(),
+  redaction_hints: redactionHintsSchema.optional(),
+})
+
+export type ReportEnvelope = z.infer<typeof ReportEnvelopeSchema>
+
+// ============================================================================
 // Canonical JSON
 // ============================================================================
 
@@ -182,4 +203,55 @@ export function canonicalizeJson(value: unknown): string {
 export function hashCanonicalJson(value: unknown): string {
   const canonical = canonicalizeJson(value)
   return createHash('sha256').update(canonical).digest('hex')
+}
+
+// ============================================================================
+// Redaction Helpers
+// ============================================================================
+
+const DEFAULT_REDACT_FIELDS = ['password', 'secret', 'token', 'key', 'credential', 'apiKey']
+
+export function redactValue(value: unknown): unknown {
+  if (typeof value === 'string') {
+    return '[REDACTED]'
+  }
+  if (Array.isArray(value)) {
+    return value.map(() => '[REDACTED]')
+  }
+  if (value && typeof value === 'object') {
+    return '[REDACTED]'
+  }
+  return '[REDACTED]'
+}
+
+export function redactObject<T extends Record<string, unknown>>(
+  obj: T,
+  options?: {
+    redactFields?: string[]
+    maxDepth?: number
+  }
+): T {
+  const redactFields = options?.redactFields ?? DEFAULT_REDACT_FIELDS
+  const maxDepth = options?.maxDepth ?? 8
+
+  function redactDeep(value: unknown, depth: number): unknown {
+    if (depth > maxDepth) return value
+    if (Array.isArray(value)) {
+      return value.map((item) => redactDeep(item, depth + 1))
+    }
+    if (value && typeof value === 'object') {
+      const record = value as Record<string, unknown>
+      const next: Record<string, unknown> = {}
+      for (const [key, val] of Object.entries(record)) {
+        const shouldRedact = redactFields.some((field) =>
+          key.toLowerCase().includes(field.toLowerCase())
+        )
+        next[key] = shouldRedact ? redactValue(val) : redactDeep(val, depth + 1)
+      }
+      return next
+    }
+    return value
+  }
+
+  return redactDeep(obj, 0) as T
 }

@@ -21,6 +21,7 @@ import {
   manifestVersionSchema,
   runMetricsSchema,
   toolVersionsSchema,
+  ReportEnvelopeSchema,
 } from '@autopilot/contracts'
 
 // ============================================================================
@@ -84,6 +85,7 @@ export {
 }
 
 export const artifactManifestSchema = RunManifestSchema
+export const reportEnvelopeSchema = ReportEnvelopeSchema
 
 export const createManifestParamsSchema = z.object({
   run_id: z.string().uuid(),
