@@ -6,13 +6,16 @@ import {
 import type { ResilientFetchOptions, FetchMetadata } from './types'
 import {
   DEFAULT_RETRY_CONFIG,
+  AGGRESSIVE_RETRY_CONFIG,
+  CONSERVATIVE_RETRY_CONFIG,
   calculateRetryDelay,
   isRetryableStatus,
   isRetryableError,
   sleep,
 } from './retry'
 
-const DEFAULT_TIMEOUT = 30000 // 30 seconds
+// Optimized: 15s default timeout (was 30s) for faster failure detection
+const DEFAULT_TIMEOUT = 15000
 
 /**
  * Resilient fetch with timeout and retry support.
