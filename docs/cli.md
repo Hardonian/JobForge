@@ -27,6 +27,7 @@ This document is generated to keep CLI help and documentation consistent with co
 | Command | What it does | Inputs | Outputs | Common options | Example invocation |
 | --- | --- | --- | --- | --- | --- |
 | `node packages/shared/test/contract-test-runner.ts` | Run contract validation tests against fixtures. | Fixture files in `packages/shared/test/fixtures`. | Report to stdout. | (none) | `node packages/shared/test/contract-test-runner.ts` |
+| `pnpm modules:sync-fixtures` | Sync module fixture outputs into JobForge fixtures (optional). | Env: module repo paths. | Updated fixture files in `packages/shared/test/fixtures/modules`. | `JOBFORGE_MODULE_REPOS`, `JOBFORGE_MODULE_<MODULE>_REPO` | `JOBFORGE_MODULE_OPS_REPO=../ops pnpm modules:sync-fixtures` |
 | `node scripts/smoke-test-autopilot.js` | Quick smoke test for autopilot integration. | Built `worker-ts` dist handlers. | Summary to stdout. | (none) | `pnpm run build && node scripts/smoke-test-autopilot.js` |
 | `node scripts/prove-autopilot-integration.js` | Deterministic autopilot integration tests. | Built `worker-ts` dist handlers. | Summary to stdout. | (none) | `pnpm run build && node scripts/prove-autopilot-integration.js` |
 | `node scripts/smoke-test-final.ts` | Runnerless execution plane smoke test. | Optional feature flags + Supabase env. | Summary to stdout. | `--with-flags` | `node scripts/smoke-test-final.ts` |
@@ -48,3 +49,24 @@ This script:
 - Re-runs reproducible README examples with fixtures.
 - Verifies tracked example outputs in `examples/output/`.
 
+## Module Fixture Sync (Dev Workflow)
+
+To validate module compatibility with fixtures emitted by local module repos, point JobForge at those repos and sync:
+
+```bash
+export JOBFORGE_MODULE_REPOS='{"ops":"../jobforge-ops","support":"../jobforge-support","growth":"../jobforge-growth","finops":"../jobforge-finops"}'
+pnpm modules:sync-fixtures
+pnpm contract-tests
+```
+
+You can also configure per-module paths:
+
+```bash
+export JOBFORGE_MODULE_OPS_REPO=../jobforge-ops
+export JOBFORGE_MODULE_SUPPORT_REPO=../jobforge-support
+export JOBFORGE_MODULE_GROWTH_REPO=../jobforge-growth
+export JOBFORGE_MODULE_FINOPS_REPO=../jobforge-finops
+pnpm modules:sync-fixtures
+```
+
+If no module repos are configured, JobForge uses the fixtures committed in `packages/shared/test/fixtures` during `pnpm contract-tests`.

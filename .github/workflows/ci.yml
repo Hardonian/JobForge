@@ -76,6 +76,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Sync module fixtures
+        run: pnpm run modules:sync-fixtures
+
       - name: Build shared package
         run: pnpm --filter @jobforge/shared run build
 
