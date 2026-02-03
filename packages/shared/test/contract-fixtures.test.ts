@@ -10,6 +10,7 @@ import {
   validateBundle,
   simulateExecutorValidation,
   checkDeterministicHashing,
+  runExecutorPreflight,
 } from '../src/contract-tests.js'
 import { RunManifestSchema } from '@autopilot/contracts'
 
@@ -87,6 +88,17 @@ describe('Contract Fixtures', () => {
       const second = checkDeterministicHashing(bundle as any)
       expect(first.stable).toBe(true)
       expect(first.hash).toBe(second.hash)
+    }
+  })
+
+  it('passes executor preflight for valid bundles', async () => {
+    for (const fixture of [...validBundles, ...actionBundles]) {
+      const bundle = await loadFixture<unknown>(fixture)
+      const validation = validateBundle(bundle)
+      expect(validation.valid).toBe(true)
+
+      const preflight = runExecutorPreflight(bundle as any)
+      expect(preflight.valid).toBe(true)
     }
   })
 

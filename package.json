@@ -27,7 +27,8 @@
     "jobforge:impact:export": "tsx scripts/jobforge-impact.ts export",
     "jobforge:impact:compare": "tsx scripts/jobforge-impact.ts compare",
     "jobforge:daily": "tsx scripts/jobforge-daily.ts",
-    "policy:ci-check": "tsx scripts/policy-ci-check.ts"
+    "policy:ci-check": "tsx scripts/policy-ci-check.ts",
+    "modules:sync-fixtures": "tsx scripts/modules-sync-fixtures.ts"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.0.0",
