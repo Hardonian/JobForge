@@ -4,7 +4,6 @@
  * OPTIMIZED: Uses deterministic memoization for expensive validations
  */
 
-import { z } from 'zod'
 import {
   ConnectorCapabilitySchema,
   RunnerCapabilitiesSchema,
@@ -166,9 +165,9 @@ export function validateRegistryHandshakeRequest(request: unknown): HandshakeVal
     }
   }
 
-  const runnerFeatures = new Set(validRequest.runner_capabilities.features)
+  const runnerFeatures = new Set<string>(validRequest.runner_capabilities.features)
   const missingCapabilities = Array.from(requiredCapabilities).filter(
-    (cap) => !runnerFeatures.has(cap as any)
+    (cap) => !runnerFeatures.has(cap)
   )
 
   if (missingCapabilities.length > 0) {

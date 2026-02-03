@@ -8,7 +8,9 @@
 /**
  * Get environment variable with default value
  */
-function getEnvVar(name: string, defaultValue: string): string {
+function getEnvVar(name: string, defaultValue: string): string
+function getEnvVar(name: string, defaultValue: undefined): string | undefined
+function getEnvVar(name: string, defaultValue: string | undefined): string | undefined {
   if (typeof process !== 'undefined' && process.env) {
     return process.env[name] ?? defaultValue
   }

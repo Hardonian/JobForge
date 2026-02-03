@@ -13,7 +13,7 @@
  */
 
 import { z } from 'zod'
-import { validatePolicyTokenForAction, type PolicyValidationOptions } from './policy-tokens.js'
+import { validatePolicyTokenForAction } from './policy-tokens.js'
 import {
   JOBFORGE_POLICY_GUARD_ENABLED,
   JOBFORGE_ACTION_JOBS_ENABLED,

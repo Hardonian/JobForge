@@ -363,7 +363,7 @@ export class ImpactMapBuilder {
    */
   build(): ImpactGraph {
     // Ensure we have a root node
-    let rootNodeId = this.runId
+    const rootNodeId = this.runId
 
     // If runId is not a node yet, create a placeholder
     if (!this.nodes.has(rootNodeId)) {

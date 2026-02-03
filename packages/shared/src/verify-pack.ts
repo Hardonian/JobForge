@@ -18,7 +18,6 @@ import type { JobContext } from './types.js'
 import type {
   ArtifactManifest,
   ArtifactOutput,
-  RunMetrics,
   EnvFingerprint,
   ToolVersions,
 } from './execution-plane/manifests.js'
@@ -263,7 +262,9 @@ function getDirectoryStats(dirPath: string): { count: number; size: number } {
   let size = 0
 
   try {
-    const entries = require('fs').readdirSync(dirPath, { withFileTypes: true, recursive: true })
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const fs = require('fs')
+    const entries = fs.readdirSync(dirPath, { withFileTypes: true, recursive: true })
     for (const entry of entries) {
       if (entry.isFile()) {
         count++

@@ -7,12 +7,8 @@
 
 import { execSync } from 'child_process'
 import { readFile, stat, access } from 'fs/promises'
-import { createClient, SupabaseClient } from '@supabase/supabase-js'
-import {
-  JOBFORGE_DOCTOR_ENABLED,
-  getExtendedFeatureFlagSummary,
-  JOBFORGE_POLICY_TOKEN_SECRET,
-} from './feature-flags.js'
+import { createClient } from '@supabase/supabase-js'
+import { JOBFORGE_DOCTOR_ENABLED, getExtendedFeatureFlagSummary } from './feature-flags.js'
 
 // ============================================================================
 // Types
@@ -225,7 +221,7 @@ async function checkDbConnectivity(): Promise<DoctorCheck> {
     })
 
     // Test connection with a simple query
-    const { data, error } = await supabase.rpc('jobforge_list_jobs', {
+    const { error } = await supabase.rpc('jobforge_list_jobs', {
       p_tenant_id: '00000000-0000-0000-0000-000000000000',
       p_limit: 1,
     })
