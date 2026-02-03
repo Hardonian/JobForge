@@ -58,7 +58,7 @@ export const EventEnvelopeSchema = z.object({
   source_app: sourceAppSchema,
   source_module: sourceModuleSchema.optional(),
   subject: eventSubjectSchema.optional(),
-  payload: z.record(z.unknown()),
+  payload: z.record(z.string(), z.unknown()),
   contains_pii: z.boolean(),
   redaction_hints: redactionHintsSchema.optional(),
 })
@@ -74,7 +74,7 @@ export const JobRequestSchema = z.object({
   job_type: z.string().min(1),
   tenant_id: z.string().uuid(),
   project_id: z.string().uuid().optional(),
-  payload: z.record(z.unknown()),
+  payload: z.record(z.string(), z.unknown()),
   idempotency_key: z.string().min(1),
   required_scopes: z.array(z.string()).default([]),
   is_action_job: z.boolean().default(false),
@@ -116,9 +116,12 @@ export const artifactOutputSchema = z.object({
   mime_type: z.string().optional(),
 })
 
-export const runMetricsSchema = z.record(z.number().positive().optional())
-export const envFingerprintSchema = z.record(z.string().optional())
-export const toolVersionsSchema = z.record(z.union([z.string(), z.record(z.string())]).optional())
+export const runMetricsSchema = z.record(z.string(), z.number().positive().optional())
+export const envFingerprintSchema = z.record(z.string(), z.string().optional())
+export const toolVersionsSchema = z.record(
+  z.string(),
+  z.union([z.string(), z.record(z.string(), z.string())]).optional()
+)
 
 export const RunManifestSchema = z.object({
   schema_version: z.literal(SCHEMA_VERSION),
@@ -135,7 +138,7 @@ export const RunManifestSchema = z.object({
   env_fingerprint: envFingerprintSchema,
   tool_versions: toolVersionsSchema,
   status: manifestStatusSchema,
-  error: z.record(z.unknown()).optional(),
+  error: z.record(z.string(), z.unknown()).optional(),
 })
 
 export type RunManifest = z.infer<typeof RunManifestSchema>
@@ -164,9 +167,9 @@ export const ReportEnvelopeSchema = z.object({
   module_id: sourceModuleSchema,
   report_type: z.string().min(1),
   created_at: z.string().datetime(),
-  summary: z.record(z.unknown()).optional(),
+  summary: z.record(z.string(), z.unknown()).optional(),
   artifacts: z.array(artifactOutputSchema).optional(),
-  payload: z.record(z.unknown()).optional(),
+  payload: z.record(z.string(), z.unknown()).optional(),
   redaction_hints: redactionHintsSchema.optional(),
 })
 

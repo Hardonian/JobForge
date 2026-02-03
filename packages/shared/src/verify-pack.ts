@@ -367,6 +367,7 @@ export async function verifyPackHandler(
         generated_at: new Date().toISOString(),
       },
       manifest: {
+        schema_version: '1.0.0',
         manifest_version: '1.0',
         run_id: context.job_id,
         tenant_id: context.tenant_id,
