@@ -363,3 +363,44 @@ export {
   RegistryHandshakeRequestSchema,
   RegistryHandshakeResponseSchema,
 }
+
+// ============================================================================
+// OPTIMIZED: Memoized validation functions for deterministic caching
+// ============================================================================
+
+/**
+ * Cached version of validateConnectors
+ * Uses deterministic caching to avoid re-validating identical connector arrays
+ * Cache key is based on stable JSON serialization
+ * TTL: 5 minutes (300000ms) - balances freshness with performance
+ * Max size: 100 entries
+ */
+export const validateConnectorsCached = memoize(validateConnectors, {
+  ttl: 300000,
+  maxSize: 100,
+  keyGenerator: (args) => JSON.stringify(args[0]), // Hash the connectors array
+})
+
+/**
+ * Cached version of validateRunnerCapabilities
+ * Cache key is based on stable JSON serialization
+ * TTL: 5 minutes (300000ms)
+ * Max size: 100 entries
+ */
+export const validateRunnerCapabilitiesCached = memoize(validateRunnerCapabilities, {
+  ttl: 300000,
+  maxSize: 100,
+  keyGenerator: (args) => JSON.stringify(args[0]), // Hash the capabilities object
+})
+
+/**
+ * Cached version of validateRegistryHandshakeRequest
+ * Cache key is based on stable JSON serialization
+ * TTL: 5 minutes (300000ms)
+ * Max size: 50 entries (more expensive, fewer cached)
+ */
+export const validateRegistryHandshakeRequestCached = memoize(validateRegistryHandshakeRequest, {
+  ttl: 300000,
+  maxSize: 50,
+  keyGenerator: (args) => JSON.stringify(args[0]), // Hash the request object
+})
