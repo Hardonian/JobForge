@@ -254,7 +254,9 @@ export function runExecutorPreflight(bundle: JobRequestBundle): {
   }
 
   if (executorValidation.blocked.length > 0) {
-    errors.push(...executorValidation.blocked.map((entry) => `Executor preflight blocked: ${entry}`))
+    errors.push(
+      ...executorValidation.blocked.map((entry) => `Executor preflight blocked: ${entry}`)
+    )
   }
 
   return { valid: errors.length === 0, errors }

@@ -375,10 +375,7 @@ function evaluateSingleRule(
   }
 
   // Check source module filter
-  if (
-    rule.match.source_module_allowlist?.length &&
-    !event.source_module
-  ) {
+  if (rule.match.source_module_allowlist?.length && !event.source_module) {
     return {
       rule_id: rule.rule_id,
       event_id: eventId,

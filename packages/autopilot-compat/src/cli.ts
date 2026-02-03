@@ -24,8 +24,7 @@ Options:
 }
 
 const fixturesArgIndex = process.argv.findIndex((arg) => arg === '--fixtures')
-const fixturesValue =
-  fixturesArgIndex >= 0 ? process.argv[fixturesArgIndex + 1] : undefined
+const fixturesValue = fixturesArgIndex >= 0 ? process.argv[fixturesArgIndex + 1] : undefined
 
 const fixturesDir = resolveFixturesDir(fixturesValue)
 
