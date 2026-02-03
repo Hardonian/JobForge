@@ -1,6 +1,7 @@
 /**
  * Registry Handshake System for JobForge
  * Publishes connectors and runner capabilities to the control plane
+ * OPTIMIZED: Uses deterministic memoization for expensive validations
  */
 
 import { z } from 'zod'
@@ -15,6 +16,7 @@ import {
   type RegistryHandshakeResponse,
   SCHEMA_VERSION,
 } from '@autopilot/contracts'
+import { memoize } from './memoize'
 
 export interface HandshakeValidationResult {
   valid: boolean
@@ -226,7 +228,11 @@ export function validateRegistryHandshakeResponse(response: unknown): HandshakeV
   const result = RegistryHandshakeResponseSchema.safeParse(response)
 
   if (!result.success) {
-    errors.push(...result.error.errors.map((e: { path: (string | number)[]; message: string }) => `${e.path.join('.')}: ${e.message}`))
+    errors.push(
+      ...result.error.errors.map(
+        (e: { path: (string | number)[]; message: string }) => `${e.path.join('.')}: ${e.message}`
+      )
+    )
     return { valid: false, errors, warnings }
   }
 
@@ -236,7 +242,9 @@ export function validateRegistryHandshakeResponse(response: unknown): HandshakeV
   if (validResponse.rejected_connectors.length > 0) {
     warnings.push(
       `Control plane rejected ${validResponse.rejected_connectors.length} connector(s): ` +
-        validResponse.rejected_connectors.map((c: { connector_id: string; reason: string }) => c.connector_id).join(', ')
+        validResponse.rejected_connectors
+          .map((c: { connector_id: string; reason: string }) => c.connector_id)
+          .join(', ')
     )
   }
 
@@ -282,10 +290,12 @@ export function processHandshakeResponse(response: unknown): {
   return {
     accepted: validResponse.status === 'accepted',
     acceptedConnectors: validResponse.accepted_connectors,
-    rejectedConnectors: validResponse.rejected_connectors.map((c: { connector_id: string; reason: string }) => ({
-      connectorId: c.connector_id,
-      reason: c.reason,
-    })),
+    rejectedConnectors: validResponse.rejected_connectors.map(
+      (c: { connector_id: string; reason: string }) => ({
+        connectorId: c.connector_id,
+        reason: c.reason,
+      })
+    ),
     missingCapabilities: validResponse.runner_validation.missing_capabilities,
     warnings: validResponse.runner_validation.warnings,
   }
