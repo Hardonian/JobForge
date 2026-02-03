@@ -1,6 +1,7 @@
 /**
  * @jobforge/client - HTTP transport
  * Uses HTTP API endpoint for remote access
+ * OPTIMIZED: Uses resilientFetch with retries, timeouts, and batching support
  */
 
 import type {
@@ -17,6 +18,7 @@ import type {
 } from '../types'
 import { JobForgeClientError } from '../types'
 import type { EventRow, ManifestRow } from '@jobforge/shared'
+import { resilientFetch, CONSERVATIVE_RETRY_CONFIG } from '@jobforge/fetch'
 import {
   JOBFORGE_INTEGRATION_ENABLED,
   JOBFORGE_DRY_RUN_MODE,
