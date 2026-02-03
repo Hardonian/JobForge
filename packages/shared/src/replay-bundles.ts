@@ -7,6 +7,7 @@ import * as fs from 'fs/promises'
 import * as path from 'path'
 import type { JobRequestBundle, JobRequest } from './execution-plane/schemas.js'
 import { JobRequestBundleSchema } from './execution-plane/schemas.js'
+import { SCHEMA_VERSION } from '@autopilot/contracts'
 import { z } from 'zod'
 
 // ============================================================================
@@ -149,7 +150,7 @@ export function convertReplayToBundle(
     }
 
     const bundle: JobRequestBundle = {
-      version: '1.0',
+      schema_version: SCHEMA_VERSION,
       bundle_id: `replay-bundle-${Date.now()}`,
       tenant_id: tenantId,
       project_id: projectId,
@@ -200,7 +201,7 @@ export function convertReplayToBundle(
   }
 
   const bundle: JobRequestBundle = {
-    version: '1.0',
+    schema_version: SCHEMA_VERSION,
     bundle_id: `replay-bundle-${Date.now()}`,
     tenant_id: tenantId,
     project_id: projectId,

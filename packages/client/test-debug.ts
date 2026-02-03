@@ -8,6 +8,7 @@ const client = createClient({
 })
 
 const eventEnvelope = {
+  schema_version: '1.0.0',
   event_version: '1.0' as const,
   event_type: 'smoke.test.event',
   occurred_at: new Date().toISOString(),

@@ -12,6 +12,7 @@ import type {
   JobRequestBundle,
   SubmitEventParams,
 } from './execution-plane/index.js'
+import { SCHEMA_VERSION } from '@autopilot/contracts'
 import { isBundleTriggersEnabled, isBundleExecutorEnabled } from './feature-flags.js'
 import { evaluateTriggers } from './execution-plane/bundle-triggers.js'
 
@@ -357,6 +358,7 @@ export async function ingestEventWithTriggers(
 
       if (rules.length > 0) {
         const eventEnvelope: EventEnvelope = {
+          schema_version: SCHEMA_VERSION,
           event_version: eventParams.event_version || '1.0',
           event_type: eventParams.event_type,
           occurred_at: new Date().toISOString(),
@@ -446,7 +448,7 @@ async function buildBundleFromRule(
   }
 
   return {
-    version: '1.0',
+    schema_version: SCHEMA_VERSION,
     bundle_id: bundleId,
     tenant_id: event.tenant_id,
     project_id: event.project_id,

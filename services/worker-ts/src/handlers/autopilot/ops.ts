@@ -13,6 +13,7 @@ import { z } from 'zod'
 import type { JobContext } from '@jobforge/shared'
 import type { ArtifactManifest, ArtifactOutput } from '@jobforge/shared'
 import { isAutopilotJobsEnabled, isActionJobsEnabled } from '@jobforge/shared'
+import { SCHEMA_VERSION } from '@autopilot/contracts'
 
 // ============================================================================
 // Shared Types & Helpers
@@ -51,6 +52,7 @@ function createManifest(
   error?: Record<string, unknown>
 ): ArtifactManifest {
   return {
+    schema_version: SCHEMA_VERSION,
     manifest_version: '1.0',
     run_id: context.job_id,
     tenant_id: context.tenant_id,

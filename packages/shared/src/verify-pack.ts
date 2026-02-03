@@ -22,6 +22,7 @@ import type {
   EnvFingerprint,
   ToolVersions,
 } from './execution-plane/manifests.js'
+import { SCHEMA_VERSION } from '@autopilot/contracts'
 
 // ============================================================================
 // Zod Schemas
@@ -563,6 +564,7 @@ export async function verifyPackHandler(
     }
 
     const manifest: ArtifactManifest = {
+      schema_version: SCHEMA_VERSION,
       manifest_version: '1.0',
       run_id: context.job_id,
       tenant_id: context.tenant_id,
@@ -622,6 +624,7 @@ export async function verifyPackHandler(
     }
 
     const failedManifest: ArtifactManifest = {
+      schema_version: SCHEMA_VERSION,
       manifest_version: '1.0',
       run_id: context.job_id,
       tenant_id: context.tenant_id,

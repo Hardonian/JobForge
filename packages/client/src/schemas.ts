@@ -11,6 +11,7 @@ import {
   redactionHintsSchema,
   eventSubjectSchema,
 } from '@jobforge/shared'
+import { SCHEMA_VERSION } from '@autopilot/contracts'
 
 // ============================================================================
 // Client Configuration Schema
@@ -30,6 +31,7 @@ export const jobForgeClientConfigSchema = z.object({
 // ============================================================================
 
 export const eventEnvelopeSchema = z.object({
+  schema_version: z.literal(SCHEMA_VERSION).default(SCHEMA_VERSION),
   event_version: eventVersionSchema.default('1.0'),
   event_type: z.string().min(1, 'Event type is required'),
   occurred_at: z.string().datetime(),

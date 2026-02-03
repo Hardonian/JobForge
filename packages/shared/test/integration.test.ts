@@ -351,6 +351,7 @@ describe('Bundle Trigger System', () => {
       })
 
       const event = {
+        schema_version: '1.0.0',
         event_version: '1.0' as const,
         event_type: 'infrastructure.alert',
         occurred_at: new Date().toISOString(),
@@ -383,6 +384,7 @@ describe('Bundle Trigger System', () => {
       })
 
       const event = {
+        schema_version: '1.0.0',
         event_version: '1.0' as const,
         event_type: 'test.event',
         occurred_at: new Date().toISOString(),
@@ -414,6 +416,7 @@ describe('Bundle Trigger System', () => {
       })
 
       const event = {
+        schema_version: '1.0.0',
         event_version: '1.0' as const,
         event_type: 'different.event',
         occurred_at: new Date().toISOString(),
@@ -445,6 +448,7 @@ describe('Bundle Trigger System', () => {
       })
 
       const event = {
+        schema_version: '1.0.0',
         event_version: '1.0' as const,
         event_type: 'test.event',
         occurred_at: new Date().toISOString(),
@@ -523,7 +527,7 @@ describe('Replay Bundle System', () => {
         job_type: 'autopilot.ops.scan',
         payload: {
           request_bundle: {
-            version: '1.0',
+            schema_version: '1.0.0',
             bundle_id: 'original-bundle',
             tenant_id: TEST_TENANT_ID,
             project_id: TEST_PROJECT_ID,
@@ -535,6 +539,7 @@ describe('Replay Bundle System', () => {
                 tenant_id: TEST_TENANT_ID,
                 project_id: TEST_PROJECT_ID,
                 payload: { scan_type: 'health' },
+                idempotency_key: 'req-001-idem',
                 required_scopes: ['ops:read'],
                 is_action_job: false,
               },
@@ -550,7 +555,7 @@ describe('Replay Bundle System', () => {
 
       const { bundle, warnings } = convertReplayToBundle(replay)
 
-      expect(bundle.version).toBe('1.0')
+      expect(bundle.schema_version).toBe('1.0.0')
       expect(bundle.tenant_id).toBe(TEST_TENANT_ID)
       expect(bundle.requests.length).toBe(1)
       expect(bundle.requests[0].job_type).toBe('autopilot.ops.scan')
@@ -587,7 +592,7 @@ describe('Replay Bundle System', () => {
         job_type: 'autopilot.ops.apply',
         payload: {
           request_bundle: {
-            version: '1.0',
+            schema_version: '1.0.0',
             bundle_id: 'original-bundle',
             tenant_id: TEST_TENANT_ID,
             trace_id: 'trace-001',
@@ -597,6 +602,7 @@ describe('Replay Bundle System', () => {
                 job_type: 'autopilot.ops.apply',
                 tenant_id: TEST_TENANT_ID,
                 payload: {},
+                idempotency_key: 'req-001-idem',
                 required_scopes: ['ops:write'],
                 is_action_job: true,
               },
@@ -623,7 +629,7 @@ describe('Contract Validation', () => {
   describe('Bundle Validation', () => {
     it('should validate a correct bundle', () => {
       const bundle = {
-        version: '1.0',
+        schema_version: '1.0.0',
         bundle_id: 'test-bundle-001',
         tenant_id: TEST_TENANT_ID,
         project_id: TEST_PROJECT_ID,
@@ -635,6 +641,7 @@ describe('Contract Validation', () => {
             tenant_id: TEST_TENANT_ID,
             project_id: TEST_PROJECT_ID,
             payload: { scan_type: 'health' },
+            idempotency_key: 'req-001-idem',
             required_scopes: ['ops:read'],
             is_action_job: false,
           },
@@ -653,7 +660,7 @@ describe('Contract Validation', () => {
 
     it('should reject bundle with mismatched tenant IDs', () => {
       const bundle = {
-        version: '1.0',
+        schema_version: '1.0.0',
         bundle_id: 'test-bundle',
         tenant_id: TEST_TENANT_ID,
         trace_id: 'trace-001',
@@ -663,6 +670,7 @@ describe('Contract Validation', () => {
             job_type: 'autopilot.ops.scan',
             tenant_id: 'different-tenant-id', // Mismatched
             payload: {},
+            idempotency_key: 'req-001-idem',
             required_scopes: ['ops:read'],
             is_action_job: false,
           },
@@ -681,7 +689,7 @@ describe('Contract Validation', () => {
 
     it('should reject bundle with duplicate request IDs', () => {
       const bundle = {
-        version: '1.0',
+        schema_version: '1.0.0',
         bundle_id: 'test-bundle',
         tenant_id: TEST_TENANT_ID,
         trace_id: 'trace-001',
@@ -691,6 +699,7 @@ describe('Contract Validation', () => {
             job_type: 'autopilot.ops.scan',
             tenant_id: TEST_TENANT_ID,
             payload: {},
+            idempotency_key: 'req-001-idem',
             required_scopes: ['ops:read'],
             is_action_job: false,
           },
@@ -699,6 +708,7 @@ describe('Contract Validation', () => {
             job_type: 'autopilot.ops.diagnose',
             tenant_id: TEST_TENANT_ID,
             payload: {},
+            idempotency_key: 'req-002-idem',
             required_scopes: ['ops:read'],
             is_action_job: false,
           },
@@ -719,7 +729,7 @@ describe('Contract Validation', () => {
   describe('Executor Simulation', () => {
     it('should validate tenant scoping', () => {
       const bundle = {
-        version: '1.0' as const,
+        schema_version: '1.0.0' as const,
         bundle_id: 'test-bundle',
         tenant_id: TEST_TENANT_ID,
         trace_id: 'trace-001',
@@ -729,6 +739,7 @@ describe('Contract Validation', () => {
             job_type: 'autopilot.ops.scan',
             tenant_id: TEST_TENANT_ID,
             payload: {},
+            idempotency_key: 'req-001-idem',
             required_scopes: ['ops:read'],
             is_action_job: false,
           },
@@ -748,7 +759,7 @@ describe('Contract Validation', () => {
 
     it('should block action jobs without policy token', () => {
       const bundle = {
-        version: '1.0' as const,
+        schema_version: '1.0.0' as const,
         bundle_id: 'test-bundle',
         tenant_id: TEST_TENANT_ID,
         trace_id: 'trace-001',
@@ -758,6 +769,7 @@ describe('Contract Validation', () => {
             job_type: 'autopilot.ops.apply',
             tenant_id: TEST_TENANT_ID,
             payload: {},
+            idempotency_key: 'req-001-idem',
             required_scopes: ['ops:write'],
             is_action_job: true,
           },
@@ -778,7 +790,7 @@ describe('Contract Validation', () => {
 
     it('should allow action jobs with policy token', () => {
       const bundle = {
-        version: '1.0' as const,
+        schema_version: '1.0.0' as const,
         bundle_id: 'test-bundle',
         tenant_id: TEST_TENANT_ID,
         trace_id: 'trace-001',
@@ -788,6 +800,7 @@ describe('Contract Validation', () => {
             job_type: 'autopilot.ops.apply',
             tenant_id: TEST_TENANT_ID,
             payload: {},
+            idempotency_key: 'req-001-idem',
             required_scopes: ['ops:write'],
             is_action_job: true,
           },
@@ -835,6 +848,7 @@ describe('Integration: End-to-End Flow', () => {
 
     // 2. Submit an event
     const event = {
+      schema_version: '1.0.0',
       event_version: '1.0' as const,
       event_type: 'infrastructure.alert',
       occurred_at: new Date().toISOString(),

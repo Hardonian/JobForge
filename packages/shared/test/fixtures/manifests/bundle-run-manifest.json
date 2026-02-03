@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0.0",
+  "manifest_version": "1.0",
+  "run_id": "22222222-2222-2222-2222-222222222222",
+  "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+  "project_id": "550e8400-e29b-41d4-a716-446655440001",
+  "job_type": "jobforge.autopilot.execute_request_bundle",
+  "created_at": "2024-01-15T14:30:00Z",
+  "inputs_snapshot_ref": "inputs/bundle-run.json",
+  "logs_ref": "logs/bundle-run.log",
+  "outputs": [
+    {
+      "name": "bundle_manifest",
+      "type": "json",
+      "ref": "bundle-manifest-22222222.json",
+      "size": 2048,
+      "mime_type": "application/json"
+    }
+  ],
+  "metrics": {
+    "duration_ms": 800,
+    "requests": 3,
+    "action_jobs_blocked": 1
+  },
+  "env_fingerprint": {
+    "os": "linux",
+    "arch": "x64",
+    "node_version": "v20.11.0"
+  },
+  "tool_versions": {
+    "jobforge": "0.2.0",
+    "connectors": {
+      "autopilot": "1.0.0"
+    }
+  },
+  "status": "complete"
+}

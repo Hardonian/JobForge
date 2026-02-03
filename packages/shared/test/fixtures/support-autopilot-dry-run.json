@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0.0",
+  "bundle_id": "support-autopilot-dry-run-001",
+  "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+  "project_id": "550e8400-e29b-41d4-a716-446655440001",
+  "trace_id": "support-trace-dry-run-001",
+  "requests": [
+    {
+      "id": "support-dry-triage",
+      "job_type": "autopilot.support.triage",
+      "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+      "project_id": "550e8400-e29b-41d4-a716-446655440001",
+      "payload": {
+        "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+        "project_id": "550e8400-e29b-41d4-a716-446655440001",
+        "ticket_id": "ticket-1001",
+        "priority": "low",
+        "dry_run": true
+      },
+      "idempotency_key": "support-dry-triage-2024-01-15",
+      "required_scopes": ["support:read"],
+      "is_action_job": false
+    }
+  ],
+  "metadata": {
+    "source": "support-autopilot",
+    "triggered_at": "2024-01-15T12:15:00Z",
+    "correlation_id": "support-correlation-dry-run-001",
+    "mode": "dry_run"
+  }
+}

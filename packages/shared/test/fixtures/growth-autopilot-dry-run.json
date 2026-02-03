@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0.0",
+  "bundle_id": "growth-autopilot-dry-run-001",
+  "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+  "project_id": "550e8400-e29b-41d4-a716-446655440001",
+  "trace_id": "growth-trace-dry-run-001",
+  "requests": [
+    {
+      "id": "growth-dry-seo",
+      "job_type": "autopilot.growth.seo_scan",
+      "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+      "project_id": "550e8400-e29b-41d4-a716-446655440001",
+      "payload": {
+        "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+        "project_id": "550e8400-e29b-41d4-a716-446655440001",
+        "target": "example.com",
+        "depth": "surface",
+        "dry_run": true
+      },
+      "idempotency_key": "growth-dry-seo-2024-01-15",
+      "required_scopes": ["growth:read"],
+      "is_action_job": false
+    }
+  ],
+  "metadata": {
+    "source": "growth-autopilot",
+    "triggered_at": "2024-01-15T12:30:00Z",
+    "correlation_id": "growth-correlation-dry-run-001",
+    "mode": "dry_run"
+  }
+}
