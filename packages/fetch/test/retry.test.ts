@@ -13,17 +13,17 @@ describe('Retry Logic', () => {
       const delay2 = calculateRetryDelay(2, DEFAULT_RETRY_CONFIG)
       const delay3 = calculateRetryDelay(3, DEFAULT_RETRY_CONFIG)
 
-      // First retry should be around initial delay (1000ms ± jitter)
-      expect(delay1).toBeGreaterThan(700)
-      expect(delay1).toBeLessThan(1300)
+      // OPTIMIZED: First retry should be around initial delay (500ms ± jitter)
+      expect(delay1).toBeGreaterThan(350) // 500 * 0.75 (with jitter)
+      expect(delay1).toBeLessThan(650) // 500 * 1.25 (with jitter)
 
-      // Second retry should be around 2x (2000ms ± jitter)
-      expect(delay2).toBeGreaterThan(1500)
-      expect(delay2).toBeLessThan(2500)
+      // OPTIMIZED: Second retry should be around 2x (1000ms ± jitter)
+      expect(delay2).toBeGreaterThan(700) // 1000 * 0.75 (with jitter)
+      expect(delay2).toBeLessThan(1300) // 1000 * 1.25 (with jitter)
 
-      // Third retry should be around 4x (4000ms ± jitter)
-      expect(delay3).toBeGreaterThan(3000)
-      expect(delay3).toBeLessThan(5000)
+      // OPTIMIZED: Third retry should be around 4x (2000ms ± jitter)
+      expect(delay3).toBeGreaterThan(1500) // 2000 * 0.75 (with jitter)
+      expect(delay3).toBeLessThan(2500) // 2000 * 1.25 (with jitter)
     })
 
     it('should respect max delay', () => {
@@ -34,6 +34,11 @@ describe('Retry Logic', () => {
 
       const delay = calculateRetryDelay(10, config)
       expect(delay).toBeLessThanOrEqual(5000 * 1.25) // Max + jitter
+    })
+
+    it('should use optimized default max delay', () => {
+      // OPTIMIZED: Default maxDelay is now 10000ms (was 30000ms)
+      expect(DEFAULT_RETRY_CONFIG.maxDelay).toBe(10000)
     })
   })
 

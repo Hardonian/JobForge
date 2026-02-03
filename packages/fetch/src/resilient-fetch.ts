@@ -6,8 +6,6 @@ import {
 import type { ResilientFetchOptions, FetchMetadata } from './types'
 import {
   DEFAULT_RETRY_CONFIG,
-  AGGRESSIVE_RETRY_CONFIG,
-  CONSERVATIVE_RETRY_CONFIG,
   calculateRetryDelay,
   isRetryableStatus,
   isRetryableError,
