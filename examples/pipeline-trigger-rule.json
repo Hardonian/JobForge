@@ -1,0 +1,22 @@
+{
+  "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+  "project_id": "550e8400-e29b-41d4-a716-446655440001",
+  "name": "Ops alert pipeline",
+  "enabled": true,
+  "match": {
+    "event_type_allowlist": ["infrastructure.alert"],
+    "source_module_allowlist": ["ops"],
+    "severity_threshold": "high"
+  },
+  "action": {
+    "bundle_source": "inline",
+    "bundle_builder": "autopilot.ops.scan",
+    "mode": "dry_run"
+  },
+  "safety": {
+    "cooldown_seconds": 120,
+    "max_runs_per_hour": 5,
+    "allow_action_jobs": false,
+    "dedupe_key_template": "{trace_id}"
+  }
+}

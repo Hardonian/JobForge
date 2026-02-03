@@ -4,6 +4,7 @@
  */
 
 import type { EventEnvelope } from './events.js'
+import { checkDuplicateEvent } from '../security.js'
 
 // ============================================================================
 // Bundle Trigger Rule Types
@@ -144,6 +145,107 @@ const triggerRulesStore = new Map<string, BundleTriggerRule>()
 const evaluationHistoryStore = new Map<string, TriggerEvaluationResult[]>()
 const lastFireTimeStore = new Map<string, string>() // rule_id -> ISO timestamp
 const fireCountHourlyStore = new Map<string, number>() // rule_id -> count
+const fireCountHourStartStore = new Map<string, number>() // rule_id -> epoch ms
+
+const SEVERITY_RANK: Record<string, number> = {
+  low: 1,
+  info: 2,
+  medium: 3,
+  warning: 4,
+  high: 5,
+  critical: 6,
+  error: 6,
+  p3: 3,
+  p2: 4,
+  p1: 5,
+  p0: 6,
+}
+
+const PRIORITY_RANK: Record<string, number> = {
+  low: 1,
+  medium: 2,
+  high: 3,
+  urgent: 4,
+  critical: 5,
+  p3: 2,
+  p2: 3,
+  p1: 4,
+  p0: 5,
+}
+
+function normalizeSeverity(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const normalized = value.trim().toLowerCase()
+  return normalized.length ? normalized : null
+}
+
+function resolveSeverityRank(value: unknown): number | null {
+  const normalized = normalizeSeverity(value)
+  if (!normalized) return null
+  return SEVERITY_RANK[normalized] ?? null
+}
+
+function resolvePriorityRank(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    if (!normalized) return null
+
+    const numeric = Number.parseInt(normalized, 10)
+    if (!Number.isNaN(numeric)) {
+      return numeric
+    }
+
+    return PRIORITY_RANK[normalized] ?? null
+  }
+
+  return null
+}
+
+function getEventPayloadValue(event: EventEnvelope, path: string): unknown {
+  const parts = path.split('.')
+  let current: unknown = event.payload
+
+  for (const part of parts) {
+    if (typeof current !== 'object' || current === null) {
+      return undefined
+    }
+    current = (current as Record<string, unknown>)[part]
+  }
+
+  return current
+}
+
+function buildDedupeKey(rule: BundleTriggerRule, event: EventEnvelope): string {
+  const template = rule.safety.dedupe_key_template
+  if (template) {
+    const rendered = template.replace(/\{([^}]+)\}/g, (_match, token: string) => {
+      const trimmed = token.trim()
+      if (trimmed === 'trace_id') return event.trace_id
+      if (trimmed === 'event_type') return event.event_type
+      if (trimmed === 'tenant_id') return event.tenant_id
+      if (trimmed === 'project_id') return event.project_id ?? ''
+      if (trimmed === 'source_module') return event.source_module ?? ''
+      if (trimmed.startsWith('payload.')) {
+        const value = getEventPayloadValue(event, trimmed.replace('payload.', ''))
+        return value !== undefined ? String(value) : ''
+      }
+      return ''
+    })
+
+    if (rendered.trim().length > 0) {
+      return rendered
+    }
+  }
+
+  const idempotencyKey =
+    typeof event.payload?.idempotency_key === 'string' ? event.payload.idempotency_key : undefined
+
+  return idempotencyKey || event.trace_id
+}
 
 // ============================================================================
 // Trigger Evaluation Engine
@@ -275,6 +377,26 @@ function evaluateSingleRule(
   // Check source module filter
   if (
     rule.match.source_module_allowlist?.length &&
+    !event.source_module
+  ) {
+    return {
+      rule_id: rule.rule_id,
+      event_id: eventId,
+      evaluated_at: now.toISOString(),
+      matched: false,
+      decision: 'skip',
+      reason: 'Event source module missing but allowlist is configured',
+      dry_run: true,
+      safety_checks: {
+        cooldown_passed: false,
+        rate_limit_passed: false,
+        dedupe_passed: false,
+      },
+    }
+  }
+
+  if (
+    rule.match.source_module_allowlist?.length &&
     event.source_module &&
     !rule.match.source_module_allowlist.includes(event.source_module)
   ) {
@@ -291,6 +413,82 @@ function evaluateSingleRule(
         rate_limit_passed: false,
         dedupe_passed: false,
       },
+    }
+  }
+
+  if (rule.match.severity_threshold) {
+    const eventSeverity = resolveSeverityRank(event.payload?.severity)
+    const thresholdSeverity = resolveSeverityRank(rule.match.severity_threshold)
+    if (eventSeverity === null || thresholdSeverity === null) {
+      return {
+        rule_id: rule.rule_id,
+        event_id: eventId,
+        evaluated_at: now.toISOString(),
+        matched: false,
+        decision: 'skip',
+        reason: 'Event severity missing or unrecognized',
+        dry_run: true,
+        safety_checks: {
+          cooldown_passed: false,
+          rate_limit_passed: false,
+          dedupe_passed: false,
+        },
+      }
+    }
+
+    if (eventSeverity < thresholdSeverity) {
+      return {
+        rule_id: rule.rule_id,
+        event_id: eventId,
+        evaluated_at: now.toISOString(),
+        matched: false,
+        decision: 'skip',
+        reason: `Event severity below threshold (${rule.match.severity_threshold})`,
+        dry_run: true,
+        safety_checks: {
+          cooldown_passed: false,
+          rate_limit_passed: false,
+          dedupe_passed: false,
+        },
+      }
+    }
+  }
+
+  if (rule.match.priority_threshold) {
+    const eventPriority = resolvePriorityRank(event.payload?.priority)
+    const thresholdPriority = resolvePriorityRank(rule.match.priority_threshold)
+    if (eventPriority === null || thresholdPriority === null) {
+      return {
+        rule_id: rule.rule_id,
+        event_id: eventId,
+        evaluated_at: now.toISOString(),
+        matched: false,
+        decision: 'skip',
+        reason: 'Event priority missing or unrecognized',
+        dry_run: true,
+        safety_checks: {
+          cooldown_passed: false,
+          rate_limit_passed: false,
+          dedupe_passed: false,
+        },
+      }
+    }
+
+    if (eventPriority < thresholdPriority) {
+      return {
+        rule_id: rule.rule_id,
+        event_id: eventId,
+        evaluated_at: now.toISOString(),
+        matched: false,
+        decision: 'skip',
+        reason: `Event priority below threshold (${rule.match.priority_threshold})`,
+        dry_run: true,
+        safety_checks: {
+          cooldown_passed: false,
+          rate_limit_passed: false,
+          dedupe_passed: false,
+        },
+      }
     }
   }
 
@@ -323,6 +521,19 @@ function evaluateSingleRule(
     }
   }
 
+  if (!safetyChecks.dedupe_passed) {
+    return {
+      rule_id: rule.rule_id,
+      event_id: eventId,
+      evaluated_at: now.toISOString(),
+      matched: true,
+      decision: 'skip',
+      reason: 'Duplicate event detected (idempotency key)',
+      dry_run: true,
+      safety_checks: safetyChecks,
+    }
+  }
+
   // Rule matched and passed safety checks
   const isDryRun = rule.action.mode === 'dry_run'
 
@@ -343,7 +554,7 @@ function evaluateSingleRule(
  */
 function runSafetyChecks(
   rule: BundleTriggerRule,
-  _event: EventEnvelope,
+  event: EventEnvelope,
   now: Date
 ): SafetyCheckResults {
   const results: SafetyCheckResults = {
@@ -363,9 +574,22 @@ function runSafetyChecks(
   }
 
   // Rate limit check
+  const hourStart = fireCountHourStartStore.get(rule.rule_id)
+  if (!hourStart || now.getTime() - hourStart > 3600000) {
+    fireCountHourStartStore.set(rule.rule_id, now.getTime())
+    fireCountHourlyStore.set(rule.rule_id, 0)
+  }
+
   const fireCount = fireCountHourlyStore.get(rule.rule_id) || 0
   if (fireCount >= rule.safety.max_runs_per_hour) {
     results.rate_limit_passed = false
+  }
+
+  // Dedupe check
+  const dedupeKey = `${rule.rule_id}:${buildDedupeKey(rule, event)}`
+  const duplicate = checkDuplicateEvent(event.tenant_id, dedupeKey, event.event_type)
+  if (duplicate.isDuplicate) {
+    results.dedupe_passed = false
   }
 
   return results
@@ -458,6 +682,9 @@ export function deleteTriggerRule(ruleId: string): boolean {
 export function recordTriggerFire(ruleId: string): void {
   const now = new Date().toISOString()
   lastFireTimeStore.set(ruleId, now)
+  if (!fireCountHourStartStore.has(ruleId)) {
+    fireCountHourStartStore.set(ruleId, Date.now())
+  }
   fireCountHourlyStore.set(ruleId, (fireCountHourlyStore.get(ruleId) || 0) + 1)
 
   const rule = triggerRulesStore.get(ruleId)
@@ -482,4 +709,5 @@ export function clearTriggerStorage(): void {
   evaluationHistoryStore.clear()
   lastFireTimeStore.clear()
   fireCountHourlyStore.clear()
+  fireCountHourStartStore.clear()
 }

@@ -37,6 +37,16 @@ export const JOBFORGE_EVENTS_ENABLED = parseBool(getEnvVar('JOBFORGE_EVENTS_ENAB
 export const JOBFORGE_TRIGGERS_ENABLED = parseBool(getEnvVar('JOBFORGE_TRIGGERS_ENABLED', '0'))
 
 /**
+ * Enable pipeline triggers (event -> module runner -> bundle)
+ * Default: false (0)
+ */
+export function isPipelineTriggersEnabled(): boolean {
+  return parseBool(getEnvVar('JOBFORGE_PIPELINE_TRIGGERS_ENABLED', '0'))
+}
+
+export const JOBFORGE_PIPELINE_TRIGGERS_ENABLED = isPipelineTriggersEnabled()
+
+/**
  * Enable autopilot job templates
  * Default: false (0)
  */
@@ -46,6 +56,16 @@ export function isAutopilotJobsEnabled(): boolean {
 
 // Backwards compatibility - constant evaluates at import time
 export const JOBFORGE_AUTOPILOT_JOBS_ENABLED = isAutopilotJobsEnabled()
+
+/**
+ * Enable module runner for autopilot CLI modules
+ * Default: false (0)
+ */
+export function isModuleRunnerEnabled(): boolean {
+  return parseBool(getEnvVar('JOBFORGE_MODULE_RUNNER_ENABLED', '0'))
+}
+
+export const JOBFORGE_MODULE_RUNNER_ENABLED = isModuleRunnerEnabled()
 
 /**
  * Enable action jobs (write operations that require policy tokens)
@@ -157,7 +177,9 @@ export function getExtendedFeatureFlagSummary(): Record<string, boolean | string
   return {
     events_enabled: JOBFORGE_EVENTS_ENABLED,
     triggers_enabled: JOBFORGE_TRIGGERS_ENABLED,
+    pipeline_triggers_enabled: JOBFORGE_PIPELINE_TRIGGERS_ENABLED,
     autopilot_jobs_enabled: JOBFORGE_AUTOPILOT_JOBS_ENABLED,
+    module_runner_enabled: JOBFORGE_MODULE_RUNNER_ENABLED,
     action_jobs_enabled: JOBFORGE_ACTION_JOBS_ENABLED,
     audit_logging_enabled: JOBFORGE_AUDIT_LOGGING_ENABLED,
     manifests_enabled: JOBFORGE_MANIFESTS_ENABLED,
