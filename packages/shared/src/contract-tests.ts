@@ -96,6 +96,10 @@ export function validateBundle(bundle: unknown): { valid: boolean; errors: strin
     errors.push('bundle_id should use stable format (lowercase alphanumeric with hyphens)')
   }
 
+  if (!validBundle.project_id) {
+    errors.push('Bundle missing required field: project_id')
+  }
+
   // Tenant/project consistency validation
   const tenantIds = new Set<string>([validBundle.tenant_id])
   const projectIds = new Set<string | undefined>([validBundle.project_id])
@@ -103,6 +107,9 @@ export function validateBundle(bundle: unknown): { valid: boolean; errors: strin
   for (const request of validBundle.requests) {
     tenantIds.add(request.tenant_id)
     projectIds.add(request.project_id)
+    if (!request.project_id) {
+      errors.push(`Request missing required field project_id: ${request.id}`)
+    }
   }
 
   if (tenantIds.size > 1) {

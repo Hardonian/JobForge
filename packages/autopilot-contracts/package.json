@@ -1,0 +1,27 @@
+{
+  "name": "@jobforge/autopilot-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Suite-layer re-export of canonical autopilot contracts",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "pnpm -w tsc -p packages/autopilot-contracts/tsconfig.json",
+    "dev": "pnpm -w tsc --watch -p packages/autopilot-contracts/tsconfig.json",
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "typecheck": "pnpm -w tsc --noEmit -p packages/autopilot-contracts/tsconfig.json"
+  },
+  "dependencies": {
+    "@autopilot/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@jobforge/typescript-config": "workspace:*"
+  }
+}
