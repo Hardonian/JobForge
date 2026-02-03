@@ -120,6 +120,12 @@ importers:
       '@autopilot/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@jobforge/errors':
+        specifier: workspace:*
+        version: link:../errors
+      '@jobforge/fetch':
+        specifier: workspace:*
+        version: link:../fetch
       '@jobforge/sdk-ts':
         specifier: workspace:*
         version: link:../sdk-ts

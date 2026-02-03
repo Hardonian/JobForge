@@ -31,6 +31,8 @@
   },
   "dependencies": {
     "@autopilot/contracts": "workspace:*",
+    "@jobforge/errors": "workspace:*",
+    "@jobforge/fetch": "workspace:*",
     "@jobforge/sdk-ts": "workspace:*",
     "@jobforge/shared": "workspace:*",
     "zod": "^3.22.4"
