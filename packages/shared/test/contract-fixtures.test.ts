@@ -11,8 +11,28 @@ import {
   simulateExecutorValidation,
   checkDeterministicHashing,
   runExecutorPreflight,
+  validateConnectorSchema,
+  validateRunnerCapabilities,
+  validateErrorEnvelope,
 } from '../src/contract-tests.js'
 import { RunManifestSchema } from '@autopilot/contracts'
+import {
+  validConnectorFixture,
+  validDestinationConnector,
+  validTransformConnector,
+  invalidConnectorMissingVersion,
+  invalidConnectorBadType,
+  validRunnerCapabilities,
+  validDockerRunner,
+  invalidRunnerMissingId,
+  invalidRunnerBadType,
+  validErrorEnvelope,
+  validSimpleError,
+  validErrorWithRecordDetails,
+  invalidErrorMissingCode,
+  invalidErrorBadCode,
+  invalidErrorMissingMessage,
+} from './fixtures/connector-fixtures.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const fixturesDir = path.join(__dirname, 'fixtures')
@@ -108,5 +128,101 @@ describe('Contract Fixtures', () => {
       const result = RunManifestSchema.safeParse(manifest)
       expect(result.success).toBe(true)
     }
+  })
+})
+
+describe('Connector Schema Validation', () => {
+  it('accepts valid source connectors', () => {
+    const result = validateConnectorSchema(validConnectorFixture)
+    expect(result.valid).toBe(true)
+    expect(result.errors).toHaveLength(0)
+  })
+
+  it('accepts valid destination connectors', () => {
+    const result = validateConnectorSchema(validDestinationConnector)
+    expect(result.valid).toBe(true)
+    expect(result.errors).toHaveLength(0)
+  })
+
+  it('accepts valid transform connectors', () => {
+    const result = validateConnectorSchema(validTransformConnector)
+    expect(result.valid).toBe(true)
+    expect(result.errors).toHaveLength(0)
+  })
+
+  it('rejects connectors missing required version', () => {
+    const result = validateConnectorSchema(invalidConnectorMissingVersion)
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.includes('version'))).toBe(true)
+  })
+
+  it('rejects connectors with invalid type', () => {
+    const result = validateConnectorSchema(invalidConnectorBadType)
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.includes('connector_type'))).toBe(true)
+  })
+})
+
+describe('Runner Capabilities Validation', () => {
+  it('accepts valid local runner capabilities', () => {
+    const result = validateRunnerCapabilities(validRunnerCapabilities)
+    expect(result.valid).toBe(true)
+    expect(result.errors).toHaveLength(0)
+  })
+
+  it('accepts valid docker runner capabilities', () => {
+    const result = validateRunnerCapabilities(validDockerRunner)
+    expect(result.valid).toBe(true)
+    expect(result.errors).toHaveLength(0)
+  })
+
+  it('rejects runner capabilities missing runner_id', () => {
+    const result = validateRunnerCapabilities(invalidRunnerMissingId)
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.includes('runner_id'))).toBe(true)
+  })
+
+  it('rejects runner capabilities with invalid type', () => {
+    const result = validateRunnerCapabilities(invalidRunnerBadType)
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.includes('runner_type'))).toBe(true)
+  })
+})
+
+describe('Error Envelope Validation', () => {
+  it('accepts valid error envelopes with array details', () => {
+    const result = validateErrorEnvelope(validErrorEnvelope)
+    expect(result.valid).toBe(true)
+    expect(result.errors).toHaveLength(0)
+  })
+
+  it('accepts valid simple error envelopes', () => {
+    const result = validateErrorEnvelope(validSimpleError)
+    expect(result.valid).toBe(true)
+    expect(result.errors).toHaveLength(0)
+  })
+
+  it('accepts valid error envelopes with record details', () => {
+    const result = validateErrorEnvelope(validErrorWithRecordDetails)
+    expect(result.valid).toBe(true)
+    expect(result.errors).toHaveLength(0)
+  })
+
+  it('rejects error envelopes missing code', () => {
+    const result = validateErrorEnvelope(invalidErrorMissingCode)
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.includes('code'))).toBe(true)
+  })
+
+  it('rejects error envelopes with invalid code', () => {
+    const result = validateErrorEnvelope(invalidErrorBadCode)
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.includes('code'))).toBe(true)
+  })
+
+  it('rejects error envelopes missing message', () => {
+    const result = validateErrorEnvelope(invalidErrorMissingMessage)
+    expect(result.valid).toBe(false)
+    expect(result.errors.some((e) => e.includes('message'))).toBe(true)
   })
 })

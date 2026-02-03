@@ -503,3 +503,94 @@ export function formatContractReport(report: ContractTestReport): string {
 
   return lines.join('\n')
 }
+
+// ============================================================================
+// Connector Schema Validation
+// ============================================================================
+
+/**
+ * Validate a connector definition against the canonical schema
+ */
+export function validateConnectorSchema(connector: unknown): { valid: boolean; errors: string[] } {
+  const errors: string[] = []
+
+  const result = ConnectorCapabilitySchema.safeParse(connector)
+  if (!result.success) {
+    errors.push(
+      ...result.error.errors.map(
+        (e: { path: (string | number)[]; message: string }) => `${e.path.join('.')}: ${e.message}`
+      )
+    )
+  }
+
+  // Additional semantic validation
+  if (result.success) {
+    const validConnector = result.data
+
+    // Validate version format (semver-like)
+    if (!/^\d+\.\d+\.\d+/.test(validConnector.version)) {
+      errors.push('version should follow semantic versioning (e.g., 1.0.0)')
+    }
+
+    // Check for duplicate job types
+    const jobTypes = new Set<string>()
+    for (const jobType of validConnector.supported_job_types) {
+      if (jobTypes.has(jobType)) {
+        errors.push(`Duplicate supported_job_type: ${jobType}`)
+      }
+      jobTypes.add(jobType)
+    }
+  }
+
+  return { valid: errors.length === 0, errors }
+}
+
+// Re-export validateRunnerCapabilities from registry-handshake
+export { validateRunnerCapabilities } from './registry-handshake.js'
+
+// ============================================================================
+// Error Envelope Validation
+// ============================================================================
+
+/**
+ * Validate an error envelope against the canonical schema
+ */
+export function validateErrorEnvelope(error: unknown): { valid: boolean; errors: string[] } {
+  const errors: string[] = []
+
+  const result = ErrorEnvelopeSchema.safeParse(error)
+  if (!result.success) {
+    errors.push(
+      ...result.error.errors.map(
+        (e: { path: (string | number)[]; message: string }) => `${e.path.join('.')}: ${e.message}`
+      )
+    )
+    return { valid: false, errors }
+  }
+
+  const validError = result.data
+
+  // Validate timestamp is in the past (or very near future for clock skew)
+  const errorTime = new Date(validError.timestamp).getTime()
+  const now = Date.now()
+  const fiveMinutesMs = 5 * 60 * 1000
+
+  if (errorTime > now + fiveMinutesMs) {
+    errors.push('timestamp is more than 5 minutes in the future (possible clock skew)')
+  }
+
+  // Validate that details is structured properly when it's an array
+  if (Array.isArray(validError.details)) {
+    for (let i = 0; i < validError.details.length; i++) {
+      const detail = validError.details[i]
+      if (!detail.field || typeof detail.field !== 'string') {
+        errors.push(`details[${i}]: field is required and must be a string`)
+      }
+      if (!detail.message || typeof detail.message !== 'string') {
+        errors.push(`details[${i}]: message is required and must be a string`)
+      }
+    }
+  }
+
+  return { valid: errors.length === 0, errors }
+}
