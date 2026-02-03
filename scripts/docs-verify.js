@@ -156,7 +156,11 @@ function main() {
     [path.join(repoRoot, 'scripts', 'jobforge-impact.ts'), 'show', '--run', 'demo-run-001'],
     { cwd: impactFixtureDir }
   )
-  assertEqual('impact show example', impactShowOutput, fs.readFileSync(impactShowOutputPath, 'utf-8'))
+  assertEqual(
+    'impact show example',
+    impactShowOutput,
+    fs.readFileSync(impactShowOutputPath, 'utf-8')
+  )
 
   const impactExportOutput = runCommand(
     'impact export example',

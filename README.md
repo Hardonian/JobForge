@@ -88,20 +88,20 @@ See [Workers Documentation](docs/workers.md) for details.
 
 ## CLI Reference (auto-generated)
 
-| Command | What it does | Inputs | Outputs | Common options |
-| --- | --- | --- | --- | --- |
-| `pnpm jobforge:doctor` | Run system health checks. | Env: `JOBFORGE_DOCTOR_ENABLED=1`. | Human/JSON report to stdout. | `--json`, `--apply`, `--yes` |
-| `pnpm jobforge:impact:show --run <id>` | Render an impact map tree (or JSON) for a run. | Impact graph file in `.jobforge/impact/` or `.jobforge/artifacts/`. | Tree or JSON to stdout. | `--run`, `--json`, `--tenant`, `--project` |
-| `pnpm jobforge:impact:export --run <id>` | Export an impact graph to JSON. | Impact graph file in `.jobforge/impact/` or `.jobforge/artifacts/`. | JSON file in output dir. | `--run`, `--output` |
-| `pnpm jobforge:impact:compare --run-a <id> --run-b <id>` | Compare two impact graphs. | Two impact graph files. | Comparison report to stdout. | `--run-a`, `--run-b` |
-| `pnpm jobforge:daily` | Run the daily operator loop and export reports. | Env: `JOBFORGE_DAILY_RUN_ENABLED=1`. | JSON + Markdown report in output dir. | `--dry`, `--tenant`, `--output` |
-| `tsx scripts/replay-cli.ts export <run-id>` | Export a replay bundle. | Env: `REPLAY_PACK_ENABLED=1`. | `replay-*.json` + `manifest-*.json`. | `--tenant`, `--job`, `--inputs`, `--output` |
-| `tsx scripts/replay-cli.ts dry-run <bundle>` | Dry-run a replay bundle. | Replay bundle JSON. | Summary + logs to stdout. | `--max-logs`, `--compare` |
-| `jobforge-worker` | Run the TypeScript worker. | Env: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`. | Worker logs. | `--once`, `--interval` |
-| `jobforge-console <command>` | Ops console for bundles, triggers, and replays. | Env: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`. | Tables/JSON to stdout; optional replay JSON file. | `--tenant`, `--project`, `--json` |
-| `python -m jobforge_worker.cli` | Run the Python worker. | Env: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`. | Worker logs. | `--once`, `--interval` |
-| `node scripts/smoke-test-final.ts` | End-to-end runnerless smoke test. | Optional flags + Supabase env. | Human report to stdout. | `--with-flags` |
-| `node scripts/smoke-test-verify-pack.ts` | Verify-pack handler smoke test. | Local repo tooling. | Reports + artifacts in `.jobforge/artifacts`. | (none) |
+| Command                                                  | What it does                                    | Inputs                                                              | Outputs                                           | Common options                              |
+| -------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------- |
+| `pnpm jobforge:doctor`                                   | Run system health checks.                       | Env: `JOBFORGE_DOCTOR_ENABLED=1`.                                   | Human/JSON report to stdout.                      | `--json`, `--apply`, `--yes`                |
+| `pnpm jobforge:impact:show --run <id>`                   | Render an impact map tree (or JSON) for a run.  | Impact graph file in `.jobforge/impact/` or `.jobforge/artifacts/`. | Tree or JSON to stdout.                           | `--run`, `--json`, `--tenant`, `--project`  |
+| `pnpm jobforge:impact:export --run <id>`                 | Export an impact graph to JSON.                 | Impact graph file in `.jobforge/impact/` or `.jobforge/artifacts/`. | JSON file in output dir.                          | `--run`, `--output`                         |
+| `pnpm jobforge:impact:compare --run-a <id> --run-b <id>` | Compare two impact graphs.                      | Two impact graph files.                                             | Comparison report to stdout.                      | `--run-a`, `--run-b`                        |
+| `pnpm jobforge:daily`                                    | Run the daily operator loop and export reports. | Env: `JOBFORGE_DAILY_RUN_ENABLED=1`.                                | JSON + Markdown report in output dir.             | `--dry`, `--tenant`, `--output`             |
+| `tsx scripts/replay-cli.ts export <run-id>`              | Export a replay bundle.                         | Env: `REPLAY_PACK_ENABLED=1`.                                       | `replay-*.json` + `manifest-*.json`.              | `--tenant`, `--job`, `--inputs`, `--output` |
+| `tsx scripts/replay-cli.ts dry-run <bundle>`             | Dry-run a replay bundle.                        | Replay bundle JSON.                                                 | Summary + logs to stdout.                         | `--max-logs`, `--compare`                   |
+| `jobforge-worker`                                        | Run the TypeScript worker.                      | Env: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.                   | Worker logs.                                      | `--once`, `--interval`                      |
+| `jobforge-console <command>`                             | Ops console for bundles, triggers, and replays. | Env: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.                   | Tables/JSON to stdout; optional replay JSON file. | `--tenant`, `--project`, `--json`           |
+| `python -m jobforge_worker.cli`                          | Run the Python worker.                          | Env: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.                   | Worker logs.                                      | `--once`, `--interval`                      |
+| `node scripts/smoke-test-final.ts`                       | End-to-end runnerless smoke test.               | Optional flags + Supabase env.                                      | Human report to stdout.                           | `--with-flags`                              |
+| `node scripts/smoke-test-verify-pack.ts`                 | Verify-pack handler smoke test.                 | Local repo tooling.                                                 | Reports + artifacts in `.jobforge/artifacts`.     | (none)                                      |
 
 For the full CLI catalog, including smoke tests and contract runners, see [docs/cli.md](docs/cli.md).
 

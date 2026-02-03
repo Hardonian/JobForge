@@ -362,7 +362,8 @@ export async function runModuleCliHandler(
     pipelineReason = ruleDecision.reason
   } else if (requestedMode === 'execute' && !isBundleExecutorEnabled()) {
     pipelineStatus = 'blocked'
-    pipelineReason = 'Bundle executor is disabled (set JOBFORGE_BUNDLE_EXECUTOR_ENABLED=1 to enable)'
+    pipelineReason =
+      'Bundle executor is disabled (set JOBFORGE_BUNDLE_EXECUTOR_ENABLED=1 to enable)'
   }
 
   if (isBundleExecutorEnabled() && pipelineStatus !== 'blocked') {

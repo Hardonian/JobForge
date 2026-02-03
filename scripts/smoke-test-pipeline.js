@@ -66,7 +66,9 @@ let cachedHandlers = null
 
 function getHandlers() {
   if (cachedHandlers) return cachedHandlers
-  const { runModuleCliHandler } = require('../services/worker-ts/dist/handlers/autopilot/run-module-cli')
+  const {
+    runModuleCliHandler,
+  } = require('../services/worker-ts/dist/handlers/autopilot/run-module-cli')
   cachedHandlers = { runModuleCliHandler }
   return cachedHandlers
 }

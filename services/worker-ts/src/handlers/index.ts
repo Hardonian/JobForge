@@ -56,10 +56,7 @@ import {
   executeRequestBundleHandler,
   ExecuteRequestBundlePayloadSchema,
 } from './autopilot/execute-bundle'
-import {
-  runModuleCliHandler,
-  RunModuleCliPayloadSchema,
-} from './autopilot/run-module-cli'
+import { runModuleCliHandler, RunModuleCliPayloadSchema } from './autopilot/run-module-cli'
 
 /**
  * Create and configure the default handler registry
