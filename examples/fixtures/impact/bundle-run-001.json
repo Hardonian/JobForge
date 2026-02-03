@@ -1,0 +1,89 @@
+{
+  "run_id": "bundle-run-001",
+  "tenant_id": "tenant-123",
+  "project_id": "project-456",
+  "trace_id": "trace-789",
+  "bundle_run": {
+    "job_type": "jobforge.autopilot.execute_request_bundle",
+    "status": "complete",
+    "created_at": "2024-02-01T00:00:00.000Z",
+    "mode": "execute"
+  },
+  "event": {
+    "id": "event-001",
+    "type": "bundle_request",
+    "created_at": "2024-02-01T00:00:00.000Z",
+    "source_app": "ops-console",
+    "actor_id": "agent-007",
+    "payload": {
+      "token": "super-secret-token",
+      "request_id": "event-req-123"
+    }
+  },
+  "request_bundle": {
+    "bundle_id": "bundle-abc",
+    "trace_id": "trace-789",
+    "metadata": {
+      "source": "autopilot-suite",
+      "policy_token": "policy-should-not-leak"
+    },
+    "requests": [
+      {
+        "id": "req-a",
+        "job_type": "autopilot.ops.scan",
+        "payload": {
+          "tenant_id": "tenant-123",
+          "project_id": "project-456",
+          "scan_type": "health",
+          "api_key": "secret-api-key",
+          "targets": ["database", "api"]
+        },
+        "idempotency_key": "scan-001-2024-01-15",
+        "required_scopes": ["ops:read"],
+        "is_action_job": false
+      },
+      {
+        "id": "req-b",
+        "job_type": "autopilot.support.triage",
+        "payload": {
+          "tenant_id": "tenant-123",
+          "project_id": "project-456",
+          "ticket_id": "TICKET-1"
+        },
+        "idempotency_key": "triage-001-2024-01-15",
+        "required_scopes": ["support:read"],
+        "is_action_job": false
+      }
+    ]
+  },
+  "child_runs": [
+    {
+      "request_id": "req-a",
+      "job_type": "autopilot.ops.scan",
+      "status": "queued",
+      "job_id": "job-child-001"
+    },
+    {
+      "request_id": "req-b",
+      "job_type": "autopilot.support.triage",
+      "status": "executed",
+      "job_id": "job-child-002"
+    }
+  ],
+  "artifacts": [
+    {
+      "name": "bundle_manifest",
+      "type": "json",
+      "ref": "bundle-manifest-bundle-run-001.json",
+      "size": 123,
+      "mime_type": "application/json"
+    },
+    {
+      "name": "bundle_summary",
+      "type": "markdown",
+      "ref": "bundle-summary-bundle-run-001.md",
+      "size": 456,
+      "mime_type": "text/markdown"
+    }
+  ]
+}

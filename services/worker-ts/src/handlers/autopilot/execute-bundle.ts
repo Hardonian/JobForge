@@ -19,6 +19,7 @@ import {
   isAutopilotJobsEnabled,
   isActionJobsEnabled,
   JOBFORGE_POLICY_TOKEN_SECRET,
+  buildImpactGraphFromBundleRun,
 } from '@jobforge/shared'
 import {
   JobRequestBundleSchema,
@@ -423,6 +424,48 @@ ${childRuns.map((r) => `- **${r.request_id}** (${r.job_type}): ${r.status}${r.re
       size: summaryMarkdown.length,
       mime_type: 'text/markdown',
     })
+
+    const impactArtifact: ArtifactOutput = {
+      name: 'impact_graph',
+      type: 'json',
+      ref: `impact-${context.job_id}.json`,
+      mime_type: 'application/json',
+    }
+
+    const impactGraph = buildImpactGraphFromBundleRun({
+      run_id: context.job_id,
+      tenant_id: validated.tenant_id,
+      project_id: validated.project_id,
+      trace_id: validated.trace_id,
+      bundle_run: {
+        job_type: 'jobforge.autopilot.execute_request_bundle',
+        status: success ? 'complete' : 'failed',
+        created_at: new Date().toISOString(),
+        mode: validated.mode,
+      },
+      event: {
+        id: validated.trace_id,
+        type: 'bundle_request',
+        source_app:
+          typeof bundle.metadata?.source === 'string' ? String(bundle.metadata?.source) : undefined,
+        payload: {
+          bundle_id: bundle.bundle_id,
+        },
+      },
+      request_bundle: bundle,
+      child_runs: childRuns.map((child) => ({
+        request_id: child.request_id,
+        job_type: child.job_type,
+        status: child.status,
+        job_id: child.job_id,
+        reason: child.reason,
+      })),
+      artifacts: [...outputs, impactArtifact],
+    })
+
+    const impactJson = JSON.stringify(impactGraph, null, 2)
+    impactArtifact.size = impactJson.length
+    outputs.push(impactArtifact)
 
     const manifest = createManifest(
       context,

@@ -21,6 +21,7 @@ export * from './policy-tokens.js'
 export * from './doctor.js'
 export * from './policy-guard.js'
 export * from './impact-map.js'
+export * from './impact-export.js'
 export * from './upgrade-lane.js'
 
 // Explicit re-exports to resolve ambiguities

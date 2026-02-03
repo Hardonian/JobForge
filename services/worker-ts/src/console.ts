@@ -560,6 +560,103 @@ async function exportReplay(config: ConsoleConfig, args: string[]): Promise<void
   }
 }
 
+async function showImpact(config: ConsoleConfig, args: string[]): Promise<void> {
+  const runArg = args.find((a) => a.startsWith('--run='))
+  const runId = runArg ? runArg.split('=')[1] : undefined
+  const jsonOutput = args.includes('--json')
+
+  if (!runId) {
+    printError('Missing required argument: --run=<bundle_run_id>')
+    console.log('\nUsage: jobforge console impact:show --run=<id> [--json]')
+    process.exit(EXIT_CODES.validation)
+  }
+
+  printHeader('Impact Graph')
+  console.log(`Run ID: ${runId.slice(0, 16)}...`)
+
+  try {
+    const { JobForgeClient } = await loadSdkModule()
+    const { buildImpactGraphFromBundleRun, formatImpactTree } = await loadSharedModule()
+
+    const client = new JobForgeClient({
+      supabaseUrl: config.supabaseUrl,
+      supabaseKey: config.supabaseKey,
+    })
+
+    const job = await client.getJob(runId, config.tenantId)
+
+    if (!job) {
+      printError('Bundle run not found')
+      process.exit(EXIT_CODES.validation)
+    }
+
+    const result = job.result_id ? await client.getResult(job.result_id, config.tenantId) : null
+    const manifest = await client.getRunManifest({ run_id: runId, tenant_id: config.tenantId })
+
+    const payload = job.payload as Record<string, unknown>
+    const requestBundle =
+      payload && typeof payload === 'object' && 'request_bundle' in payload
+        ? (payload.request_bundle as Record<string, unknown>)
+        : undefined
+
+    const graph = buildImpactGraphFromBundleRun({
+      run_id: job.id,
+      tenant_id: job.tenant_id,
+      project_id: (payload?.project_id as string | undefined) || undefined,
+      trace_id: (payload?.trace_id as string | undefined) || undefined,
+      bundle_run: {
+        job_type: job.type,
+        status: job.status,
+        created_at: job.created_at,
+        mode: typeof payload?.mode === 'string' ? payload.mode : undefined,
+      },
+      event: {
+        id: typeof payload?.trace_id === 'string' ? payload.trace_id : undefined,
+        type: 'bundle_request',
+      },
+      request_bundle:
+        requestBundle && typeof requestBundle === 'object'
+          ? (requestBundle as {
+              bundle_id?: string
+              trace_id?: string
+              metadata?: Record<string, unknown>
+              requests: Array<{
+                id: string
+                job_type: string
+                tenant_id?: string
+                project_id?: string
+                payload?: Record<string, unknown>
+                idempotency_key?: string
+                required_scopes?: string[]
+                is_action_job?: boolean
+              }>
+            })
+          : undefined,
+      child_runs: Array.isArray(result?.result?.child_runs)
+        ? (result?.result?.child_runs as Array<{
+            request_id: string
+            job_type?: string
+            status?: string
+            job_id?: string
+            reason?: string
+          }>)
+        : undefined,
+      artifacts: manifest?.outputs || [],
+    })
+
+    if (jsonOutput) {
+      console.log(JSON.stringify(graph, null, 2))
+    } else {
+      console.log(formatImpactTree(graph))
+    }
+
+    printFooter()
+  } catch (error) {
+    logUnexpectedError('Failed to show impact graph', error)
+    process.exit(EXIT_CODES.failure)
+  }
+}
+
 function showHelp(): void {
   console.log(`
 JobForge Ops Console CLI
@@ -577,6 +674,7 @@ COMMANDS:
   triggers:show       Show trigger rule details
   triggers:dryrun     Test trigger rule against event
   replay:export       Export replay bundle for a run
+  impact:show         Show impact graph tree for a bundle run
   status              Show feature flag status
   help                Show this help message
 
@@ -586,6 +684,7 @@ OPTIONS:
   --json              Output as JSON (redacted, default: false)
   --since=<time>      Filter by time (ISO format, default: none)
   --run=<id>          Bundle run ID (for bundles:show and replay:export)
+  --run=<id>          Bundle run ID (for impact:show)
   --rule=<id>         Trigger rule ID (for triggers:show and triggers:dryrun)
   --event=<path>      Path to event JSON file (for triggers:dryrun)
   --output=<path>     Output file path (for replay:export)
@@ -601,6 +700,7 @@ EXAMPLES:
   jobforge console bundles:show --run=550e8400-e29b-41d4-a716-446655440001
   jobforge console triggers:list --tenant=550e8400-e29b-41d4-a716-446655440000
   jobforge console triggers:dryrun --rule=550e8400-e29b-41d4-a716-446655440002 --event=./event.json
+  jobforge console impact:show --run=550e8400-e29b-41d4-a716-446655440001
 `)
 }
 
@@ -671,6 +771,7 @@ async function main(): Promise<void> {
     'triggers:show',
     'triggers:dryrun',
     'replay:export',
+    'impact:show',
   ]
   if (dataCommands.includes(command) && !config.tenantId) {
     printError(
@@ -700,6 +801,9 @@ async function main(): Promise<void> {
         break
       case 'replay:export':
         await exportReplay(config, args)
+        break
+      case 'impact:show':
+        await showImpact(config, args)
         break
       default:
         printError(`Unknown command: ${command}`)

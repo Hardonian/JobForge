@@ -8,27 +8,26 @@
  *   compare <run-a> <run-b> - Compare two impact graphs
  *
  * Environment:
- *   JOBFORGE_IMPACT_MAP_ENABLED=1 - Required for full functionality
+ *   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY - For live bundle run lookup
  *
  * Usage:
  *   pnpm jobforge impact:show --run run-123
- *   pnpm jobforge impact:export --run run-123
+ *   pnpm jobforge impact:export --run run-123 --out .jobforge/impact
  *   pnpm jobforge impact:compare --run-a run-1 --run-b run-2
  */
 
+import { mkdir, readFile, access, writeFile } from 'fs/promises'
+import { join } from 'path'
 import {
+  buildImpactGraphFromBundleRun,
   formatImpactTree,
-  parseImpactGraph,
-  compareImpactGraphs,
-  exportImpactGraph,
-  type ImpactGraph,
-} from '../packages/shared/src/impact-map.js'
-import { JOBFORGE_IMPACT_MAP_ENABLED } from '../packages/shared/src/feature-flags.js'
-import { readFile, access } from 'fs/promises'
+  type ImpactBundleRunSnapshot,
+  type ImpactExportGraph,
+} from '../packages/shared/src/impact-export.js'
 
 interface ShowOptions {
   runId: string
-  tenantId: string
+  tenantId?: string
   projectId?: string
   json?: boolean
 }
@@ -36,12 +35,13 @@ interface ShowOptions {
 interface ExportOptions {
   runId: string
   outputDir?: string
+  tenantId?: string
 }
 
 interface CompareOptions {
   runA: string
   runB: string
-  tenantId: string
+  tenantId?: string
 }
 
 const EXIT_CODES = {
@@ -66,20 +66,21 @@ function logUnexpectedError(message: string, error: unknown): void {
   }
 }
 
-async function loadImpactGraph(runId: string): Promise<ImpactGraph | null> {
-  // Try to load from local artifacts
+async function loadBundleRunSnapshot(runId: string): Promise<ImpactBundleRunSnapshot | null> {
   const possiblePaths = [
-    `.jobforge/impact/impact-${runId}.json`,
-    `.jobforge/artifacts/verify-pack-impact-${runId}.json`,
-    `.jobforge/artifacts/impact-${runId}.json`,
-    `.jobforge/artifacts/impact-graph-${runId}.json`,
+    `.jobforge/impact/${runId}.json`,
+    `.jobforge/impact/bundle-run-${runId}.json`,
+    `.jobforge/artifacts/${runId}.json`,
+    `.jobforge/artifacts/bundle-run-${runId}.json`,
+    `examples/fixtures/impact/${runId}.json`,
+    `examples/fixtures/impact/bundle-run-${runId}.json`,
   ]
 
   for (const path of possiblePaths) {
     try {
       await access(path)
       const content = await readFile(path, 'utf-8')
-      return parseImpactGraph(content)
+      return JSON.parse(content) as ImpactBundleRunSnapshot
     } catch {
       continue
     }
@@ -88,22 +89,79 @@ async function loadImpactGraph(runId: string): Promise<ImpactGraph | null> {
   return null
 }
 
+async function loadBundleRunSnapshotFromSupabase(
+  runId: string,
+  tenantId: string
+): Promise<ImpactBundleRunSnapshot | null> {
+  const supabaseUrl = process.env.SUPABASE_URL
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseUrl || !supabaseKey) {
+    return null
+  }
+
+  const { JobForgeClient } = await import('../packages/sdk-ts/src/index.js')
+  const client = new JobForgeClient({ supabaseUrl, supabaseKey })
+  const job = await client.getJob(runId, tenantId)
+  if (!job) return null
+
+  const result = job.result_id ? await client.getResult(job.result_id, tenantId) : null
+  const manifest = await client.getRunManifest({ run_id: runId, tenant_id: tenantId })
+
+  const payload = job.payload as Record<string, unknown>
+  const requestBundle =
+    payload && typeof payload === 'object' && 'request_bundle' in payload
+      ? (payload.request_bundle as ImpactBundleRunSnapshot['request_bundle'])
+      : undefined
+
+  return {
+    run_id: job.id,
+    tenant_id: job.tenant_id,
+    project_id: (payload?.project_id as string | undefined) || undefined,
+    trace_id: (payload?.trace_id as string | undefined) || undefined,
+    bundle_run: {
+      job_type: job.type,
+      status: job.status,
+      created_at: job.created_at,
+      mode: typeof payload?.mode === 'string' ? payload.mode : undefined,
+    },
+    event: {
+      id: typeof payload?.trace_id === 'string' ? payload.trace_id : undefined,
+      type: 'bundle_request',
+    },
+    request_bundle: requestBundle,
+    child_runs: Array.isArray(result?.result?.child_runs)
+      ? (result?.result?.child_runs as ImpactBundleRunSnapshot['child_runs'])
+      : undefined,
+    artifacts: manifest?.outputs || [],
+  }
+}
+
+async function resolveBundleRunSnapshot(
+  runId: string,
+  tenantId?: string
+): Promise<ImpactBundleRunSnapshot | null> {
+  if (tenantId) {
+    const fromSupabase = await loadBundleRunSnapshotFromSupabase(runId, tenantId)
+    if (fromSupabase) return fromSupabase
+  }
+  return loadBundleRunSnapshot(runId)
+}
+
 async function showCommand(options: ShowOptions): Promise<void> {
   console.log(`Loading impact map for run ${options.runId}...\n`)
 
-  const graph = await loadImpactGraph(options.runId)
+  const snapshot = await resolveBundleRunSnapshot(options.runId, options.tenantId)
 
-  if (!graph) {
-    console.error(`Error: Impact graph not found for run ${options.runId}`)
+  if (!snapshot) {
+    console.error(`Error: Bundle run snapshot not found for run ${options.runId}`)
     console.error('')
     console.error('Searched locations:')
     console.error('  - .jobforge/impact/')
     console.error('  - .jobforge/artifacts/')
-    console.error('')
-    console.error('The impact map feature may be disabled or the run may not have generated one.')
-    console.error(`JOBFORGE_IMPACT_MAP_ENABLED=${JOBFORGE_IMPACT_MAP_ENABLED ? '1' : '0'}`)
     process.exit(EXIT_CODES.validation)
   }
+
+  const graph = buildImpactGraphFromBundleRun(snapshot)
 
   if (options.json) {
     console.log(JSON.stringify(graph, null, 2))
@@ -115,23 +173,28 @@ async function showCommand(options: ShowOptions): Promise<void> {
 async function exportCommand(options: ExportOptions): Promise<void> {
   console.log(`Exporting impact map for run ${options.runId}...\n`)
 
-  const graph = await loadImpactGraph(options.runId)
+  const snapshot = await resolveBundleRunSnapshot(options.runId, options.tenantId)
 
-  if (!graph) {
-    console.error(`Error: Impact graph not found for run ${options.runId}`)
+  if (!snapshot) {
+    console.error(`Error: Bundle run snapshot not found for run ${options.runId}`)
     process.exit(EXIT_CODES.validation)
   }
 
+  const graph = buildImpactGraphFromBundleRun(snapshot)
   const outputDir = options.outputDir || '.jobforge/impact'
-  const filepath = await exportImpactGraph(graph, outputDir)
+  await mkdir(outputDir, { recursive: true })
+  const filepath = join(outputDir, 'impact.json')
+  await writeFile(filepath, JSON.stringify(graph, null, 2))
 
   console.log(`✓ Exported to ${filepath}`)
   console.log('')
   console.log('Graph summary:')
   console.log(`  Nodes: ${graph.nodes.length}`)
   console.log(`  Edges: ${graph.edges.length}`)
-  console.log(`  Tenant: ${graph.tenantId}`)
-  console.log(`  Created: ${graph.createdAt}`)
+  console.log(`  Tenant: ${graph.tenant_id}`)
+  if (graph.trace_id) {
+    console.log(`  Trace: ${graph.trace_id}`)
+  }
 }
 
 async function compareCommand(options: CompareOptions): Promise<void> {
@@ -139,20 +202,22 @@ async function compareCommand(options: CompareOptions): Promise<void> {
   console.log(`  Run A: ${options.runA}`)
   console.log(`  Run B: ${options.runB}\n`)
 
-  const graphA = await loadImpactGraph(options.runA)
-  const graphB = await loadImpactGraph(options.runB)
+  const snapshotA = await resolveBundleRunSnapshot(options.runA, options.tenantId)
+  const snapshotB = await resolveBundleRunSnapshot(options.runB, options.tenantId)
 
-  if (!graphA) {
-    console.error(`Error: Impact graph not found for run ${options.runA}`)
+  if (!snapshotA) {
+    console.error(`Error: Bundle run snapshot not found for run ${options.runA}`)
     process.exit(EXIT_CODES.validation)
   }
 
-  if (!graphB) {
-    console.error(`Error: Impact graph not found for run ${options.runB}`)
+  if (!snapshotB) {
+    console.error(`Error: Bundle run snapshot not found for run ${options.runB}`)
     process.exit(EXIT_CODES.validation)
   }
 
-  const comparison = compareImpactGraphs(graphA, graphB)
+  const graphA = buildImpactGraphFromBundleRun(snapshotA)
+  const graphB = buildImpactGraphFromBundleRun(snapshotB)
+  const comparison = compareGraphs(graphA, graphB)
 
   console.log('='.repeat(60))
   console.log('COMPARISON RESULTS')
@@ -186,6 +251,52 @@ async function compareCommand(options: CompareOptions): Promise<void> {
   }
 }
 
+function compareGraphs(
+  graphA: ImpactExportGraph,
+  graphB: ImpactExportGraph
+): {
+  identical: boolean
+  nodeDifferences: Array<{ id: string; hashA: string; hashB: string }>
+  edgeDifferences: Array<{ id: string; hashA: string; hashB: string }>
+} {
+  const nodeAHashes = new Map(graphA.nodes.map((n) => [n.id, n.hash]))
+  const nodeBHashes = new Map(graphB.nodes.map((n) => [n.id, n.hash]))
+
+  const nodeDifferences: Array<{ id: string; hashA: string; hashB: string }> = []
+  for (const [id, hashA] of nodeAHashes) {
+    const hashB = nodeBHashes.get(id)
+    if (hashB !== hashA) {
+      nodeDifferences.push({ id, hashA, hashB: hashB || 'missing' })
+    }
+  }
+  for (const [id, hashB] of nodeBHashes) {
+    if (!nodeAHashes.has(id)) {
+      nodeDifferences.push({ id, hashA: 'missing', hashB })
+    }
+  }
+
+  const edgeAHashes = new Map(graphA.edges.map((e) => [e.id, e.hash]))
+  const edgeBHashes = new Map(graphB.edges.map((e) => [e.id, e.hash]))
+  const edgeDifferences: Array<{ id: string; hashA: string; hashB: string }> = []
+  for (const [id, hashA] of edgeAHashes) {
+    const hashB = edgeBHashes.get(id)
+    if (hashB !== hashA) {
+      edgeDifferences.push({ id, hashA, hashB: hashB || 'missing' })
+    }
+  }
+  for (const [id, hashB] of edgeBHashes) {
+    if (!edgeAHashes.has(id)) {
+      edgeDifferences.push({ id, hashA: 'missing', hashB })
+    }
+  }
+
+  return {
+    identical: nodeDifferences.length === 0 && edgeDifferences.length === 0,
+    nodeDifferences,
+    edgeDifferences,
+  }
+}
+
 async function main(): Promise<void> {
   const args = process.argv.slice(2)
   const command = args[0]
@@ -210,7 +321,9 @@ Show Options:
 
 Export Options:
   --run <id>        Run ID (required)
-  --output <dir>    Output directory (default: .jobforge/impact)
+  --out <dir>       Output directory (default: .jobforge/impact)
+  --output <dir>    Output directory (alias)
+  --tenant <id>     Tenant ID (optional, required for Supabase lookup)
 
 Compare Options:
   --run-a <id>      First run ID (required)
@@ -231,8 +344,8 @@ Examples:
   pnpm jobforge impact:compare --run-a run-1 --run-b run-2
 
 Notes:
-  - Impact maps are stored in .jobforge/impact/ or .jobforge/artifacts/
-  - Feature flag JOBFORGE_IMPACT_MAP_ENABLED must be set
+  - Bundle run snapshots can be loaded from .jobforge/impact/, .jobforge/artifacts/,
+    or Supabase when SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set.
 `)
     process.exit(EXIT_CODES.success)
   }
@@ -263,7 +376,7 @@ Notes:
         }
         await showCommand({
           runId,
-          tenantId: options.tenant || 'system',
+          tenantId: options.tenant,
           projectId: options.project,
           json: options.json === 'true',
         })
@@ -279,7 +392,8 @@ Notes:
         }
         await exportCommand({
           runId,
-          outputDir: options.output,
+          outputDir: options.out || options.output,
+          tenantId: options.tenant,
         })
         break
       }
@@ -295,7 +409,7 @@ Notes:
         await compareCommand({
           runA,
           runB,
-          tenantId: options.tenant || 'system',
+          tenantId: options.tenant,
         })
         break
       }

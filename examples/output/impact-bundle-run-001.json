@@ -1,0 +1,185 @@
+{
+  "schema_version": "1.0",
+  "run_id": "bundle-run-001",
+  "tenant_id": "tenant-123",
+  "project_id": "project-456",
+  "trace_id": "trace-789",
+  "nodes": [
+    {
+      "id": "bundle-manifest-bundle-run-001.json",
+      "type": "artifact",
+      "tenant_id": "tenant-123",
+      "project_id": "project-456",
+      "trace_id": "trace-789",
+      "metadata": {
+        "name": "bundle_manifest",
+        "type": "json",
+        "ref": "bundle-manifest-bundle-run-001.json",
+        "size": 123,
+        "mime_type": "application/json"
+      },
+      "hash": "eddd1aa33b1f363eb2344a8aca6feb1b29a91add6e2377d7c6ba155d977559e6"
+    },
+    {
+      "id": "bundle-summary-bundle-run-001.md",
+      "type": "artifact",
+      "tenant_id": "tenant-123",
+      "project_id": "project-456",
+      "trace_id": "trace-789",
+      "metadata": {
+        "name": "bundle_summary",
+        "type": "markdown",
+        "ref": "bundle-summary-bundle-run-001.md",
+        "size": 456,
+        "mime_type": "text/markdown"
+      },
+      "hash": "083e1eeeff590f452fd908b54c36aba13b9d78129ef77903c67d73e4f2ccaa42"
+    },
+    {
+      "id": "bundle-run-001",
+      "type": "bundle_run",
+      "tenant_id": "tenant-123",
+      "project_id": "project-456",
+      "trace_id": "trace-789",
+      "metadata": {
+        "job_type": "jobforge.autopilot.execute_request_bundle",
+        "status": "complete",
+        "created_at": "2024-02-01T00:00:00.000Z",
+        "mode": "execute",
+        "bundle_id": "bundle-abc",
+        "request_count": 2,
+        "child_run_count": 2,
+        "request_bundle_hash": "4444f02e2f455ce7e7c8ae6d5ee0e9fee0db779bfe28c16d4fe120a1f2a34d8c"
+      },
+      "hash": "6f0a9a908735fb0dfa86c459f6f27d88b769398258ec0cf66657753c87713992"
+    },
+    {
+      "id": "job-child-001",
+      "type": "child_run",
+      "tenant_id": "tenant-123",
+      "project_id": "project-456",
+      "trace_id": "trace-789",
+      "metadata": {
+        "request_id": "req-a",
+        "job_type": "autopilot.ops.scan",
+        "status": "queued"
+      },
+      "hash": "8a0cd2ca028a2844b5a2cdd700527d5857fa8955b68641264b570187c46802e1"
+    },
+    {
+      "id": "job-child-002",
+      "type": "child_run",
+      "tenant_id": "tenant-123",
+      "project_id": "project-456",
+      "trace_id": "trace-789",
+      "metadata": {
+        "request_id": "req-b",
+        "job_type": "autopilot.support.triage",
+        "status": "executed"
+      },
+      "hash": "5643f0ee6e6f15b72d46e25160e3db691e5a35f7464ab81beb54d596e97d548f"
+    },
+    {
+      "id": "event-001",
+      "type": "event",
+      "tenant_id": "tenant-123",
+      "project_id": "project-456",
+      "trace_id": "trace-789",
+      "metadata": {
+        "event_type": "bundle_request",
+        "created_at": "2024-02-01T00:00:00.000Z",
+        "source_app": "ops-console",
+        "actor_id": "agent-007",
+        "payload_hash": "e44492d44c7a8b815b04bf20362b35512a91ae1bef78b96f78d2418a3d765a6d"
+      },
+      "hash": "60154499d4c871501eb4bba66063c33dba7684999670e099c7a06dbd7c3ca05d"
+    },
+    {
+      "id": "req-a",
+      "type": "module_run",
+      "tenant_id": "tenant-123",
+      "project_id": "project-456",
+      "trace_id": "trace-789",
+      "metadata": {
+        "job_type": "autopilot.ops.scan",
+        "request_id": "req-a",
+        "idempotency_key": "scan****1-15",
+        "required_scopes": [
+          "ops:read"
+        ],
+        "is_action_job": false,
+        "payload_hash": "5103285a1207d8a8f6eba2b51e76fc5c0d345aeead28b8651f8050c48cc88622"
+      },
+      "hash": "4290c8833f43d0eb6ad8a6dc30b6ba782b8f56a55fe059c38602a7091e6b1bf6"
+    },
+    {
+      "id": "req-b",
+      "type": "module_run",
+      "tenant_id": "tenant-123",
+      "project_id": "project-456",
+      "trace_id": "trace-789",
+      "metadata": {
+        "job_type": "autopilot.support.triage",
+        "request_id": "req-b",
+        "idempotency_key": "tria****1-15",
+        "required_scopes": [
+          "support:read"
+        ],
+        "is_action_job": false,
+        "payload_hash": "010b2a25812c9725be5401c96d290eff9329de989dc3fae21bd9cdc1bcc66296"
+      },
+      "hash": "0333a88d34eb9a3a14560cbb6329b96c8c597c901674b27e62f43320590264b5"
+    }
+  ],
+  "edges": [
+    {
+      "from": "job-child-001",
+      "to": "req-a",
+      "type": "depends_on",
+      "id": "7415591d42e595212c3b7f3b2faf2deeebf631142f4abb2da42ad20681b0c604",
+      "hash": "7415591d42e595212c3b7f3b2faf2deeebf631142f4abb2da42ad20681b0c604"
+    },
+    {
+      "from": "job-child-002",
+      "to": "req-b",
+      "type": "depends_on",
+      "id": "a4e6db915d6b41d998b3978ab49de959dacc66143cdb88bc8a684ffef08004b9",
+      "hash": "a4e6db915d6b41d998b3978ab49de959dacc66143cdb88bc8a684ffef08004b9"
+    },
+    {
+      "from": "req-a",
+      "to": "bundle-run-001",
+      "type": "depends_on",
+      "id": "9d80414ab5102b73feca9ca11a5dc140274286b89db624dc8e874804e2563bfb",
+      "hash": "9d80414ab5102b73feca9ca11a5dc140274286b89db624dc8e874804e2563bfb"
+    },
+    {
+      "from": "req-b",
+      "to": "bundle-run-001",
+      "type": "depends_on",
+      "id": "8a9df2400c3e379206b2aaf053234e329248c1c25f0d09be69896b56867912ae",
+      "hash": "8a9df2400c3e379206b2aaf053234e329248c1c25f0d09be69896b56867912ae"
+    },
+    {
+      "from": "bundle-manifest-bundle-run-001.json",
+      "to": "bundle-run-001",
+      "type": "produced_by",
+      "id": "be6ddf57d6adef03e3d0302fb76e257b550787400e359aca58bd5a18a341d0a3",
+      "hash": "be6ddf57d6adef03e3d0302fb76e257b550787400e359aca58bd5a18a341d0a3"
+    },
+    {
+      "from": "bundle-summary-bundle-run-001.md",
+      "to": "bundle-run-001",
+      "type": "produced_by",
+      "id": "fcd9af61af66545ad4a6dc22e9204110502ae8f1cbd7f70d301076dc836005e6",
+      "hash": "fcd9af61af66545ad4a6dc22e9204110502ae8f1cbd7f70d301076dc836005e6"
+    },
+    {
+      "from": "bundle-run-001",
+      "to": "event-001",
+      "type": "triggered_by",
+      "id": "1cbb7182fcd9477e7522155a912b0f7460f5c7aa4bf9f0b50d77274e94a17961",
+      "hash": "1cbb7182fcd9477e7522155a912b0f7460f5c7aa4bf9f0b50d77274e94a17961"
+    }
+  ]
+}
