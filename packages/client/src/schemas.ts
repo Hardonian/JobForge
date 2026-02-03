@@ -116,8 +116,6 @@ export const getRunManifestParamsSchema = z.object({
 // Artifacts Schema
 // ============================================================================
 
-})
-
 export const listArtifactsParamsSchema = z.object({
   runId: z.string().uuid('Run ID must be a valid UUID'),
   tenantId: z.string().uuid('Tenant ID must be a valid UUID'),

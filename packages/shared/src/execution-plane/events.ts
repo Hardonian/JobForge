@@ -3,7 +3,7 @@
  * Standard event format for runnerless autopilot modules
  */
 
-export type {
+import type {
   EventEnvelope,
   EventSubject,
   EventVersion,
@@ -11,6 +11,8 @@ export type {
   SourceApp,
   SourceModule,
 } from '@autopilot/contracts'
+
+export type { EventEnvelope, EventSubject, EventVersion, RedactionHints, SourceApp, SourceModule }
 
 /**
  * Event row from database

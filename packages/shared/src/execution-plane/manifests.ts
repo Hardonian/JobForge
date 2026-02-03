@@ -3,7 +3,7 @@
  * Canonical manifest format for job run outputs
  */
 
-export type {
+import type {
   ArtifactManifest,
   ArtifactOutput,
   EnvFingerprint,
@@ -12,6 +12,16 @@ export type {
   RunMetrics,
   ToolVersions,
 } from '@autopilot/contracts'
+
+export type {
+  ArtifactManifest,
+  ArtifactOutput,
+  EnvFingerprint,
+  ManifestStatus,
+  ManifestVersion,
+  RunMetrics,
+  ToolVersions,
+}
 
 /**
  * Manifest row from database
