@@ -6,30 +6,20 @@
  * 2. Each runner capability is callable via jobforge
  * 3. Truthcore (Postgres) is reachable and deterministic
  * 4. Failure scenarios produce recoverable, actionable errors (no hard-500s)
+ *
+ * NOTE: This file uses dynamic imports to avoid circular dependencies.
+ * Run these tests after building all packages.
  */
 
-import type {
-  ExecutionPlaneClient,
-  JobForgeClientConfig,
-  Transport,
-  RequestJobResult,
-  RunStatus,
-  ListArtifactsResult,
-  EventEnvelope,
-  EventRow,
-  ManifestRow,
-} from '@jobforge/client'
+import { generateCorrelationId, runWithCorrelationId } from '@jobforge/errors'
 import {
   AppError,
   ErrorCode,
   createExternalServiceError,
   createTimeoutError,
-  generateCorrelationId,
-  runWithCorrelationId,
-  type ErrorEnvelope,
-  type ValidationErrorDetail,
 } from '@jobforge/errors'
-import type { JobForgeClient } from '@jobforge/sdk-ts'
+import { createInternalError } from '@jobforge/errors'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 // Test configuration
 const TEST_TENANT_ID = '550e8400-e29b-41d4-a716-446655440000'
@@ -91,54 +81,45 @@ interface SmokeError {
   correlationId: string
 }
 
-interface HeartbeatEntry {
-  timestamp: string
-  [key: string]: unknown
-}
-
-interface HeartbeatResult {
-  heartbeats: HeartbeatEntry[]
-  latencyMs: number
-}
-
-interface ClientHealthResult {
-  healthy: boolean
-  error?: string
-  details?: Record<string, unknown>
-}
-
-interface JobCountsResult {
-  pending: number
-  running: number
-  completed: number
-  failed: number
-}
-
-interface EnqueuedJob {
+interface JobRow {
   id: string
   [key: string]: unknown
 }
 
-// Mock types for SDK methods that might not exist
-interface ExtendedJobForgeClient extends JobForgeClient {
-  checkHealth(): Promise<ClientHealthResult>
-  getRecentHeartbeats(workerType: string): Promise<HeartbeatResult>
-  getJobCounts(tenantId: string): Promise<JobCountsResult>
+interface EventEnvelope {
+  schema_version: string
+  event_version: string
+  event_type: string
+  occurred_at: string
+  trace_id: string
+  tenant_id: string
+  source_app: string
+  payload: Record<string, unknown>
+  contains_pii: boolean
+}
+
+// Extended client interfaces
+interface JobForgeClient {
   enqueueJob(params: {
     tenant_id: string
     project_id?: string
     type: string
     payload: Record<string, unknown>
     idempotency_key: string
-  }): Promise<EnqueuedJob>
+  }): Promise<JobRow>
+}
+
+interface ExecutionPlaneClient {
+  submitEvent(envelope: EventEnvelope): Promise<unknown>
 }
 
 /**
  * Smoke Matrix Runner - Main test orchestrator
  */
 export class SmokeMatrixRunner {
-  private client: ExtendedJobForgeClient
-  private executionClient: ExecutionPlaneClient
+  private client: JobForgeClient | null = null
+  private executionClient: ExecutionPlaneClient | null = null
+  private supabase: SupabaseClient | null = null
   private correlationId: string
   private results: SmokeMatrixResult
 
@@ -158,10 +139,6 @@ export class SmokeMatrixRunner {
       },
       errors: [],
     }
-
-    // Initialize clients - these will be set in init()
-    this.client = null as unknown as ExtendedJobForgeClient
-    this.executionClient = null as unknown as ExecutionPlaneClient
   }
 
   /**
@@ -169,19 +146,23 @@ export class SmokeMatrixRunner {
    */
   async init(): Promise<void> {
     // Dynamic imports to avoid circular dependencies
-    const { createClient } = await import('@jobforge/client')
-    const { createJobForgeClient } = await import('@jobforge/sdk-ts')
+    const { JobForgeClient } = await import('@jobforge/sdk-ts')
+    const clientModule = await import('@jobforge/client')
+    const { createClient } = await import('@supabase/supabase-js')
 
-    this.client = createJobForgeClient({
+    // Create Supabase client for direct health checks
+    this.supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+
+    this.client = new JobForgeClient({
       supabaseUrl: process.env.SUPABASE_URL!,
       supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    }) as ExtendedJobForgeClient
+    }) as JobForgeClient
 
-    this.executionClient = createClient({
+    this.executionClient = clientModule.createClient({
       supabaseUrl: process.env.SUPABASE_URL!,
       supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
       defaultTenantId: TEST_TENANT_ID,
-    })
+    }) as ExecutionPlaneClient
   }
 
   /**
@@ -251,7 +232,7 @@ export class SmokeMatrixRunner {
         if (!result.healthy) {
           this.addError(service.name, result.error || 'Unknown error')
         }
-      } catch (error) {
+      } catch (error: unknown) {
         const errorMsg = error instanceof Error ? error.message : String(error)
         this.results.services.push({
           name: service.name,
@@ -302,7 +283,7 @@ export class SmokeMatrixRunner {
             result.recoverable
           )
         }
-      } catch (error) {
+      } catch (error: unknown) {
         const latencyMs = Date.now() - startTime
         const errorMsg = error instanceof Error ? error.message : String(error)
         const appError = error instanceof AppError ? error : null
@@ -330,8 +311,8 @@ export class SmokeMatrixRunner {
     const startTime = Date.now()
 
     try {
-      // Check reachability via SDK
-      const health = await this.client.checkHealth()
+      // Check reachability via Supabase RPC
+      const health = await this.checkSupabaseHealth()
 
       // Check determinism - run the same query twice and compare
       const consistencyCheck = await this.checkDeterminism()
@@ -355,7 +336,7 @@ export class SmokeMatrixRunner {
           ErrorCode.INTERNAL_ERROR
         )
       }
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMsg = error instanceof Error ? error.message : String(error)
       this.results.truthcore = {
         reachable: false,
@@ -369,19 +350,28 @@ export class SmokeMatrixRunner {
   }
 
   /**
-   * Check Postgres health via SDK
+   * Check Supabase/Postgres health via direct query
    */
-  private async checkPostgresHealth(): Promise<HealthCheckResult> {
+  private async checkSupabaseHealth(): Promise<HealthCheckResult> {
     try {
       const start = Date.now()
-      const health = await this.client.checkHealth()
-      return {
-        healthy: health.healthy,
-        latencyMs: Date.now() - start,
-        error: health.error,
-        details: health.details,
+      // Execute a simple health check query
+      const { data, error } = await this.supabase!.rpc('jobforge_health_check')
+
+      if (error) {
+        return {
+          healthy: false,
+          latencyMs: Date.now() - start,
+          error: `Postgres health check failed: ${error.message}`,
+        }
       }
-    } catch (error) {
+
+      return {
+        healthy: true,
+        latencyMs: Date.now() - start,
+        details: { result: data },
+      }
+    } catch (error: unknown) {
       return {
         healthy: false,
         latencyMs: 0,
@@ -391,24 +381,46 @@ export class SmokeMatrixRunner {
   }
 
   /**
-   * Check worker health
+   * Check Postgres health via SDK
+   */
+  private async checkPostgresHealth(): Promise<HealthCheckResult> {
+    return this.checkSupabaseHealth()
+  }
+
+  /**
+   * Check worker health by querying recent jobs
    */
   private async checkWorkerHealth(workerType: 'typescript' | 'python'): Promise<HealthCheckResult> {
     try {
-      // Query for recent worker heartbeats
-      const result = await this.client.getRecentHeartbeats(workerType)
+      const start = Date.now()
 
-      const hasRecentHeartbeat = result.heartbeats.some(
-        (hb: HeartbeatEntry) => new Date(hb.timestamp).getTime() > Date.now() - 5 * 60 * 1000 // 5 minutes
-      )
+      // Query for recent jobs processed by this worker type
+      const { data, error } = await this.supabase!.from('jobforge_job_results')
+        .select('completed_at')
+        .eq('worker_id', workerType)
+        .order('completed_at', { ascending: false })
+        .limit(1)
+
+      if (error) {
+        return {
+          healthy: false,
+          latencyMs: Date.now() - start,
+          error: `Worker health check failed: ${error.message}`,
+        }
+      }
+
+      const hasRecentActivity =
+        data &&
+        data.length > 0 &&
+        new Date(data[0].completed_at).getTime() > Date.now() - 10 * 60 * 1000 // 10 minutes
 
       return {
-        healthy: hasRecentHeartbeat,
-        latencyMs: result.latencyMs,
-        error: hasRecentHeartbeat ? undefined : 'No recent heartbeat found',
-        details: { heartbeats: result.heartbeats.length },
+        healthy: hasRecentActivity,
+        latencyMs: Date.now() - start,
+        error: hasRecentActivity ? undefined : 'No recent worker activity found',
+        details: { lastActivity: data?.[0]?.completed_at },
       }
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         healthy: false,
         latencyMs: 0,
@@ -424,7 +436,7 @@ export class SmokeMatrixRunner {
     try {
       const start = Date.now()
       // Attempt a simple operation through the execution client
-      await this.executionClient.submitEvent({
+      await this.executionClient!.submitEvent({
         schema_version: '1.0.0',
         event_version: '1.0',
         event_type: 'smoke.heartbeat',
@@ -440,7 +452,7 @@ export class SmokeMatrixRunner {
         healthy: true,
         latencyMs: Date.now() - start,
       }
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         healthy: false,
         latencyMs: 0,
@@ -457,7 +469,7 @@ export class SmokeMatrixRunner {
   ): Promise<{ callable: boolean; error?: string; errorCode?: ErrorCode; recoverable: boolean }> {
     try {
       // Enqueue a dry-run job to test capability
-      const job = await this.client.enqueueJob({
+      const job = await this.client!.enqueueJob({
         tenant_id: TEST_TENANT_ID,
         project_id: TEST_PROJECT_ID,
         type: jobType,
@@ -474,7 +486,7 @@ export class SmokeMatrixRunner {
         callable: !!job.id,
         recoverable: true,
       }
-    } catch (error) {
+    } catch (error: unknown) {
       const appError = error instanceof AppError ? error : null
       return {
         callable: false,
@@ -490,9 +502,9 @@ export class SmokeMatrixRunner {
    */
   private async checkDeterminism(): Promise<{ consistent: boolean; error?: string }> {
     try {
-      // Get job counts twice and compare
-      const result1 = await this.client.getJobCounts(TEST_TENANT_ID)
-      const result2 = await this.client.getJobCounts(TEST_TENANT_ID)
+      // Get job counts twice and compare using Supabase
+      const result1 = await this.getJobCounts(TEST_TENANT_ID)
+      const result2 = await this.getJobCounts(TEST_TENANT_ID)
 
       const consistent =
         result1.pending === result2.pending &&
@@ -501,12 +513,37 @@ export class SmokeMatrixRunner {
         result1.failed === result2.failed
 
       return { consistent }
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         consistent: false,
         error: error instanceof Error ? error.message : String(error),
       }
     }
+  }
+
+  /**
+   * Get job counts for a tenant
+   */
+  private async getJobCounts(
+    tenantId: string
+  ): Promise<{ pending: number; running: number; completed: number; failed: number }> {
+    const { data, error } = await this.supabase!.from('jobforge_jobs')
+      .select('status')
+      .eq('tenant_id', tenantId)
+
+    if (error) {
+      throw new Error(`Failed to get job counts: ${error.message}`)
+    }
+
+    const counts = { pending: 0, running: 0, completed: 0, failed: 0 }
+    for (const job of data || []) {
+      const status = job.status as keyof typeof counts
+      if (status in counts) {
+        counts[status]++
+      }
+    }
+
+    return counts
   }
 
   /**
@@ -518,18 +555,18 @@ export class SmokeMatrixRunner {
       if (error.isOperational) return true
 
       // Specific error codes that are recoverable
-      const recoverableCodes: ErrorCode[] = [
+      const errorCode = error.code
+      const recoverableCodes: string[] = [
         ErrorCode.TIMEOUT_ERROR,
         ErrorCode.SERVICE_UNAVAILABLE,
         ErrorCode.RATE_LIMIT_EXCEEDED,
         ErrorCode.EXTERNAL_SERVICE_ERROR,
       ]
 
-      const errorCode = error.code as ErrorCode
       if (recoverableCodes.includes(errorCode)) return true
 
       // Non-recoverable codes
-      const nonRecoverableCodes: ErrorCode[] = [
+      const nonRecoverableCodes: string[] = [
         ErrorCode.VALIDATION_ERROR,
         ErrorCode.BAD_REQUEST,
         ErrorCode.UNAUTHORIZED,

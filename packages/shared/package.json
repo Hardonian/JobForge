@@ -28,9 +28,6 @@
   },
   "devDependencies": {
     "@jobforge/typescript-config": "workspace:*",
-    "@jobforge/client": "workspace:*",
-    "@jobforge/sdk-ts": "workspace:*",
-    "@jobforge/errors": "workspace:*",
     "@supabase/supabase-js": "^2.39.0",
     "@types/node": "^20.11.0",
     "eslint": "^8.56.0",

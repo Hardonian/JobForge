@@ -690,19 +690,14 @@ describe('connector.http_json_v1', () => {
     })
 
     it('should recover after circuit breaker cooldown', async () => {
-      mockFetch.mockRejectedValueOnce(new Error('ECONNREFUSED')).mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        statusText: 'OK',
-        headers: new Headers(),
-        text: async () => '{"recovered": true}',
-      } as Response)
+      // First set up the mock to reject all calls during circuit opening
+      mockFetch.mockRejectedValue(new Error('ECONNREFUSED'))
 
       const context = createMockContext()
       const url = 'https://recovering.example.com/api'
 
       // Open the circuit with failures
-      for (let i = 0; i < CIRCUIT_BREAKER_CONFIG.failureThreshold; i++) {
+      for (let i = 0; i < CIRCUIT_BREAKER_CONFIG.failureThreshold + 1; i++) {
         try {
           await httpJsonV1Handler(
             { url, retry_config: { max_retries: 0 } },
@@ -718,6 +713,16 @@ describe('connector.http_json_v1', () => {
 
       // Wait for cooldown
       await sleep(CIRCUIT_BREAKER_CONFIG.resetTimeoutMs + 100)
+
+      // Reset mock and set up success response for recovery test
+      mockFetch.mockReset()
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        headers: new Headers(),
+        text: async () => '{"recovered": true}',
+      } as Response)
 
       // Next request should succeed
       const result = await httpJsonV1Handler({ url }, context)
