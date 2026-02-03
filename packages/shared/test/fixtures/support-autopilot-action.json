@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0.0",
+  "bundle_id": "support-autopilot-action-001",
+  "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+  "project_id": "550e8400-e29b-41d4-a716-446655440001",
+  "trace_id": "support-trace-action-001",
+  "requests": [
+    {
+      "id": "support-escalate-case",
+      "job_type": "autopilot.support.escalate",
+      "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+      "project_id": "550e8400-e29b-41d4-a716-446655440001",
+      "payload": {
+        "case_id": "case-7788",
+        "reason": "breach-risk",
+        "priority": "high"
+      },
+      "idempotency_key": "support-escalate-2024-01-15",
+      "required_scopes": ["support:write"],
+      "is_action_job": true
+    }
+  ],
+  "metadata": {
+    "source": "support-autopilot",
+    "triggered_at": "2024-01-15T13:00:00Z",
+    "correlation_id": "support-correlation-action-001",
+    "note": "Action job should require policy token"
+  }
+}

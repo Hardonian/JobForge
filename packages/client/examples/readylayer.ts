@@ -26,6 +26,7 @@ export async function submitCacheInvalidationEvent(
   traceId: string
 ) {
   const envelope: EventEnvelope = {
+    schema_version: '1.0.0',
     event_version: '1.0',
     event_type: 'readylayer.cache.invalidated',
     occurred_at: new Date().toISOString(),
@@ -59,6 +60,7 @@ export async function submitDeploymentEvent(
   traceId: string
 ) {
   const envelope: EventEnvelope = {
+    schema_version: '1.0.0',
     event_version: '1.0',
     event_type: 'readylayer.deployment.completed',
     occurred_at: new Date().toISOString(),

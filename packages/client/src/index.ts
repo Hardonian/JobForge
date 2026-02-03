@@ -22,6 +22,7 @@
  *
  * // Submit an event
  * await client.submitEvent({
+ *   schema_version: '1.0.0',
  *   event_version: '1.0',
  *   event_type: 'user.action',
  *   occurred_at: new Date().toISOString(),

@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0.0",
+  "bundle_id": "invalid-missing-idem-001",
+  "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+  "project_id": "550e8400-e29b-41d4-a716-446655440001",
+  "trace_id": "invalid-trace-idem-001",
+  "requests": [
+    {
+      "id": "req-missing-idem",
+      "job_type": "autopilot.ops.scan",
+      "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+      "project_id": "550e8400-e29b-41d4-a716-446655440001",
+      "payload": {
+        "scan_type": "health"
+      },
+      "required_scopes": ["ops:read"],
+      "is_action_job": false
+    }
+  ],
+  "metadata": {
+    "source": "ops-autopilot",
+    "triggered_at": "2024-01-15T13:45:00Z",
+    "correlation_id": "invalid-missing-idem"
+  }
+}

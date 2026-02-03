@@ -20,6 +20,7 @@ export async function submitKeyRotationEvent(
   reason: string = 'scheduled'
 ) {
   const envelope: EventEnvelope = {
+    schema_version: '1.0.0',
     event_version: '1.0',
     event_type: 'keys.key.rotated',
     occurred_at: new Date().toISOString(),
@@ -57,6 +58,7 @@ export async function submitAccessAuditEvent(
   traceId: string
 ) {
   const envelope: EventEnvelope = {
+    schema_version: '1.0.0',
     event_version: '1.0',
     event_type: 'keys.access.attempt',
     occurred_at: new Date().toISOString(),

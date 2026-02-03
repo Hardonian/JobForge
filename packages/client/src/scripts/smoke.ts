@@ -62,6 +62,7 @@ async function runSmokeTest(): Promise<void> {
   console.log('   Submitting event envelope...')
 
   const eventEnvelope: EventEnvelope = {
+    schema_version: '1.0.0',
     event_version: '1.0',
     event_type: 'smoke.test.event',
     occurred_at: new Date().toISOString(),

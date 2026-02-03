@@ -166,21 +166,32 @@ export function validateBundleVersion(bundle: unknown): BundleValidationResult {
 
   const bundleObj = bundle as Record<string, unknown>
 
-  // Check for version field
-  if (!bundleObj.version) {
-    errors.push('Bundle missing required field: version')
+  let version: BundleVersion | null = null
+
+  if (typeof bundleObj.schema_version === 'string') {
+    const schemaVersionParse = SemVerSchema.safeParse(bundleObj.schema_version)
+    if (!schemaVersionParse.success) {
+      errors.push(`Invalid schema_version format: ${JSON.stringify(bundleObj.schema_version)}`)
+      errors.push('schema_version must be a semantic version (e.g., "1.0.0")')
+      return { valid: false, errors, warnings }
+    }
+
+    version = {
+      schema_version: schemaVersionParse.data,
+    }
+  } else if (bundleObj.version) {
+    const versionParse = BundleVersionSchema.safeParse(bundleObj.version)
+    if (!versionParse.success) {
+      errors.push(`Invalid version format: ${JSON.stringify(bundleObj.version)}`)
+      errors.push('Version must include schema_version (e.g., "1.0.0")')
+      return { valid: false, errors, warnings }
+    }
+    warnings.push('Bundle uses legacy version object; prefer schema_version on the root bundle.')
+    version = versionParse.data
+  } else {
+    errors.push('Bundle missing required field: schema_version')
     return { valid: false, errors, warnings }
   }
-
-  // Parse version
-  const versionParse = BundleVersionSchema.safeParse(bundleObj.version)
-  if (!versionParse.success) {
-    errors.push(`Invalid version format: ${JSON.stringify(bundleObj.version)}`)
-    errors.push('Version must include schema_version (e.g., "1.0.0")')
-    return { valid: false, errors, warnings }
-  }
-
-  const version = versionParse.data
 
   // Check schema version compatibility
   if (!isSchemaVersionSupported(version.schema_version)) {

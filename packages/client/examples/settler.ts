@@ -19,6 +19,7 @@ export async function submitContractProcessedEvent(
   traceId: string
 ) {
   const envelope: EventEnvelope = {
+    schema_version: '1.0.0',
     event_version: '1.0',
     event_type: 'settler.contract.processed',
     occurred_at: new Date().toISOString(),

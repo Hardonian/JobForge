@@ -27,6 +27,7 @@ export async function submitInferenceEvent(
   traceId: string
 ) {
   const envelope: EventEnvelope = {
+    schema_version: '1.0.0',
     event_version: '1.0',
     event_type: 'aias.inference.completed',
     occurred_at: new Date().toISOString(),

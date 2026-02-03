@@ -23,6 +23,7 @@
     "contract-tests": "tsx test/contract-test-runner.ts"
   },
   "dependencies": {
+    "@autopilot/contracts": "workspace:*",
     "zod": "^3.22.4"
   },
   "devDependencies": {

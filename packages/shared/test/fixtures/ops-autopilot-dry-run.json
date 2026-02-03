@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0.0",
+  "bundle_id": "ops-autopilot-dry-run-001",
+  "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+  "project_id": "550e8400-e29b-41d4-a716-446655440001",
+  "trace_id": "ops-trace-dry-run-001",
+  "requests": [
+    {
+      "id": "ops-dry-scan",
+      "job_type": "autopilot.ops.scan",
+      "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+      "project_id": "550e8400-e29b-41d4-a716-446655440001",
+      "payload": {
+        "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+        "project_id": "550e8400-e29b-41d4-a716-446655440001",
+        "scan_type": "dry_run",
+        "targets": ["api", "workers"]
+      },
+      "idempotency_key": "ops-dry-scan-2024-01-15",
+      "required_scopes": ["ops:read"],
+      "is_action_job": false
+    }
+  ],
+  "metadata": {
+    "source": "ops-autopilot",
+    "triggered_at": "2024-01-15T12:00:00Z",
+    "correlation_id": "ops-correlation-dry-run-001",
+    "mode": "dry_run"
+  }
+}

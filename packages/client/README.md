@@ -38,6 +38,7 @@ const client = createClient({
 import type { EventEnvelope } from '@jobforge/client'
 
 const envelope: EventEnvelope = {
+  schema_version: '1.0.0',
   event_version: '1.0',
   event_type: 'user.action',
   occurred_at: new Date().toISOString(),

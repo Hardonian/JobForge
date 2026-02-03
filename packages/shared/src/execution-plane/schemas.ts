@@ -4,50 +4,38 @@
  */
 
 import { z } from 'zod'
+import {
+  EventEnvelopeSchema,
+  JobRequestBundleSchema,
+  JobRequestSchema,
+  SCHEMA_VERSION,
+  eventSubjectSchema,
+  eventVersionSchema,
+  redactionHintsSchema,
+  sourceAppSchema,
+  sourceModuleSchema,
+  RunManifestSchema,
+  artifactOutputSchema,
+  envFingerprintSchema,
+  manifestStatusSchema,
+  manifestVersionSchema,
+  runMetricsSchema,
+  toolVersionsSchema,
+} from '@autopilot/contracts'
 
 // ============================================================================
 // Event Envelope Schemas
 // ============================================================================
 
-export const eventVersionSchema = z.enum(['1.0'])
+export {
+  eventVersionSchema,
+  sourceAppSchema,
+  sourceModuleSchema,
+  eventSubjectSchema,
+  redactionHintsSchema,
+}
 
-export const sourceAppSchema = z.enum([
-  'settler',
-  'aias',
-  'keys',
-  'readylayer',
-  'jobforge',
-  'external',
-])
-
-export const sourceModuleSchema = z.enum(['ops', 'support', 'growth', 'finops', 'core'])
-
-export const eventSubjectSchema = z.object({
-  type: z.string(),
-  id: z.string(),
-})
-
-export const redactionHintsSchema = z.object({
-  redact_fields: z.array(z.string()).optional(),
-  encrypt_fields: z.array(z.string()).optional(),
-  retention_days: z.number().int().positive().optional(),
-})
-
-export const eventEnvelopeSchema = z.object({
-  event_version: eventVersionSchema,
-  event_type: z.string().min(1),
-  occurred_at: z.string().datetime(),
-  trace_id: z.string().min(1),
-  actor_id: z.string().optional(),
-  tenant_id: z.string().uuid(),
-  project_id: z.string().uuid().optional(),
-  source_app: sourceAppSchema,
-  source_module: sourceModuleSchema.optional(),
-  subject: eventSubjectSchema.optional(),
-  payload: z.record(z.unknown()),
-  contains_pii: z.boolean(),
-  redaction_hints: redactionHintsSchema.optional(),
-})
+export const eventEnvelopeSchema = EventEnvelopeSchema
 
 export const submitEventParamsSchema = z.object({
   tenant_id: z.string().uuid(),
@@ -63,6 +51,7 @@ export const submitEventParamsSchema = z.object({
   contains_pii: z.boolean().default(false),
   redaction_hints: redactionHintsSchema.optional(),
   event_version: eventVersionSchema.default('1.0'),
+  schema_version: z.literal(SCHEMA_VERSION).default(SCHEMA_VERSION),
 })
 
 export const listEventsParamsSchema = z.object({
@@ -85,41 +74,16 @@ export const listEventsParamsSchema = z.object({
 // Artifact Manifest Schemas
 // ============================================================================
 
-export const manifestVersionSchema = z.enum(['1.0'])
+export {
+  manifestVersionSchema,
+  manifestStatusSchema,
+  artifactOutputSchema,
+  runMetricsSchema,
+  envFingerprintSchema,
+  toolVersionsSchema,
+}
 
-export const manifestStatusSchema = z.enum(['pending', 'complete', 'failed'])
-
-export const artifactOutputSchema = z.object({
-  name: z.string(),
-  type: z.string(),
-  ref: z.string(),
-  size: z.number().int().positive().optional(),
-  checksum: z.string().optional(),
-  mime_type: z.string().optional(),
-})
-
-export const runMetricsSchema = z.record(z.number().positive().optional())
-
-export const envFingerprintSchema = z.record(z.string().optional())
-
-export const toolVersionsSchema = z.record(z.union([z.string(), z.record(z.string())]).optional())
-
-export const artifactManifestSchema = z.object({
-  manifest_version: manifestVersionSchema,
-  run_id: z.string().uuid(),
-  tenant_id: z.string().uuid(),
-  project_id: z.string().uuid().optional(),
-  job_type: z.string(),
-  created_at: z.string().datetime(),
-  inputs_snapshot_ref: z.string().optional(),
-  logs_ref: z.string().optional(),
-  outputs: z.array(artifactOutputSchema),
-  metrics: runMetricsSchema,
-  env_fingerprint: envFingerprintSchema,
-  tool_versions: toolVersionsSchema,
-  status: manifestStatusSchema,
-  error: z.record(z.unknown()).optional(),
-})
+export const artifactManifestSchema = RunManifestSchema
 
 export const createManifestParamsSchema = z.object({
   run_id: z.string().uuid(),
@@ -383,33 +347,7 @@ export const triggerEvaluationResultSchema = z.object({
 // Job Request Bundle Schemas (from @autopilot/contracts)
 // ============================================================================
 
-export const JobRequestSchema = z.object({
-  id: z.string().min(1),
-  job_type: z.string().min(1),
-  tenant_id: z.string().uuid(),
-  project_id: z.string().uuid().optional(),
-  payload: z.record(z.unknown()),
-  idempotency_key: z.string().optional(),
-  required_scopes: z.array(z.string()).default([]),
-  is_action_job: z.boolean().default(false),
-})
+export { JobRequestSchema, JobRequestBundleSchema }
 
 export type JobRequest = z.infer<typeof JobRequestSchema>
-
-export const JobRequestBundleSchema = z.object({
-  version: z.literal('1.0'),
-  bundle_id: z.string().min(1),
-  tenant_id: z.string().uuid(),
-  project_id: z.string().uuid().optional(),
-  trace_id: z.string().min(1),
-  requests: z.array(JobRequestSchema).min(1).max(100),
-  metadata: z
-    .object({
-      source: z.string(),
-      triggered_at: z.string().datetime(),
-      correlation_id: z.string().optional(),
-    })
-    .passthrough(),
-})
-
 export type JobRequestBundle = z.infer<typeof JobRequestBundleSchema>

@@ -3,64 +3,14 @@
  * Standard event format for runnerless autopilot modules
  */
 
-export type EventVersion = '1.0'
-
-export type SourceApp = 'settler' | 'aias' | 'keys' | 'readylayer' | 'jobforge' | 'external'
-
-export type SourceModule = 'ops' | 'support' | 'growth' | 'finops' | 'core'
-
-/**
- * Standard Event Envelope
- * All runnerless modules emit events in this format
- */
-export interface EventEnvelope {
-  /** Event schema version */
-  event_version: EventVersion
-  /** Event type identifier (e.g., 'infrastructure.alert', 'support.ticket.created') */
-  event_type: string
-  /** Timestamp when event occurred */
-  occurred_at: string // ISO timestamp
-  /** Unique trace ID for distributed tracing */
-  trace_id: string
-  /** Optional actor identifier (user, service, etc.) */
-  actor_id?: string
-  /** Tenant scope */
-  tenant_id: string
-  /** Optional project scope within tenant */
-  project_id?: string
-  /** Source application */
-  source_app: SourceApp
-  /** Source autopilot module */
-  source_module?: SourceModule
-  /** Optional subject reference */
-  subject?: EventSubject
-  /** Event payload (schema depends on event_type) */
-  payload: Record<string, unknown>
-  /** Whether event contains PII */
-  contains_pii: boolean
-  /** Redaction hints for sensitive fields */
-  redaction_hints?: RedactionHints
-}
-
-/**
- * Subject reference for entity-related events
- */
-export interface EventSubject {
-  type: string
-  id: string
-}
-
-/**
- * Redaction hints for PII fields
- */
-export interface RedactionHints {
-  /** Fields to redact in logs */
-  redact_fields?: string[]
-  /** Fields to encrypt at rest */
-  encrypt_fields?: string[]
-  /** Data retention days */
-  retention_days?: number
-}
+export type {
+  EventEnvelope,
+  EventSubject,
+  EventVersion,
+  RedactionHints,
+  SourceApp,
+  SourceModule,
+} from '@autopilot/contracts'
 
 /**
  * Event row from database
@@ -104,6 +54,7 @@ export interface SubmitEventParams {
   contains_pii?: boolean
   redaction_hints?: RedactionHints
   event_version?: EventVersion
+  schema_version?: string
 }
 
 /**

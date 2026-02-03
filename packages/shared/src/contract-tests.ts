@@ -4,7 +4,13 @@
  */
 
 import { z } from 'zod'
-import { JobRequestBundleSchema, type JobRequestBundle } from './execution-plane/schemas.js'
+import {
+  JobRequestBundleSchema,
+  type JobRequestBundle,
+  canonicalizeJson,
+  hashCanonicalJson,
+  SCHEMA_VERSION,
+} from '@autopilot/contracts'
 
 // ============================================================================
 // Contract Validation Types
@@ -13,6 +19,8 @@ import { JobRequestBundleSchema, type JobRequestBundle } from './execution-plane
 export interface ContractValidationResult {
   fixture_name: string
   valid: boolean
+  actual_valid: boolean
+  expected_valid: boolean
   errors: string[]
   warnings: string[]
   summary: {
@@ -36,20 +44,23 @@ export interface ContractTestReport {
 // ============================================================================
 
 const canonicalJsonSchema = z.object({
-  version: z.literal('1.0'),
+  schema_version: z.literal(SCHEMA_VERSION),
   bundle_id: z.string().min(1),
   tenant_id: z.string().uuid(),
   project_id: z.string().uuid().optional(),
   trace_id: z.string().min(1),
   requests: z.array(z.any()).min(1).max(100),
-  metadata: z.object({
-    source: z.string(),
-    triggered_at: z.string().datetime(),
-    correlation_id: z.string().optional(),
-  }),
+  metadata: z
+    .object({
+      source: z.string(),
+      triggered_at: z.string().datetime(),
+      correlation_id: z.string().optional(),
+    })
+    .passthrough(),
 })
 
 const stableIdPattern = /^[a-z0-9-]+$/
+const MAX_PAYLOAD_BYTES = 64 * 1024
 
 // ============================================================================
 // Validation Functions
@@ -121,6 +132,13 @@ export function validateBundle(bundle: unknown): { valid: boolean; errors: strin
       }
       idempotencyKeys.add(request.idempotency_key)
     }
+
+    const payloadSize = Buffer.byteLength(JSON.stringify(request.payload), 'utf8')
+    if (payloadSize > MAX_PAYLOAD_BYTES) {
+      errors.push(
+        `Payload too large for request ${request.id}: ${payloadSize} bytes (max ${MAX_PAYLOAD_BYTES})`
+      )
+    }
   }
 
   return { valid: errors.length === 0, errors }
@@ -180,10 +198,10 @@ export function checkDeterministicHashing(bundle: JobRequestBundle): {
   const issues: string[] = []
 
   // Sort keys for canonical form
-  const canonical = JSON.stringify(bundle, Object.keys(bundle).sort())
+  const canonical = canonicalizeJson(bundle)
 
   // Check for common non-deterministic patterns
-  const jsonStr = JSON.stringify(bundle)
+  const jsonStr = canonicalizeJson(bundle)
 
   // Check for timestamps that might vary
   if (jsonStr.includes('Date.now()') || jsonStr.includes('new Date()')) {
@@ -196,24 +214,23 @@ export function checkDeterministicHashing(bundle: JobRequestBundle): {
   }
 
   // Generate simple hash
-  let hash = 0
-  for (let i = 0; i < canonical.length; i++) {
-    const char = canonical.charCodeAt(i)
-    hash = (hash << 5) - hash + char
-    hash = hash & hash
-  }
+  const hash = hashCanonicalJson(bundle)
 
   return {
     stable: issues.length === 0,
     issues,
-    hash: hash.toString(16).padStart(16, '0'),
+    hash,
   }
 }
 
 /**
  * Full contract validation of a fixture
  */
-export function validateContract(fixtureName: string, bundle: unknown): ContractValidationResult {
+export function validateContract(
+  fixtureName: string,
+  bundle: unknown,
+  expectedValid = true
+): ContractValidationResult {
   const errors: string[] = []
   const warnings: string[] = []
 
@@ -222,9 +239,12 @@ export function validateContract(fixtureName: string, bundle: unknown): Contract
   errors.push(...bundleValidation.errors)
 
   if (!bundleValidation.valid) {
+    const actualValid = false
     return {
       fixture_name: fixtureName,
-      valid: false,
+      valid: actualValid === expectedValid,
+      actual_valid: actualValid,
+      expected_valid: expectedValid,
       errors,
       warnings,
       summary: {
@@ -265,9 +285,13 @@ export function validateContract(fixtureName: string, bundle: unknown): Contract
     }
   }
 
+  const actualValid = errors.length === 0
+
   return {
     fixture_name: fixtureName,
-    valid: errors.length === 0,
+    valid: actualValid === expectedValid,
+    actual_valid: actualValid,
+    expected_valid: expectedValid,
     errors,
     warnings,
     summary: {
@@ -301,14 +325,17 @@ export async function runContractTests(fixturesDir: string): Promise<ContractTes
       const filePath = path.join(fixturesDir, file)
       const content = await fs.readFile(filePath, 'utf-8')
       const fixtureName = path.basename(file, '.json')
+      const expectedValid = !fixtureName.startsWith('invalid-')
 
       try {
         const bundle = JSON.parse(content)
-        results.push(validateContract(fixtureName, bundle))
+        results.push(validateContract(fixtureName, bundle, expectedValid))
       } catch (parseError) {
         results.push({
           fixture_name: fixtureName,
           valid: false,
+          actual_valid: false,
+          expected_valid: expectedValid,
           errors: [
             `JSON parse error: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
           ],
@@ -351,7 +378,9 @@ export function formatContractReport(report: ContractTestReport): string {
 
   for (const result of report.results) {
     const icon = result.valid ? '✓' : '✗'
-    lines.push(`${icon} ${result.fixture_name}`)
+    lines.push(
+      `${icon} ${result.fixture_name} (expected ${result.expected_valid ? 'valid' : 'invalid'})`
+    )
 
     if (result.summary.total_requests > 0) {
       lines.push(`  Requests: ${result.summary.total_requests}`)

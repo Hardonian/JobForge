@@ -18,6 +18,7 @@ describe('Schema Validation', () => {
   describe('eventEnvelopeSchema', () => {
     it('should validate a valid event envelope', () => {
       const validEnvelope = {
+        schema_version: '1.0.0',
         event_version: '1.0' as const,
         event_type: 'test.event',
         occurred_at: new Date().toISOString(),
@@ -48,6 +49,7 @@ describe('Schema Validation', () => {
 
     it('should reject invalid tenant_id format', () => {
       const invalidEnvelope = {
+        schema_version: '1.0.0',
         event_version: '1.0',
         event_type: 'test.event',
         occurred_at: new Date().toISOString(),
@@ -64,6 +66,7 @@ describe('Schema Validation', () => {
 
     it('should reject invalid source_app', () => {
       const invalidEnvelope = {
+        schema_version: '1.0.0',
         event_version: '1.0',
         event_type: 'test.event',
         occurred_at: new Date().toISOString(),
@@ -80,6 +83,7 @@ describe('Schema Validation', () => {
 
     it('should accept minimal valid envelope', () => {
       const minimalEnvelope = {
+        schema_version: '1.0.0',
         event_version: '1.0' as const,
         event_type: 'test.event',
         occurred_at: new Date().toISOString(),
@@ -99,6 +103,7 @@ describe('Schema Validation', () => {
     it('should validate submit event params', () => {
       const validParams = {
         envelope: {
+          schema_version: '1.0.0',
           event_version: '1.0' as const,
           event_type: 'test.event',
           occurred_at: new Date().toISOString(),

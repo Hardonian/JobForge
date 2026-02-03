@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0.0",
+  "manifest_version": "1.0",
+  "run_id": "11111111-1111-1111-1111-111111111111",
+  "tenant_id": "550e8400-e29b-41d4-a716-446655440000",
+  "project_id": "550e8400-e29b-41d4-a716-446655440001",
+  "job_type": "autopilot.readylayer.verify_pack",
+  "created_at": "2024-01-15T14:15:00Z",
+  "inputs_snapshot_ref": "inputs/verify-pack.json",
+  "logs_ref": "logs/verify-pack.log",
+  "outputs": [
+    {
+      "name": "verify_report",
+      "type": "json",
+      "ref": "verify-report-11111111.json",
+      "size": 1024,
+      "mime_type": "application/json"
+    }
+  ],
+  "metrics": {
+    "duration_ms": 1200,
+    "file_count": 12,
+    "total_size_bytes": 4096
+  },
+  "env_fingerprint": {
+    "os": "linux",
+    "arch": "x64",
+    "node_version": "v20.11.0"
+  },
+  "tool_versions": {
+    "jobforge": "0.2.0",
+    "connectors": {
+      "autopilot": "1.0.0"
+    }
+  },
+  "status": "complete"
+}
