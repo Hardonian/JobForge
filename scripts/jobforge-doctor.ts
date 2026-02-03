@@ -34,6 +34,28 @@ interface DoctorOptions {
   yes: boolean
 }
 
+const EXIT_CODES = {
+  success: 0,
+  validation: 2,
+  failure: 1,
+}
+
+const DEBUG_ENABLED = process.env.DEBUG === '1' || process.env.DEBUG === 'true'
+
+function formatError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message
+  }
+  return String(error)
+}
+
+function logUnexpectedError(message: string, error: unknown): void {
+  console.error(`${message}: ${formatError(error)}`)
+  if (DEBUG_ENABLED && error instanceof Error && error.stack) {
+    console.error(error.stack)
+  }
+}
+
 async function confirm(message: string): Promise<boolean> {
   const rl = createInterface({
     input: process.stdin,
@@ -123,7 +145,7 @@ async function main(): Promise<void> {
     console.error('  JOBFORGE_DOCTOR_ENABLED=1 pnpm jobforge:doctor')
     console.error('')
     console.error('This safety measure prevents accidental diagnostics in production.')
-    process.exit(1)
+    process.exit(EXIT_CODES.validation)
   }
 
   console.log('JobForge System Doctor')
@@ -145,10 +167,10 @@ async function main(): Promise<void> {
     }
 
     // Exit with appropriate code
-    process.exit(report.overallStatus === 'critical' ? 1 : 0)
+    process.exit(report.overallStatus === 'critical' ? EXIT_CODES.failure : EXIT_CODES.success)
   } catch (error) {
-    console.error(`Doctor failed: ${error instanceof Error ? error.message : String(error)}`)
-    process.exit(1)
+    logUnexpectedError('Doctor failed', error)
+    process.exit(EXIT_CODES.failure)
   }
 }
 
@@ -157,14 +179,17 @@ if (process.argv.includes('--help') || process.argv.includes('-h')) {
   console.log(`
 JobForge Doctor CLI
 
+Description:
+  Run system health checks and optionally apply safe auto-fixes.
+
 Usage:
   pnpm jobforge:doctor [options]
 
 Options:
-  --json     Output machine-readable JSON
-  --apply    Attempt to apply auto-fixes (requires confirmation)
-  --yes, -y  Skip confirmation prompts (use with caution)
-  --help     Show this help
+  --json     Output machine-readable JSON (default: false)
+  --apply    Attempt to apply auto-fixes (default: false)
+  --yes, -y  Skip confirmation prompts (default: false)
+  --help     Show this help and exit
 
 Environment:
   JOBFORGE_DOCTOR_ENABLED=1     Required to run doctor
@@ -188,7 +213,7 @@ Safety:
   - Requires explicit JOBFORGE_DOCTOR_ENABLED=1
   - --apply requires confirmation unless JOBFORGE_DOCTOR_AUTO_FIX=1
 `)
-  process.exit(0)
+  process.exit(EXIT_CODES.success)
 }
 
 main()

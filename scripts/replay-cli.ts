@@ -32,12 +32,34 @@ interface DryRunOptions {
   compareResults?: boolean
 }
 
+const EXIT_CODES = {
+  success: 0,
+  validation: 2,
+  failure: 1,
+}
+
+const DEBUG_ENABLED = process.env.DEBUG === '1' || process.env.DEBUG === 'true'
+
+function formatError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message
+  }
+  return String(error)
+}
+
+function logUnexpectedError(message: string, error: unknown): void {
+  console.error(`${message}: ${formatError(error)}`)
+  if (DEBUG_ENABLED && error instanceof Error && error.stack) {
+    console.error(error.stack)
+  }
+}
+
 async function exportCommand(runId: string, options: ExportOptions): Promise<void> {
   // Verify REPLAY_PACK_ENABLED
   if (process.env.REPLAY_PACK_ENABLED !== '1') {
     console.error('Error: REPLAY_PACK_ENABLED must be set to 1')
     console.error('Run with: REPLAY_PACK_ENABLED=1 tsx scripts/replay-cli.ts export ...')
-    process.exit(1)
+    process.exit(EXIT_CODES.validation)
   }
 
   // Parse inputs
@@ -47,7 +69,7 @@ async function exportCommand(runId: string, options: ExportOptions): Promise<voi
       inputs = JSON.parse(options.inputs)
     } catch {
       console.error('Error: Invalid JSON in --inputs')
-      process.exit(1)
+      process.exit(EXIT_CODES.validation)
     }
   }
 
@@ -63,7 +85,7 @@ async function exportCommand(runId: string, options: ExportOptions): Promise<voi
 
   if (!bundle) {
     console.error('Error: Failed to generate replay bundle')
-    process.exit(1)
+    process.exit(EXIT_CODES.failure)
   }
 
   // Write replay.json
@@ -110,14 +132,14 @@ async function dryRunCommand(bundlePath: string, options: DryRunOptions): Promis
     bundle = JSON.parse(content) as ReplayBundle
   } catch (error) {
     console.error(`Error: Failed to read bundle from ${bundlePath}`)
-    console.error(error instanceof Error ? error.message : String(error))
-    process.exit(1)
+    logUnexpectedError('Error', error)
+    process.exit(EXIT_CODES.validation)
   }
 
   // Validate bundle
   if (!bundle.provenance || !bundle.version) {
     console.error('Error: Invalid replay bundle format')
-    process.exit(1)
+    process.exit(EXIT_CODES.validation)
   }
 
   console.log(`Executing dry-run replay of run ${bundle.provenance.runId}...\n`)
@@ -158,12 +180,15 @@ async function dryRunCommand(bundlePath: string, options: DryRunOptions): Promis
   }
   console.log('-'.repeat(60))
 
-  process.exit(result.success ? 0 : 1)
+  process.exit(result.success ? EXIT_CODES.success : EXIT_CODES.failure)
 }
 
 function showHelp(): void {
   console.log(`
 JobForge Replay CLI
+
+Description:
+  Export replay bundles and run deterministic dry-run replays.
 
 Commands:
   export <run-id>     Export a replay bundle for a run
@@ -178,7 +203,7 @@ Export Options:
 
 Dry-Run Options:
   --max-logs <n>      Maximum log lines to show (default: 1000)
-  --compare           Compare results with original
+  --compare           Compare results with original (default: false)
 
 Examples:
   REPLAY_PACK_ENABLED=1 tsx scripts/replay-cli.ts export run-123 \\
@@ -200,7 +225,7 @@ async function main(): Promise<void> {
 
   if (!command || command === '--help' || command === '-h') {
     showHelp()
-    process.exit(0)
+    process.exit(EXIT_CODES.success)
   }
 
   // Parse options
@@ -224,15 +249,15 @@ async function main(): Promise<void> {
         const runId = positional[0]
         if (!runId) {
           console.error('Error: run-id is required')
-          process.exit(1)
+          process.exit(EXIT_CODES.validation)
         }
         if (!options.tenant) {
           console.error('Error: --tenant is required')
-          process.exit(1)
+          process.exit(EXIT_CODES.validation)
         }
         if (!options.job) {
           console.error('Error: --job is required')
-          process.exit(1)
+          process.exit(EXIT_CODES.validation)
         }
 
         await exportCommand(runId, {
@@ -249,7 +274,7 @@ async function main(): Promise<void> {
         const bundlePath = positional[0]
         if (!bundlePath) {
           console.error('Error: bundle path is required')
-          process.exit(1)
+          process.exit(EXIT_CODES.validation)
         }
 
         await dryRunCommand(bundlePath, {
@@ -262,11 +287,11 @@ async function main(): Promise<void> {
       default:
         console.error(`Unknown command: ${command}`)
         showHelp()
-        process.exit(1)
+        process.exit(EXIT_CODES.validation)
     }
   } catch (error) {
-    console.error(`Error: ${error instanceof Error ? error.message : String(error)}`)
-    process.exit(1)
+    logUnexpectedError('Error', error)
+    process.exit(EXIT_CODES.failure)
   }
 }
 

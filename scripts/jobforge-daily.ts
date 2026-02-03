@@ -97,6 +97,28 @@ interface DailyStats {
   byJobType: Record<string, number>
 }
 
+const EXIT_CODES = {
+  success: 0,
+  validation: 2,
+  failure: 1,
+}
+
+const DEBUG_ENABLED = process.env.DEBUG === '1' || process.env.DEBUG === 'true'
+
+function formatError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message
+  }
+  return String(error)
+}
+
+function logUnexpectedError(message: string, error: unknown): void {
+  console.error(`${message}: ${formatError(error)}`)
+  if (DEBUG_ENABLED && error instanceof Error && error.stack) {
+    console.error(error.stack)
+  }
+}
+
 // ============================================================================
 // Implementation
 // ============================================================================
@@ -568,10 +590,10 @@ Usage:
   pnpm jobforge:daily [options]
 
 Options:
-  --dry            Dry run (no side effects, read-only)
-  --tenant <id>    Filter by tenant ID
+  --dry            Dry run (no side effects, read-only, default: false)
+  --tenant <id>    Filter by tenant ID (optional)
   --output <dir>   Output directory for reports (default: .jobforge/daily)
-  --help           Show this help
+  --help           Show this help and exit
 
 Environment:
   JOBFORGE_DAILY_RUN_ENABLED=1  Required to run
@@ -600,7 +622,7 @@ Examples:
   # Filter by tenant
   JOBFORGE_DAILY_RUN_ENABLED=1 pnpm jobforge:daily --tenant tenant-123
 `)
-    process.exit(0)
+    process.exit(EXIT_CODES.success)
   }
 
   // Check if enabled
@@ -612,7 +634,7 @@ Examples:
     console.error('')
     console.error('Or run with:')
     console.error('  JOBFORGE_DAILY_RUN_ENABLED=1 pnpm jobforge:daily')
-    process.exit(1)
+    process.exit(EXIT_CODES.validation)
   }
 
   const options: DailyRunOptions = {
@@ -632,10 +654,10 @@ Examples:
 
   try {
     await runDaily(options)
-    process.exit(0)
+    process.exit(EXIT_CODES.success)
   } catch (error) {
-    console.error(`Daily run failed: ${error instanceof Error ? error.message : String(error)}`)
-    process.exit(1)
+    logUnexpectedError('Daily run failed', error)
+    process.exit(EXIT_CODES.failure)
   }
 }
 

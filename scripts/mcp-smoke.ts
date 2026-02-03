@@ -14,6 +14,52 @@ import { resolve } from 'path'
 
 const MCP_SERVER_PATH = resolve(__dirname, '../packages/mcp-server/dist/server.js')
 
+const EXIT_CODES = {
+  success: 0,
+  validation: 2,
+  failure: 1,
+}
+
+const DEBUG_ENABLED = process.env.DEBUG === '1' || process.env.DEBUG === 'true'
+
+function formatError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message
+  }
+  return String(error)
+}
+
+function logUnexpectedError(message: string, error: unknown): void {
+  console.error(`${message}: ${formatError(error)}`)
+  if (DEBUG_ENABLED && error instanceof Error && error.stack) {
+    console.error(error.stack)
+  }
+}
+
+function showHelp(): void {
+  console.log(`
+MCP Smoke Test Script
+
+Usage:
+  tsx scripts/mcp-smoke.ts [options]
+
+Options:
+  --help, -h   Show this help and exit
+
+Requirements:
+  - MCP server must be built: pnpm --filter @jobforge/mcp-server build
+
+Examples:
+  pnpm --filter @jobforge/mcp-server build
+  tsx scripts/mcp-smoke.ts
+`)
+}
+
+if (process.argv.includes('--help') || process.argv.includes('-h')) {
+  showHelp()
+  process.exit(EXIT_CODES.success)
+}
+
 interface MCPRequest {
   jsonrpc: '2.0'
   id: number
@@ -80,7 +126,7 @@ async function runSmokeTest(): Promise<void> {
   const fs = await import('fs')
   if (!fs.existsSync(MCP_SERVER_PATH)) {
     console.error('MCP server not built. Run: pnpm --filter @jobforge/mcp-server build')
-    process.exit(1)
+    process.exit(EXIT_CODES.validation)
   }
 
   // Start MCP server
@@ -163,13 +209,14 @@ async function runSmokeTest(): Promise<void> {
 
     console.log('\n=== Smoke Test Complete ===')
   } catch (error) {
-    console.error('\nSmoke test failed:', error)
+    logUnexpectedError('\nSmoke test failed', error)
+    process.exit(EXIT_CODES.failure)
   } finally {
     mcpProcess.kill()
   }
 }
 
 runSmokeTest().catch((error) => {
-  console.error('Fatal error:', error)
-  process.exit(1)
+  logUnexpectedError('Fatal error', error)
+  process.exit(EXIT_CODES.failure)
 })

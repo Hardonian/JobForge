@@ -15,6 +15,52 @@ import { randomUUID } from 'crypto'
 import { existsSync, mkdirSync, writeFileSync } from 'fs'
 import { join } from 'path'
 
+const EXIT_CODES = {
+  success: 0,
+  validation: 2,
+  failure: 1,
+}
+
+const DEBUG_ENABLED = process.env.DEBUG === '1' || process.env.DEBUG === 'true'
+
+function formatError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message
+  }
+  return String(error)
+}
+
+function logUnexpectedError(message: string, error: unknown): void {
+  console.error(`${message}: ${formatError(error)}`)
+  if (DEBUG_ENABLED && error instanceof Error && error.stack) {
+    console.error(error.stack)
+  }
+}
+
+function showHelp(): void {
+  console.log(`
+Verify Pack Smoke Test
+
+Usage:
+  node scripts/smoke-test-verify-pack.ts [options]
+
+Options:
+  --help, -h   Show this help and exit
+
+Notes:
+  - Runs against the current working directory.
+  - Requires local tooling (lint/typecheck/build/test) to be available.
+
+Examples:
+  node scripts/smoke-test-verify-pack.ts
+`)
+}
+
+if (process.argv.includes('--help') || process.argv.includes('-h')) {
+  showHelp()
+  process.exit(EXIT_CODES.success)
+}
+
 // Colors for terminal output
 const colors = {
   reset: '\x1b[0m',
@@ -74,7 +120,7 @@ async function runSmokeTest(): Promise<void> {
     log(`  Reason: ${disabledResult.manifest.error?.message}`, 'gray')
   } else {
     log('✗ Should have failed when feature flags disabled', 'red')
-    process.exit(1)
+    process.exit(EXIT_CODES.failure)
   }
 
   // Test Case 2: Fast pack (lint + typecheck + build)
@@ -203,6 +249,6 @@ async function runSmokeTest(): Promise<void> {
 
 // Run the smoke test
 runSmokeTest().catch((error) => {
-  console.error('Smoke test failed with error:', error)
-  process.exit(1)
+  logUnexpectedError('Smoke test failed with error', error)
+  process.exit(EXIT_CODES.failure)
 })
