@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi, type MockInstance } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import type { JobContext } from '@jobforge/shared'
 import {
   httpJsonV1Handler,
@@ -19,10 +19,9 @@ import {
   CIRCUIT_BREAKER_CONFIG,
 } from '../src/handlers/http-json-v1'
 
-// Mock global fetch
-const mockFetchImpl = vi.fn()
-global.fetch = mockFetchImpl as unknown as typeof fetch
-const mockFetch = mockFetchImpl as MockInstance<Parameters<typeof fetch>, ReturnType<typeof fetch>>
+// Mock global fetch with proper typing
+const mockFetch = vi.fn()
+global.fetch = mockFetch as unknown as typeof fetch
 
 // Create a mock JobContext
 const createMockContext = (overrides?: Partial<JobContext>): JobContext => ({
@@ -37,8 +36,6 @@ const createMockContext = (overrides?: Partial<JobContext>): JobContext => ({
 describe('connector.http_json_v1', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    // Reset circuit breakers
-    // Note: circuitBreakers is internal, but we can test via behavior
   })
 
   // ============================================================================
@@ -420,7 +417,7 @@ describe('connector.http_json_v1', () => {
         statusText: 'OK',
         headers: new Headers({ 'content-type': 'application/json' }),
         text: async () => '{"data": "test"}',
-      })
+      } as Response)
 
       const context = createMockContext()
       const result = await httpJsonV1Handler({ url: 'https://api.example.com/data' }, context)
@@ -438,7 +435,7 @@ describe('connector.http_json_v1', () => {
         statusText: 'Created',
         headers: new Headers({ 'content-type': 'application/json' }),
         text: async () => '{"id": 123}',
-      })
+      } as Response)
 
       const context = createMockContext()
       const result = await httpJsonV1Handler(
@@ -454,7 +451,7 @@ describe('connector.http_json_v1', () => {
       expect(result.status_code).toBe(201)
 
       // Verify fetch was called with correct body
-      const callArgs = mockFetch.mock.calls[0]
+      const callArgs = (mockFetch as ReturnType<typeof vi.fn>).mock.calls[0]
       expect(callArgs[1].method).toBe('POST')
       expect(callArgs[1].body).toBe('{"name":"Test Item"}')
       expect(callArgs[1].headers['content-type']).toBe('application/json')
@@ -495,14 +492,14 @@ describe('connector.http_json_v1', () => {
           statusText: 'Service Unavailable',
           headers: new Headers(),
           text: async () => 'Error',
-        })
+        } as Response)
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
           statusText: 'OK',
           headers: new Headers(),
           text: async () => '{"data": "success"}',
-        })
+        } as Response)
 
       const context = createMockContext()
       const result = await httpJsonV1Handler(
@@ -545,7 +542,7 @@ describe('connector.http_json_v1', () => {
           'x-custom': 'visible',
         }),
         text: async () => '{}',
-      })
+      } as Response)
 
       const context = createMockContext()
       const result = await httpJsonV1Handler({ url: 'https://api.example.com/data' }, context)
@@ -563,7 +560,7 @@ describe('connector.http_json_v1', () => {
         statusText: 'OK',
         headers: new Headers(),
         text: async () => largeBody,
-      })
+      } as Response)
 
       const context = createMockContext()
       const result = await httpJsonV1Handler(
@@ -585,7 +582,7 @@ describe('connector.http_json_v1', () => {
         statusText: 'OK',
         headers: new Headers(),
         text: async () => '{}',
-      })
+      } as Response)
 
       const context = createMockContext()
       const result = await httpJsonV1Handler(
@@ -649,9 +646,9 @@ describe('connector.http_json_v1', () => {
       await expect(httpJsonV1Handler({ url }, context)).rejects.toThrow(/CIRCUIT_BREAKER_OPEN/)
 
       // Should not have called fetch again (circuit breaker blocked it)
-      const fetchCallCount = mockFetch.mock.calls.length
+      const fetchCallCount = (mockFetch as ReturnType<typeof vi.fn>).mock.calls.length
       await expect(httpJsonV1Handler({ url }, context)).rejects.toThrow(/CIRCUIT_BREAKER_OPEN/)
-      expect(mockFetch.mock.calls.length).toBe(fetchCallCount)
+      expect((mockFetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(fetchCallCount)
     })
 
     it('should recover after circuit breaker cooldown', async () => {
@@ -661,7 +658,7 @@ describe('connector.http_json_v1', () => {
         statusText: 'OK',
         headers: new Headers(),
         text: async () => '{"recovered": true}',
-      })
+      } as Response)
 
       const context = createMockContext()
       const url = 'https://recovering.example.com/api'
@@ -699,7 +696,7 @@ describe('connector.http_json_v1', () => {
         statusText: 'Bad Request',
         headers: new Headers(),
         text: async () => 'Invalid input',
-      })
+      } as Response)
 
       const context = createMockContext()
       const result = await httpJsonV1Handler({ url: 'https://api.example.com/data' }, context)
@@ -754,7 +751,7 @@ describe('connector.http_json_v1', () => {
         statusText: 'OK',
         headers: new Headers({ 'content-type': 'application/json' }),
         text: async () => '{"status": "ok"}',
-      })
+      } as Response)
 
       const context = createMockContext()
       const result = await httpJsonV1Handler({ url: 'https://api.example.com/health' }, context)
@@ -819,7 +816,7 @@ describe('connector.http_json_v1', () => {
         statusText: 'OK',
         headers: new Headers(),
         text: async () => '{}',
-      })
+      } as Response)
 
       const customTraceId = 'custom-trace-abc123'
       const context = createMockContext({ trace_id: customTraceId })

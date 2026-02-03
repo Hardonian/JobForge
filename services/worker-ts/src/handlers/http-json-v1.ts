@@ -125,7 +125,7 @@ export type HttpJsonRequest = z.infer<typeof HttpJsonRequestSchema>
 
 export const HttpJsonResponseSchema = z.object({
   success: z.boolean(),
-  status_code: z.number().int(),
+  status_code: z.number().int().min(100).max(599),
   status_text: z.string(),
   headers: z.record(z.string()),
   body_preview: z.string(),
