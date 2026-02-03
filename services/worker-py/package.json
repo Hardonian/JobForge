@@ -4,12 +4,16 @@
   "private": true,
   "description": "Python worker for JobForge",
   "scripts": {
-    "test": "make test",
-    "lint": "make lint",
-    "typecheck": "make typecheck",
-    "format": "make format",
-    "format:check": "make format-check",
-    "verify:fast": "make format-check lint typecheck",
-    "clean": "make clean"
+    "test": "pytest tests/ -v",
+    "lint": "ruff check src/ tests/",
+    "typecheck": "mypy src/",
+    "format": "ruff format src/ tests/",
+    "format:check": "ruff format --check src/ tests/",
+    "verify:fast": "npm run format:check && npm run lint && npm run typecheck",
+    "verify:full": "npm run verify:fast && npm run test",
+    "clean": "rimraf build dist *.egg-info __pycache__ .pytest_cache .mypy_cache .ruff_cache"
+  },
+  "devDependencies": {
+    "rimraf": "^5.0.5"
   }
 }
