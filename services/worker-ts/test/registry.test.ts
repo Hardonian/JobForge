@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
 import { createDefaultRegistry, httpJsonV1Handler } from '../src/handlers/index'
-import { HttpJsonRequestSchema } from '../src/handlers/http-json-v1'
 
 describe('connector.http_json_v1 Registry Registration', () => {
   it('should be registered in default registry', () => {

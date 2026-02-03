@@ -16,6 +16,7 @@
     "test": "turbo run test",
     "test:observability": "pnpm --filter @jobforge/observability test",
     "contract-tests": "pnpm --filter @jobforge/shared contract-tests",
+    "e2e:smoke": "tsx scripts/e2e-smoke-runner.ts",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,mdx}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,mdx}\"",
     "verify:fast": "pnpm run format:check && pnpm run lint && pnpm run typecheck",

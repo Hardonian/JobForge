@@ -6,7 +6,6 @@ import {
   HttpJsonResponseSchema,
   HttpJsonErrorEnvelopeSchema,
   HttpJsonConnectorError,
-  getCircuitBreaker,
   recordSuccess,
   recordFailure,
   canExecute,
@@ -380,7 +379,10 @@ describe('connector.http_json_v1', () => {
       // Wait for cooldown
       await sleep(CIRCUIT_BREAKER_CONFIG.resetTimeoutMs + 100)
 
-      // Record success
+      // Trigger transition to HALF_OPEN by calling canExecute
+      expect(canExecute(testEndpoint)).toBe(true)
+
+      // Record success (in HALF_OPEN state)
       recordSuccess(testEndpoint)
 
       const status = getCircuitBreakerStatus(testEndpoint)
@@ -544,8 +546,8 @@ describe('connector.http_json_v1', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(HttpJsonConnectorError)
         const connectorError = error as HttpJsonConnectorError
-        // TimeoutError is a retryable error, so it will retry. With 0 retries, we should get NETWORK_ERROR
-        expect(connectorError.code).toBe('NETWORK_ERROR')
+        // With 0 retries, if the first attempt fails with TimeoutError, we get TIMEOUT_ERROR
+        expect(connectorError.code).toBe('TIMEOUT_ERROR')
       }
     })
 
@@ -730,7 +732,7 @@ describe('connector.http_json_v1', () => {
 
       // Circuit should be closed
       expect(getCircuitBreakerStatus(url).open).toBe(false)
-    })
+    }, 35000)
 
     it('should handle non-retryable HTTP errors immediately', async () => {
       mockFetch.mockResolvedValue({

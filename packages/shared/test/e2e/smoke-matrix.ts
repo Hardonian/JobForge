@@ -11,15 +11,9 @@
  * Run these tests after building all packages.
  */
 
-import { generateCorrelationId, runWithCorrelationId } from '@jobforge/errors'
-import {
-  AppError,
-  ErrorCode,
-  createExternalServiceError,
-  createTimeoutError,
-} from '@jobforge/errors'
-import { createInternalError } from '@jobforge/errors'
+import { generateCorrelationId, runWithCorrelationId, AppError, ErrorCode } from '@jobforge/errors'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { JobRow } from '@jobforge/shared'
 
 // Test configuration
 const TEST_TENANT_ID = '550e8400-e29b-41d4-a716-446655440000'
@@ -40,7 +34,7 @@ interface HealthCheckResult {
 }
 
 // Smoke matrix result
-interface SmokeMatrixResult {
+export interface SmokeMatrixResult {
   timestamp: string
   correlationId: string
   overallHealthy: boolean
@@ -79,11 +73,6 @@ interface SmokeError {
   recoverable: boolean
   actionable: boolean
   correlationId: string
-}
-
-interface JobRow {
-  id: string
-  [key: string]: unknown
 }
 
 interface EventEnvelope {
@@ -146,17 +135,18 @@ export class SmokeMatrixRunner {
    */
   async init(): Promise<void> {
     // Dynamic imports to avoid circular dependencies
-    const { JobForgeClient } = await import('@jobforge/sdk-ts')
+    const sdkModule = await import('@jobforge/sdk-ts')
     const clientModule = await import('@jobforge/client')
     const { createClient } = await import('@supabase/supabase-js')
 
     // Create Supabase client for direct health checks
     this.supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
-    this.client = new JobForgeClient({
+    // The SDK exports JobForgeClient class
+    this.client = new sdkModule.JobForgeClient({
       supabaseUrl: process.env.SUPABASE_URL!,
       supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    }) as JobForgeClient
+    }) as unknown as JobForgeClient
 
     this.executionClient = clientModule.createClient({
       supabaseUrl: process.env.SUPABASE_URL!,
@@ -412,7 +402,7 @@ export class SmokeMatrixRunner {
       const hasRecentActivity =
         data &&
         data.length > 0 &&
-        new Date(data[0].completed_at).getTime() > Date.now() - 10 * 60 * 1000 // 10 minutes
+        new Date(data[0].completed_at as string).getTime() > Date.now() - 10 * 60 * 1000 // 10 minutes
 
       return {
         healthy: hasRecentActivity,

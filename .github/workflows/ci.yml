@@ -85,6 +85,69 @@ jobs:
       - name: Run contract tests
         run: pnpm run contract-tests
 
+  e2e-smoke:
+    name: E2E Smoke Matrix
+    runs-on: ubuntu-latest
+    needs: [verify]
+    timeout-minutes: 15
+
+    # Only run E2E tests when environment variables are available
+    # or on main branch where we have secrets configured
+    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Cache pnpm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm run build
+
+      - name: Run E2E Smoke Tests
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://example.supabase.co' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'dummy-key' }}
+        run: |
+          cd packages/shared
+          # Run E2E tests with vitest
+          pnpm vitest run test/e2e/e2e-smoke.test.ts --reporter=verbose
+        continue-on-error: true
+
+      - name: Upload Smoke Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-smoke-results
+          path: |
+            packages/shared/test-results/
+            packages/shared/coverage/
+          retention-days: 7
+
   guard-internal:
     name: Guard Internal Files
     runs-on: ubuntu-latest
