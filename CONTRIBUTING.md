@@ -1,71 +1,93 @@
 # Contributing to JobForge
 
+Thanks for helping improve JobForge. This guide focuses on safe, verifiable changes and a smooth first contribution path.
+
+## Who Should Contribute
+
+- Contributors familiar with Postgres/Supabase job processing
+- SDK and worker developers
+- Docs authors and tooling maintainers
+
+## First-Time Contributor Path
+
+1. Read the project overview in [README.md](README.md).
+2. Scan `docs/ARCHITECTURE.md` and `supabase/README.md` to understand the database contract.
+3. Pick a small change:
+   - Docs fixes or examples
+   - Small handler improvements
+   - Refactors limited to a single package
+4. Look for issues labeled **good first issue** or **docs**.
+
 ## Development Setup
 
 ### Prerequisites
 
 - Node.js 20+ (see `.nvmrc`)
 - pnpm 8+
+- Postgres or Supabase (for end-to-end testing)
 
-### Getting Started
+### Install
 
 ```bash
-# Install dependencies
 pnpm install
+```
 
-# Run dev server
+### Common commands
+
+```bash
+# Run dev servers (monorepo)
 pnpm dev
 
-# Verify changes (required before commit)
+# Fast verification (format + lint + typecheck)
 pnpm run verify:fast
+
+# Full verification (lint + typecheck + test + build + docs verify)
+pnpm run verify
 ```
 
-## Quality Gates
+## Quality Gates (Required)
 
-### Fast Verification (Required)
+- `pnpm run verify:fast` for local changes
+- `pnpm run verify` before opening a PR
 
-```bash
-pnpm run verify:fast
-```
+CI enforces:
 
-This runs:
+- Formatting, linting, type checks
+- Tests and build
+- Docs reality checks (`scripts/docs-verify.js`)
+- Security gates (secret scan + dependency audit)
 
-- Format check (Prettier)
-- Lint (ESLint)
-- Type check (TypeScript)
+## Project Boundaries
 
-### Full Verification (Pre-release)
+Please avoid changes that:
 
-```bash
-pnpm run verify:full
-```
+- Modify the database contract without updating migrations and docs
+- Bypass RPC functions or RLS policies
+- Introduce new runtime dependencies without justification
 
-This runs verify:fast plus:
+## Extension Points
 
-- Build all packages
-- Run tests (when available)
+- **Job handlers**: add new handlers under `services/worker-ts/src/handlers` (or the Python worker).
+- **Schemas**: keep shared types and validation in `packages/shared/src`.
+- **CLI tooling**: add scripts in `scripts/` and document them in `docs/cli.md` if user-facing.
 
-## Code Standards
+## Documentation Guidelines
 
-- **No regressions**: All quality gates must pass
-- **No @ts-ignore**: Use with justification only (10+ char description)
-- **Formatting**: Run `pnpm format` before commit
-- **Small batches**: Keep PRs focused and reviewable
-
-## Monorepo Structure
-
-```
-apps/          # Applications (Next.js web app)
-packages/      # Shared packages (UI, config, utils)
-internal/      # Agent notes (gitignored, never commit)
-```
+- Keep README and docs in sync with code.
+- If you add a command to README, update `scripts/docs-verify.js` so CI can validate it.
+- No placeholder text or broken links.
 
 ## Commit Guidelines
 
-- Write clear, descriptive commit messages
-- Reference issue numbers where applicable
-- Keep commits atomic and focused
+- Write clear, descriptive commit messages.
+- Keep changes focused and reviewable.
 
-## Questions?
+## Discussions & Questions
 
-Open an issue for discussion before major changes.
+- **Questions**: GitHub Discussions → Q&A category
+- **Ideas/Proposals**: GitHub Discussions → Ideas category
+- **Show & tell**: GitHub Discussions → Show and tell category
+- **Design/Architecture**: GitHub Discussions → Design category
+- **Bugs/Tasks**: GitHub Issues
+
+If you are unsure, start a Discussion before investing in large changes.

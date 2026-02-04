@@ -11,15 +11,12 @@
 
 ### Community Support
 
-- **GitHub Discussions**: For questions, ideas, and general discussion
-- **GitHub Issues**: For bug reports and feature requests
-- **Stack Overflow**: Tag questions with `jobforge`
+- **GitHub Discussions**: Q&A, ideas, show & tell, and design discussions
+- **GitHub Issues**: Bug reports and feature requests
 
 ### Commercial Support
 
-For enterprise support, custom integrations, or professional services:
-
-- [TBD - Add contact information]
+Commercial support is not currently offered through this repository. If that changes it will be announced in README and Discussions.
 
 ## Reporting Issues
 
@@ -116,7 +113,7 @@ New contributors should:
 
 1. Read the [Architecture Guide](docs/ARCHITECTURE.md)
 2. Review [existing tests](packages/shared/test/) for patterns
-3. Start with [good first issues](https://github.com/TBD/jobforge/labels/good%20first%20issue)
+3. Start with issues labeled **good first issue** or **docs**
 
 ## Security Issues
 
@@ -125,8 +122,7 @@ For security-related issues, see [SECURITY.md](SECURITY.md).
 ## Communication Channels
 
 - **Async**: GitHub Discussions (preferred)
-- **Real-time**: [TBD - Add Slack/Discord if applicable]
-- **Email**: [TBD - Add support email]
+- **Issues**: GitHub Issues for tracked work
 
 Response times:
 
@@ -145,7 +141,7 @@ We value your feedback! Please share:
 
 ## Resources
 
-- [API Documentation](docs/api.md)
-- [Connector Reference](docs/connectors.md)
-- [Integration Guides](docs/integrations/)
-- [FAQ](docs/faq.md)
+- [CLI Reference](docs/cli.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Runbook](docs/RUNBOOK.md)
+- [Security Model](docs/SECURITY.md)

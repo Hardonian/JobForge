@@ -10,6 +10,16 @@ const EXIT_CODES = {
   failure: 1,
 }
 
+const QUICK_START_HEADING = '## Quick Start'
+const MARKDOWN_FILE_CHECKS = [
+  path.join(repoRoot, 'README.md'),
+  path.join(repoRoot, 'CONTRIBUTING.md'),
+  path.join(repoRoot, 'SUPPORT.md'),
+]
+
+const ALLOWED_EXTERNAL_COMMANDS = new Set(['supabase', 'psql', 'python', 'pip', 'pip3', 'node'])
+const PNPM_BUILTINS = new Set(['install', 'add', 'exec', 'dlx', 'fetch', 'store'])
+
 function runCommand(label, command, args, options = {}) {
   try {
     const output = execFileSync(command, args, {
@@ -39,10 +49,155 @@ function assertFileEqual(label, actualPath, expectedPath) {
   assertEqual(label, actual, expected)
 }
 
+function assertNoPlaceholders(markdownPath) {
+  const contents = fs.readFileSync(markdownPath, 'utf-8')
+  if (/\bTODO\b|\bTBD\b/i.test(contents)) {
+    throw new Error(`Placeholder markers found in ${path.relative(repoRoot, markdownPath)}`)
+  }
+}
+
+function collectMarkdownLinks(markdownPath) {
+  const contents = fs.readFileSync(markdownPath, 'utf-8')
+  const linkRegex = /\[[^\]]+\]\(([^)]+)\)/g
+  const links = []
+  let match
+  while ((match = linkRegex.exec(contents)) !== null) {
+    links.push(match[1])
+  }
+  return links
+}
+
+function assertLocalLinksExist(markdownPath) {
+  const links = collectMarkdownLinks(markdownPath)
+  for (const link of links) {
+    if (link.startsWith('http://') || link.startsWith('https://') || link.startsWith('mailto:')) {
+      continue
+    }
+    if (link.startsWith('#')) {
+      continue
+    }
+    const [linkPath] = link.split('#')
+    const resolvedPath = path.resolve(repoRoot, linkPath)
+    if (!fs.existsSync(resolvedPath)) {
+      throw new Error(
+        `Broken link in ${path.relative(repoRoot, markdownPath)}: ${linkPath} not found`
+      )
+    }
+  }
+}
+
+function extractQuickStartCommands(readmePath) {
+  const contents = fs.readFileSync(readmePath, 'utf-8')
+  const quickStartIndex = contents.indexOf(QUICK_START_HEADING)
+  if (quickStartIndex === -1) {
+    throw new Error('Quick Start section not found in README.md')
+  }
+  const afterHeading = contents.slice(quickStartIndex + QUICK_START_HEADING.length)
+  const nextHeadingIndex = afterHeading.search(/\n##\s+/)
+  const section =
+    nextHeadingIndex === -1 ? afterHeading : afterHeading.slice(0, nextHeadingIndex)
+  const codeFenceRegex = /```(?:bash|shell|sh)?\n([\s\S]*?)```/g
+  const commands = []
+  let match
+  while ((match = codeFenceRegex.exec(section)) !== null) {
+    const block = match[1]
+    const lines = block.split('\n')
+    let current = ''
+    for (const rawLine of lines) {
+      const line = rawLine.trim()
+      if (!line || line.startsWith('#')) {
+        continue
+      }
+      if (line.endsWith('\\')) {
+        current += `${line.slice(0, -1)} `
+        continue
+      }
+      const command = `${current}${line}`.trim()
+      if (command) {
+        commands.push(command)
+      }
+      current = ''
+    }
+  }
+  return commands
+}
+
+function normalizeCommandTokens(command) {
+  const tokens = command.split(/\s+/)
+  const filtered = []
+  for (const token of tokens) {
+    if (/^[A-Z0-9_]+=/.test(token)) {
+      continue
+    }
+    filtered.push(token)
+  }
+  return filtered
+}
+
+function assertQuickStartCommands(readmePath) {
+  const commands = extractQuickStartCommands(readmePath)
+  const packageJson = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf-8'))
+  const scripts = packageJson.scripts || {}
+
+  for (const command of commands) {
+    const tokens = normalizeCommandTokens(command)
+    const executable = tokens[0]
+
+    if (!executable) {
+      continue
+    }
+
+    if (executable === 'cd') {
+      const target = tokens[1]
+      if (!target) {
+        throw new Error(`Quick Start command missing path: ${command}`)
+      }
+      const resolved = path.resolve(repoRoot, target)
+      if (!fs.existsSync(resolved)) {
+        throw new Error(`Quick Start path not found: ${target}`)
+      }
+      continue
+    }
+
+    if (executable === 'pnpm') {
+      const pnpmCommand = tokens[1]
+      if (!pnpmCommand) {
+        throw new Error(`Quick Start pnpm command missing: ${command}`)
+      }
+      if (pnpmCommand === 'run') {
+        const scriptName = tokens[2]
+        if (!scriptName || !scripts[scriptName]) {
+          throw new Error(`Quick Start pnpm script not found: ${scriptName}`)
+        }
+        continue
+      }
+      if (PNPM_BUILTINS.has(pnpmCommand)) {
+        continue
+      }
+      if (scripts[pnpmCommand]) {
+        continue
+      }
+      throw new Error(`Quick Start pnpm command not recognized: ${pnpmCommand}`)
+    }
+
+    if (ALLOWED_EXTERNAL_COMMANDS.has(executable)) {
+      continue
+    }
+
+    throw new Error(`Quick Start command uses unknown executable: ${executable}`)
+  }
+}
+
 function main() {
   if (!fs.existsSync(tsxPath)) {
     throw new Error(`tsx binary not found at ${tsxPath}`)
   }
+
+  for (const markdownPath of MARKDOWN_FILE_CHECKS) {
+    assertNoPlaceholders(markdownPath)
+    assertLocalLinksExist(markdownPath)
+  }
+  assertQuickStartCommands(path.join(repoRoot, 'README.md'))
 
   const helpChecks = [
     {

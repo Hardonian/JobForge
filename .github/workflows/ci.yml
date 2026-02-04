@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -49,11 +52,57 @@ jobs:
       - name: Verify (fast)
         run: pnpm run verify:fast
 
+      - name: Test
+        run: pnpm run test
+
       - name: Build
         run: pnpm run build
 
       - name: Docs verify
         run: pnpm run docs:verify
+
+  security-gates:
+    name: Security Gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2.3.4
+        env:
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+      - name: Run OSV-Scanner
+        uses: google/osv-scanner-action@v1.7.1
+        with:
+          scan-args: |-
+            --lockfile=pnpm-lock.yaml
+
+  codeql:
+    name: CodeQL
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@v3
 
   contract-tests:
     name: Contract Tests
