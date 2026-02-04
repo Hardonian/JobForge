@@ -5,6 +5,9 @@
 
 import type { JobContext } from '@jobforge/shared'
 import { z } from 'zod'
+import { getAllowlistMatcher } from './allowlist-matcher'
+import { collectResponseHeaders } from './response-headers'
+import { readBodyPreview } from './response-preview'
 
 // ============================================================================
 // Circuit Breaker State Management
@@ -13,10 +16,13 @@ import { z } from 'zod'
 interface CircuitBreakerState {
   failures: number
   lastFailureTime: number | null
+  lastSeen: number
   state: 'CLOSED' | 'OPEN' | 'HALF_OPEN'
 }
 
 const circuitBreakers = new Map<string, CircuitBreakerState>()
+const CIRCUIT_BREAKER_TTL_MS = 10 * 60 * 1000
+let lastCircuitBreakerSweep = 0
 
 const CIRCUIT_BREAKER_CONFIG = {
   failureThreshold: 5,
@@ -25,14 +31,27 @@ const CIRCUIT_BREAKER_CONFIG = {
 }
 
 function getCircuitBreaker(endpoint: string): CircuitBreakerState {
+  const now = Date.now()
+  if (now - lastCircuitBreakerSweep > CIRCUIT_BREAKER_TTL_MS) {
+    for (const [key, value] of circuitBreakers.entries()) {
+      if (now - value.lastSeen > CIRCUIT_BREAKER_TTL_MS) {
+        circuitBreakers.delete(key)
+      }
+    }
+    lastCircuitBreakerSweep = now
+  }
+
   if (!circuitBreakers.has(endpoint)) {
     circuitBreakers.set(endpoint, {
       failures: 0,
       lastFailureTime: null,
+      lastSeen: now,
       state: 'CLOSED',
     })
   }
-  return circuitBreakers.get(endpoint)!
+  const entry = circuitBreakers.get(endpoint)!
+  entry.lastSeen = now
+  return entry
 }
 
 function recordSuccess(endpoint: string): void {
@@ -119,6 +138,7 @@ export const HttpJsonRequestSchema = z.object({
   follow_redirects: z.boolean().default(true),
   max_redirects: z.number().int().min(0).max(10).default(5),
   response_preview_max_bytes: z.number().int().min(100).max(10_000_000).default(100_000),
+  response_headers_allowlist: z.array(z.string().max(256)).optional(),
 })
 
 export type HttpJsonRequest = z.infer<typeof HttpJsonRequestSchema>
@@ -230,19 +250,9 @@ function validateUrl(url: string, allowlist?: string[]): void {
   }
 
   // Check allowlist if provided
-  if (allowlist && allowlist.length > 0) {
-    const allowed = allowlist.some((pattern) => {
-      const normalizedPattern = pattern.toLowerCase().trim()
-      if (normalizedPattern.includes('*')) {
-        const regex = new RegExp('^' + normalizedPattern.replace(/\*/g, '.*') + '$')
-        return regex.test(hostname)
-      }
-      return hostname === normalizedPattern || hostname.endsWith(`.${normalizedPattern}`)
-    })
-
-    if (!allowed) {
-      throw new Error(`Host not in allowlist: ${hostname}`)
-    }
+  const matcher = getAllowlistMatcher(allowlist)
+  if (matcher && !matcher(hostname)) {
+    throw new Error(`Host not in allowlist: ${hostname}`)
   }
 }
 
@@ -534,17 +544,18 @@ export async function httpJsonV1Handler(
   recordSuccess(validated.url)
 
   // Step 7: Process response
-  const responseHeaders: Record<string, string> = {}
-  lastResponse.headers.forEach((value, key) => {
-    if (!validated.redact_headers.includes(key.toLowerCase())) {
-      responseHeaders[key] = value
-    }
+  const responseHeaders = collectResponseHeaders(lastResponse, {
+    redactHeaders: validated.redact_headers,
+    allowlist: validated.response_headers_allowlist,
   })
 
   // Read body with size limit
   let bodyText: string
+  let truncated = false
   try {
-    bodyText = await lastResponse.text()
+    const preview = await readBodyPreview(lastResponse, validated.response_preview_max_bytes)
+    bodyText = preview.bodyPreview
+    truncated = preview.truncated
   } catch (error) {
     throw new HttpJsonConnectorError(
       'PARSE_ERROR',
@@ -562,17 +573,12 @@ export async function httpJsonV1Handler(
     )
   }
 
-  const truncated = bodyText.length > validated.response_preview_max_bytes
-  const bodyPreview = truncated
-    ? bodyText.substring(0, validated.response_preview_max_bytes) + '... (truncated)'
-    : bodyText
-
   return {
     success: lastResponse.ok,
     status_code: lastResponse.status,
     status_text: lastResponse.statusText,
     headers: responseHeaders,
-    body_preview: bodyPreview,
+    body_preview: bodyText,
     body_truncated: truncated,
     duration_ms: durationMs,
     attempt_count: retryState.attempt,
