@@ -12,7 +12,6 @@
  *   JOBFORGE_EVENTS_ENABLED=1 ts-node scripts/smoke-test-execution-plane.ts
  */
 
-
 const EXIT_CODES = {
   success: 0,
   validation: 2,

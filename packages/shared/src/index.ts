@@ -16,6 +16,7 @@ export * from './verify-pack.js'
 export * from './contract-tests.js'
 export * from './replay-bundles.js'
 export * from './policy-tokens.js'
+export * from './registry-handshake.js'
 
 // Solo-Founder Accelerator Layer
 export * from './doctor.js'

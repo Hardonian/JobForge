@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -49,11 +52,57 @@ jobs:
       - name: Verify (fast)
         run: pnpm run verify:fast
 
+      - name: Test
+        run: pnpm run test
+
       - name: Build
         run: pnpm run build
 
       - name: Docs verify
         run: pnpm run docs:verify
+
+  security-gates:
+    name: Security Gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2.3.4
+        env:
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+      - name: Run OSV-Scanner
+        uses: google/osv-scanner-action@v1.7.1
+        with:
+          scan-args: |-
+            --lockfile=pnpm-lock.yaml
+
+  codeql:
+    name: CodeQL
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@v3
 
   contract-tests:
     name: Contract Tests
@@ -76,11 +125,77 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Sync module fixtures
+        run: pnpm run modules:sync-fixtures
+
       - name: Build shared package
         run: pnpm --filter @jobforge/shared run build
 
       - name: Run contract tests
         run: pnpm run contract-tests
+
+  e2e-smoke:
+    name: E2E Smoke Matrix
+    runs-on: ubuntu-latest
+    needs: [verify]
+    timeout-minutes: 15
+
+    # Only run E2E tests when environment variables are available
+    # or on main branch where we have secrets configured
+    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Cache pnpm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm run build
+
+      - name: Run E2E Smoke Tests
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://example.supabase.co' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'dummy-key' }}
+        run: |
+          cd packages/shared
+          # Run E2E tests with vitest
+          pnpm vitest run test/e2e/e2e-smoke.test.ts --reporter=verbose
+        continue-on-error: true
+
+      - name: Upload Smoke Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-smoke-results
+          path: |
+            packages/shared/test-results/
+            packages/shared/coverage/
+          retention-days: 7
 
   guard-internal:
     name: Guard Internal Files

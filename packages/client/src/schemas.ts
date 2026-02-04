@@ -11,7 +11,10 @@ import {
   redactionHintsSchema,
   eventSubjectSchema,
 } from '@jobforge/shared'
-import { SCHEMA_VERSION } from '@autopilot/contracts'
+import { SCHEMA_VERSION, artifactOutputSchema } from '@autopilot/contracts'
+
+// Re-export contract schemas for convenience
+export { artifactOutputSchema }
 
 // ============================================================================
 // Client Configuration Schema
@@ -112,15 +115,6 @@ export const getRunManifestParamsSchema = z.object({
 // ============================================================================
 // Artifacts Schema
 // ============================================================================
-
-export const artifactOutputSchema = z.object({
-  name: z.string(),
-  type: z.string(),
-  ref: z.string(),
-  size: z.number().int().positive().optional(),
-  checksum: z.string().optional(),
-  mime_type: z.string().optional(),
-})
 
 export const listArtifactsParamsSchema = z.object({
   runId: z.string().uuid('Run ID must be a valid UUID'),

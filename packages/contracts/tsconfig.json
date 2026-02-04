@@ -1,5 +1,5 @@
 {
-  "extends": "@jobforge/typescript-config/base.json",
+  "extends": "../../packages/typescript-config/base.json",
   "compilerOptions": {
     "types": ["node"],
     "typeRoots": ["../shared/node_modules/@types", "./node_modules/@types"],
@@ -7,7 +7,9 @@
     "rootDir": "./src",
     "declaration": true,
     "declarationMap": true,
-    "noEmit": false
+    "noEmit": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

@@ -20,6 +20,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "vitest run test/e2e/e2e-smoke.test.ts",
     "contract-tests": "tsx test/contract-test-runner.ts"
   },
   "dependencies": {

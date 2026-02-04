@@ -262,7 +262,9 @@ function getDirectoryStats(dirPath: string): { count: number; size: number } {
   let size = 0
 
   try {
-    const entries = readdirSync(dirPath, { withFileTypes: true, recursive: true })
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const fs = require('fs')
+    const entries = fs.readdirSync(dirPath, { withFileTypes: true, recursive: true })
     for (const entry of entries) {
       if (entry.isFile()) {
         count++
@@ -366,7 +368,7 @@ export async function verifyPackHandler(
         generated_at: new Date().toISOString(),
       },
       manifest: {
-        schema_version: SCHEMA_VERSION,
+        schema_version: '1.0.0',
         manifest_version: '1.0',
         run_id: context.job_id,
         tenant_id: context.tenant_id,

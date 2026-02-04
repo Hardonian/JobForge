@@ -34,7 +34,6 @@
  *          REPLAY_PACK_ENABLED
  */
 
-
 // Sample tenant/project context (deterministic for reproducibility)
 const SAMPLE_TENANT_ID = '00000000-0000-0000-0000-000000000001'
 const SAMPLE_PROJECT_ID = '00000000-0000-0000-0000-000000000002'

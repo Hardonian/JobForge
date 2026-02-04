@@ -1,6 +1,7 @@
 /**
  * @jobforge/client - HTTP transport
  * Uses HTTP API endpoint for remote access
+ * OPTIMIZED: Uses resilientFetch with retries, timeouts, and batching support
  */
 
 import type {
@@ -17,6 +18,7 @@ import type {
 } from '../types'
 import { JobForgeClientError } from '../types'
 import type { EventRow, ManifestRow } from '@jobforge/shared'
+import { resilientFetch, CONSERVATIVE_RETRY_CONFIG } from '@jobforge/fetch'
 import {
   JOBFORGE_INTEGRATION_ENABLED,
   JOBFORGE_DRY_RUN_MODE,
@@ -50,10 +52,12 @@ export class HttpTransport implements Transport {
         return this.createMockEvent(params.envelope)
       }
 
-      const response = await fetch(`${this.apiEndpoint}/events`, {
+      // OPTIMIZED: Use resilientFetch with conservative retry (events are idempotent)
+      const response = await resilientFetch(`${this.apiEndpoint}/events`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify(params.envelope),
+        retry: CONSERVATIVE_RETRY_CONFIG,
       })
 
       if (!response.ok) {
@@ -80,7 +84,8 @@ export class HttpTransport implements Transport {
         return this.createMockJobResult(params)
       }
 
-      const response = await fetch(`${this.apiEndpoint}/jobs`, {
+      // OPTIMIZED: Use resilientFetch with conservative retry (jobs are idempotent via idempotencyKey)
+      const response = await resilientFetch(`${this.apiEndpoint}/jobs`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
@@ -94,6 +99,7 @@ export class HttpTransport implements Transport {
           source_app: params.sourceApp,
           source_module: params.sourceModule,
         }),
+        retry: CONSERVATIVE_RETRY_CONFIG,
       })
 
       if (!response.ok) {
@@ -127,11 +133,13 @@ export class HttpTransport implements Transport {
         }
       }
 
-      const response = await fetch(
+      // OPTIMIZED: Use resilientFetch with conservative retry (GET is idempotent)
+      const response = await resilientFetch(
         `${this.apiEndpoint}/runs/${params.runId}/status?tenant_id=${params.tenantId}`,
         {
           method: 'GET',
           headers: this.getHeaders(),
+          retry: CONSERVATIVE_RETRY_CONFIG,
         }
       )
 
@@ -162,11 +170,13 @@ export class HttpTransport implements Transport {
         return this.createMockManifest(params.runId, params.tenantId)
       }
 
-      const response = await fetch(
+      // OPTIMIZED: Use resilientFetch with conservative retry (GET is idempotent)
+      const response = await resilientFetch(
         `${this.apiEndpoint}/runs/${params.runId}/manifest?tenant_id=${params.tenantId}`,
         {
           method: 'GET',
           headers: this.getHeaders(),
+          retry: CONSERVATIVE_RETRY_CONFIG,
         }
       )
 
@@ -201,11 +211,13 @@ export class HttpTransport implements Transport {
         }
       }
 
-      const response = await fetch(
+      // OPTIMIZED: Use resilientFetch with conservative retry (GET is idempotent)
+      const response = await resilientFetch(
         `${this.apiEndpoint}/runs/${params.runId}/artifacts?tenant_id=${params.tenantId}`,
         {
           method: 'GET',
           headers: this.getHeaders(),
+          retry: CONSERVATIVE_RETRY_CONFIG,
         }
       )
 

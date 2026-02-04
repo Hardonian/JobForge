@@ -12,14 +12,7 @@ import type {
   SourceModule,
 } from '@autopilot/contracts'
 
-export type {
-  EventEnvelope,
-  EventSubject,
-  EventVersion,
-  RedactionHints,
-  SourceApp,
-  SourceModule,
-}
+export type { EventEnvelope, EventSubject, EventVersion, RedactionHints, SourceApp, SourceModule }
 
 /**
  * Event row from database

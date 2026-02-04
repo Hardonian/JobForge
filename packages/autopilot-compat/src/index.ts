@@ -1,10 +1,6 @@
 import path from 'path'
 import { fileURLToPath } from 'url'
-import {
-  formatContractReport,
-  runContractTests,
-  type ContractTestReport,
-} from '@jobforge/shared'
+import { formatContractReport, runContractTests, type ContractTestReport } from '@jobforge/shared'
 import { getFixturesRoot } from '@jobforge/autopilot-fixtures'
 
 export interface CompatibilityOptions {

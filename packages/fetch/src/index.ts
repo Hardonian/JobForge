@@ -7,6 +7,8 @@ export { resilientFetch, hasMetadata } from './resilient-fetch'
 export type { RetryConfig, TimeoutConfig, ResilientFetchOptions, FetchMetadata } from './types'
 export {
   DEFAULT_RETRY_CONFIG,
+  AGGRESSIVE_RETRY_CONFIG,
+  CONSERVATIVE_RETRY_CONFIG,
   calculateRetryDelay,
   isRetryableStatus,
   isRetryableError,

@@ -14,7 +14,9 @@
     "start": "node dist/cli.js",
     "clean": "rm -rf dist *.tsbuildinfo",
     "lint": "eslint src/",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@autopilot/contracts": "workspace:*",
@@ -27,6 +29,7 @@
     "@types/node": "^20.11.0",
     "eslint": "^8.56.0",
     "tsx": "^4.7.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^2.1.8"
   }
 }

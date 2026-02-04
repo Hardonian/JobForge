@@ -13,10 +13,7 @@ import type {
   SubmitEventParams,
 } from './execution-plane/index.js'
 import { SCHEMA_VERSION } from '@autopilot/contracts'
-import {
-  isBundleTriggersEnabled,
-  isPipelineTriggersEnabled,
-} from './feature-flags.js'
+import { isBundleTriggersEnabled, isPipelineTriggersEnabled } from './feature-flags.js'
 import { evaluateTriggers, recordTriggerFire } from './execution-plane/bundle-triggers.js'
 
 // ============================================================================
@@ -380,8 +377,7 @@ function schedulePipelineEvaluation(
             continue
           }
 
-          const moduleId =
-            rule.action.bundle_builder || event.source_module || 'autopilot.ops.scan'
+          const moduleId = rule.action.bundle_builder || event.source_module || 'autopilot.ops.scan'
 
           const payload: PipelineTriggerJobPayload = {
             tenant_id: event.tenant_id,

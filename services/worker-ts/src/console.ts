@@ -89,6 +89,11 @@ function formatDate(isoString: string | null): string {
   return date.toLocaleString()
 }
 
+function _formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`
+  return `${(ms / 60000).toFixed(1)}m`
+}
 
 function printHeader(title: string): void {
   console.log(`
@@ -112,6 +117,9 @@ function printSuccess(message: string): void {
   console.log(`\n✅ ${message}`)
 }
 
+function _printWarning(message: string): void {
+  console.log(`\n⚠️  ${message}`)
+}
 
 function printInfo(message: string): void {
   console.log(`ℹ️  ${message}`)

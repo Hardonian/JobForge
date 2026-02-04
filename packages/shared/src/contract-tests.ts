@@ -10,6 +10,8 @@ import {
   canonicalizeJson,
   hashCanonicalJson,
   SCHEMA_VERSION,
+  ConnectorCapabilitySchema,
+  ErrorEnvelopeSchema,
 } from '@autopilot/contracts'
 
 // ============================================================================
@@ -204,6 +206,9 @@ export function checkDeterministicHashing(bundle: JobRequestBundle): {
 } {
   const issues: string[] = []
 
+  // Sort keys for canonical form
+  canonicalizeJson(bundle)
+
   // Check for common non-deterministic patterns
   const jsonStr = canonicalizeJson(bundle)
 
@@ -217,14 +222,46 @@ export function checkDeterministicHashing(bundle: JobRequestBundle): {
     issues.push('Bundle contains random value generation')
   }
 
-  // Generate simple hash
-  const hash = hashCanonicalJson(bundle)
+  // Generate deterministic hash (twice to ensure stability)
+  const firstHash = hashCanonicalJson(bundle)
+  const secondHash = hashCanonicalJson(bundle)
+
+  if (firstHash !== secondHash) {
+    issues.push('Canonical hash mismatch between runs')
+  }
 
   return {
     stable: issues.length === 0,
     issues,
-    hash,
+    hash: firstHash,
   }
+}
+
+/**
+ * Executor preflight validation
+ */
+export function runExecutorPreflight(bundle: JobRequestBundle): {
+  valid: boolean
+  errors: string[]
+} {
+  const errors: string[] = []
+  const executorValidation = simulateExecutorValidation(bundle, {
+    policyTokenPresent: true,
+    requiredTenantId: bundle.tenant_id,
+    requiredProjectId: bundle.project_id,
+  })
+
+  if (!executorValidation.valid) {
+    errors.push(...executorValidation.errors)
+  }
+
+  if (executorValidation.blocked.length > 0) {
+    errors.push(
+      ...executorValidation.blocked.map((entry) => `Executor preflight blocked: ${entry}`)
+    )
+  }
+
+  return { valid: errors.length === 0, errors }
 }
 
 /**
@@ -262,6 +299,11 @@ export function validateContract(
 
   const validBundle = bundle as JobRequestBundle
 
+  // Step 1b: Schema version support check
+  if (validBundle.schema_version !== SCHEMA_VERSION) {
+    errors.push(`Unsupported schema_version: ${validBundle.schema_version}`)
+  }
+
   // Step 2: Executor simulation
   const executorValidation = simulateExecutorValidation(validBundle)
   if (!executorValidation.valid) {
@@ -271,10 +313,16 @@ export function validateContract(
     warnings.push(...executorValidation.blocked)
   }
 
-  // Step 3: Deterministic hashing check
+  // Step 3: Executor preflight
+  const executorPreflight = runExecutorPreflight(validBundle)
+  if (!executorPreflight.valid) {
+    errors.push(...executorPreflight.errors)
+  }
+
+  // Step 4: Deterministic hashing check
   const hashingCheck = checkDeterministicHashing(validBundle)
   if (!hashingCheck.stable) {
-    warnings.push(...hashingCheck.issues)
+    errors.push(...hashingCheck.issues)
   }
 
   // Build summary
@@ -314,43 +362,75 @@ export function validateContract(
 /**
  * Run contract tests on all fixtures
  */
-export async function runContractTests(fixturesDir: string): Promise<ContractTestReport> {
+export async function runContractTests(
+  fixturesDir: string | string[]
+): Promise<ContractTestReport> {
   const results: ContractValidationResult[] = []
+  const fixtureDirs = Array.isArray(fixturesDir) ? fixturesDir : [fixturesDir]
 
   // Try to load fixtures
   try {
     const fs = await import('fs/promises')
     const path = await import('path')
 
-    const files = await fs.readdir(fixturesDir)
-    const jsonFiles = files.filter((f) => f.endsWith('.json'))
+    const collectJsonFiles = async (dirPath: string): Promise<string[]> => {
+      const entries = await fs.readdir(dirPath, { withFileTypes: true })
+      const files: string[] = []
 
-    for (const file of jsonFiles) {
-      const filePath = path.join(fixturesDir, file)
-      const content = await fs.readFile(filePath, 'utf-8')
-      const fixtureName = path.basename(file, '.json')
-      const expectedValid = !fixtureName.startsWith('invalid-')
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          if (entry.name === 'manifests') {
+            continue
+          }
+          const nested = await collectJsonFiles(path.join(dirPath, entry.name))
+          files.push(...nested)
+        } else if (entry.isFile() && entry.name.endsWith('.json')) {
+          files.push(path.join(dirPath, entry.name))
+        }
+      }
 
+      return files
+    }
+
+    for (const dirPath of fixtureDirs) {
       try {
-        const bundle = JSON.parse(content)
-        results.push(validateContract(fixtureName, bundle, expectedValid))
-      } catch (parseError) {
-        results.push({
-          fixture_name: fixtureName,
-          valid: false,
-          actual_valid: false,
-          expected_valid: expectedValid,
-          errors: [
-            `JSON parse error: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
-          ],
-          warnings: [],
-          summary: {
-            total_requests: 0,
-            action_jobs: 0,
-            dry_run_jobs: 0,
-            required_scopes: [],
-          },
-        })
+        const dirStat = await fs.stat(dirPath)
+        if (!dirStat.isDirectory()) {
+          continue
+        }
+      } catch {
+        continue
+      }
+
+      const jsonFiles = await collectJsonFiles(dirPath)
+
+      for (const filePath of jsonFiles) {
+        const content = await fs.readFile(filePath, 'utf-8')
+        const baseName = path.basename(filePath, '.json')
+        const expectedValid = !baseName.startsWith('invalid-')
+        const fixtureName = path.relative(dirPath, filePath).replace(/\\/g, '/')
+
+        try {
+          const bundle = JSON.parse(content)
+          results.push(validateContract(fixtureName, bundle, expectedValid))
+        } catch (parseError) {
+          results.push({
+            fixture_name: fixtureName,
+            valid: false,
+            actual_valid: false,
+            expected_valid: expectedValid,
+            errors: [
+              `JSON parse error: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
+            ],
+            warnings: [],
+            summary: {
+              total_requests: 0,
+              action_jobs: 0,
+              dry_run_jobs: 0,
+              required_scopes: [],
+            },
+          })
+        }
       }
     }
   } catch (error) {
@@ -418,4 +498,95 @@ export function formatContractReport(report: ContractTestReport): string {
   lines.push('='.repeat(70))
 
   return lines.join('\n')
+}
+
+// ============================================================================
+// Connector Schema Validation
+// ============================================================================
+
+/**
+ * Validate a connector definition against the canonical schema
+ */
+export function validateConnectorSchema(connector: unknown): { valid: boolean; errors: string[] } {
+  const errors: string[] = []
+
+  const result = ConnectorCapabilitySchema.safeParse(connector)
+  if (!result.success) {
+    errors.push(
+      ...result.error.errors.map(
+        (e: { path: (string | number)[]; message: string }) => `${e.path.join('.')}: ${e.message}`
+      )
+    )
+  }
+
+  // Additional semantic validation
+  if (result.success) {
+    const validConnector = result.data
+
+    // Validate version format (semver-like)
+    if (!/^\d+\.\d+\.\d+/.test(validConnector.version)) {
+      errors.push('version should follow semantic versioning (e.g., 1.0.0)')
+    }
+
+    // Check for duplicate job types
+    const jobTypes = new Set<string>()
+    for (const jobType of validConnector.supported_job_types) {
+      if (jobTypes.has(jobType)) {
+        errors.push(`Duplicate supported_job_type: ${jobType}`)
+      }
+      jobTypes.add(jobType)
+    }
+  }
+
+  return { valid: errors.length === 0, errors }
+}
+
+// Re-export validateRunnerCapabilities from registry-handshake
+export { validateRunnerCapabilities } from './registry-handshake.js'
+
+// ============================================================================
+// Error Envelope Validation
+// ============================================================================
+
+/**
+ * Validate an error envelope against the canonical schema
+ */
+export function validateErrorEnvelope(error: unknown): { valid: boolean; errors: string[] } {
+  const errors: string[] = []
+
+  const result = ErrorEnvelopeSchema.safeParse(error)
+  if (!result.success) {
+    errors.push(
+      ...result.error.errors.map(
+        (e: { path: (string | number)[]; message: string }) => `${e.path.join('.')}: ${e.message}`
+      )
+    )
+    return { valid: false, errors }
+  }
+
+  const validError = result.data
+
+  // Validate timestamp is in the past (or very near future for clock skew)
+  const errorTime = new Date(validError.timestamp).getTime()
+  const now = Date.now()
+  const fiveMinutesMs = 5 * 60 * 1000
+
+  if (errorTime > now + fiveMinutesMs) {
+    errors.push('timestamp is more than 5 minutes in the future (possible clock skew)')
+  }
+
+  // Validate that details is structured properly when it's an array
+  if (Array.isArray(validError.details)) {
+    for (let i = 0; i < validError.details.length; i++) {
+      const detail = validError.details[i]
+      if (!detail.field || typeof detail.field !== 'string') {
+        errors.push(`details[${i}]: field is required and must be a string`)
+      }
+      if (!detail.message || typeof detail.message !== 'string') {
+        errors.push(`details[${i}]: message is required and must be a string`)
+      }
+    }
+  }
+
+  return { valid: errors.length === 0, errors }
 }

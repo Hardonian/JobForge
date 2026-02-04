@@ -12,10 +12,9 @@ import type {
   RequestJobResult,
   GetManifestParams,
   ManifestRow,
-  SourceApp,
-  SourceModule,
   EventRow,
 } from '@jobforge/sdk-ts'
+import type { SourceApp, SourceModule } from '@autopilot/contracts'
 import {
   JOBFORGE_INTEGRATION_DRY_RUN,
   isIntegrationEnabled,

@@ -1,320 +1,131 @@
 # JobForge
 
-**Production-Grade, Postgres-Native Job Queue**
+- **Postgres-native job queue** with tenant isolation, retries, and idempotency enforced in SQL.
+- **Supabase-first** schema and RPC functions for enqueue/claim/complete operations.
+- **SDKs + workers** in TypeScript and Python for running background jobs without Redis/Kafka.
+- **Operational tooling** (CLI utilities, smoke tests, replay tooling) in this monorepo.
 
-A Postgres-native job queue/workhorse designed as a drop-in module for multi-tenant SaaS applications. Built on Supabase/Postgres with RPC, RLS, idempotency, retries, and concurrency-safe operations.
+**Who this is for:** SaaS teams running Supabase/Postgres who want a durable, multi-tenant job queue with database-enforced safety guarantees.
 
-Perfect for Supabase users who need reliable background job processing without Redis or Kafka.
+**Quick start:** Apply the Supabase migrations and run the TypeScript worker as shown in [Quick Start](#quick-start).
 
-## Features
+## Why This Exists
 
-- **Postgres is the Truth Layer** - All job state in Postgres with RPC-based mutations
-- **Multi-Tenant Isolation** - Strict tenant isolation via Row Level Security (RLS)
-- **Concurrency-Safe** - `FOR UPDATE SKIP LOCKED` prevents race conditions
-- **Idempotent by Default** - Deduplication via `(tenant_id, type, idempotency_key)`
-- **Automatic Retries** - Exponential backoff (1s → 2s → 4s → ... → 3600s max)
-- **Dead Letter Queue** - Failed jobs move to `dead` status after max attempts
-- **Observable** - Structured logs, correlation IDs, heartbeat tracking
-- **Language-Agnostic** - TypeScript and Python workers + SDKs included
-- **Built-in Connectors** - HTTP requests, webhooks, reports, and more
+Running background jobs in multi-tenant SaaS apps often means introducing a second data store (Redis/Kafka) and re-implementing tenancy, retries, and idempotency in application code. JobForge keeps those guarantees in Postgres so:
+
+- Job state, retries, and idempotency are transactional and durable.
+- Row Level Security (RLS) protects tenant boundaries in the database.
+- Workers can remain stateless and simple.
+
+## What This Project Is
+
+JobForge is a **Postgres-native job queue** built for Supabase/Postgres deployments. It provides:
+
+- A database schema + RPC functions to enqueue, claim, heartbeat, complete, and reschedule jobs.
+- SDKs (TypeScript, Python) to enqueue and inspect jobs.
+- Worker services (TypeScript, Python) that poll and execute jobs with built-in handlers.
+- CLI utilities and smoke tests for operational checks.
+
+## What This Project Is NOT
+
+- Not a general-purpose workflow engine or orchestration platform.
+- Not a hosted service; you run the database and workers yourself.
+- Not a replacement for message brokers when you need cross-system streaming.
+
+## Where This Fits
+
+JobForge sits between your application and background execution:
+
+- **Inputs**: your app enqueues jobs via SDKs or RPC calls.
+- **Control plane**: Postgres + Supabase RPC functions enforce queue semantics.
+- **Execution**: workers poll and run job handlers.
+- **Outputs**: results and attempts are stored in Postgres for auditing.
+
+See [supabase/README.md](supabase/README.md) for the schema and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for system design.
+
+## Core Capabilities
+
+- Transactional enqueue/claim/complete via RPC functions and `FOR UPDATE SKIP LOCKED`.
+- RLS-based tenant isolation at the database layer.
+- Idempotency keys and retry/backoff semantics enforced in SQL.
+- TypeScript + Python SDKs and workers for job execution.
+- Operational tooling: doctor checks, impact map tooling, replay bundles, and smoke tests.
 
 ## Quick Start
 
-### 1. Apply Database Migrations
+### 1) Apply database migrations
 
 ```bash
-# Via Supabase CLI
+# Supabase CLI
 cd supabase
 supabase db push
 
-# OR via psql
+# OR standalone Postgres
 psql -U postgres -d your_database -f supabase/migrations/001_jobforge_core.sql
 ```
 
-See [Database Schema Docs](supabase/README.md) for details.
-
-### 2. Enqueue a Job (TypeScript)
-
-```typescript
-import { JobForgeClient } from '@jobforge/sdk-ts'
-
-const client = new JobForgeClient({
-  supabaseUrl: process.env.SUPABASE_URL!,
-  supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
-})
-
-// Enqueue HTTP request job
-const job = await client.enqueueJob({
-  tenant_id: 'your-tenant-uuid',
-  type: 'connector.http.request',
-  payload: {
-    url: 'https://api.example.com/webhook',
-    method: 'POST',
-    body: { message: 'Hello from JobForge!' },
-  },
-  idempotency_key: 'webhook-delivery-123',
-})
-
-console.log(`Job enqueued: ${job.id}`)
-```
-
-### 3. Run Worker
-
-**TypeScript Worker:**
+### 2) Install dependencies
 
 ```bash
-cd services/worker-ts
-cp .env.example .env
-# Edit .env with your Supabase credentials
-
 pnpm install
-pnpm run dev    # Development mode
-pnpm start      # Production mode
 ```
 
-**Python Worker:**
+### 3) Run the TypeScript worker
 
 ```bash
-cd services/worker-py
-cp .env.example .env
-# Edit .env with your Supabase credentials
-
-pip install -r requirements.txt
-python -m jobforge_worker.cli run    # Loop mode
-python -m jobforge_worker.cli once   # Run once
+SUPABASE_URL=your_supabase_url \
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key \
+pnpm run worker:ts:dev
 ```
 
-See [Workers Documentation](docs/workers.md) for details.
+**Success signal:** the worker starts polling and logs job execution/heartbeat activity to stdout.
 
-## CLI Reference (auto-generated)
+## Architecture Overview
 
-| Command | What it does | Inputs | Outputs | Common options |
-| --- | --- | --- | --- | --- |
-| `pnpm jobforge:doctor` | Run system health checks. | Env: `JOBFORGE_DOCTOR_ENABLED=1`. | Human/JSON report to stdout. | `--json`, `--apply`, `--yes` |
-| `pnpm jobforge:impact:show --run <id>` | Render an impact map tree (or JSON) for a run. | Impact graph file in `.jobforge/impact/` or `.jobforge/artifacts/`. | Tree or JSON to stdout. | `--run`, `--json`, `--tenant`, `--project` |
-| `pnpm jobforge:impact:export --run <id>` | Export an impact graph to JSON. | Impact graph file in `.jobforge/impact/` or `.jobforge/artifacts/`. | JSON file in output dir. | `--run`, `--output` |
-| `pnpm jobforge:impact:compare --run-a <id> --run-b <id>` | Compare two impact graphs. | Two impact graph files. | Comparison report to stdout. | `--run-a`, `--run-b` |
-| `pnpm jobforge:daily` | Run the daily operator loop and export reports. | Env: `JOBFORGE_DAILY_RUN_ENABLED=1`. | JSON + Markdown report in output dir. | `--dry`, `--tenant`, `--output` |
-| `tsx scripts/replay-cli.ts export <run-id>` | Export a replay bundle. | Env: `REPLAY_PACK_ENABLED=1`. | `replay-*.json` + `manifest-*.json`. | `--tenant`, `--job`, `--inputs`, `--output` |
-| `tsx scripts/replay-cli.ts dry-run <bundle>` | Dry-run a replay bundle. | Replay bundle JSON. | Summary + logs to stdout. | `--max-logs`, `--compare` |
-| `jobforge-worker` | Run the TypeScript worker. | Env: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`. | Worker logs. | `--once`, `--interval` |
-| `jobforge-console <command>` | Ops console for bundles, triggers, and replays. | Env: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`. | Tables/JSON to stdout; optional replay JSON file. | `--tenant`, `--project`, `--json` |
-| `python -m jobforge_worker.cli` | Run the Python worker. | Env: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`. | Worker logs. | `--once`, `--interval` |
-| `node scripts/smoke-test-final.ts` | End-to-end runnerless smoke test. | Optional flags + Supabase env. | Human report to stdout. | `--with-flags` |
-| `node scripts/smoke-test-verify-pack.ts` | Verify-pack handler smoke test. | Local repo tooling. | Reports + artifacts in `.jobforge/artifacts`. | (none) |
+- **supabase/**: database schema, RPCs, RLS policies, and isolation tests.
+- **packages/shared/**: shared types, schemas, feature flags, and execution-plane contracts.
+- **packages/sdk-ts/** + **packages/sdk-py/**: client libraries.
+- **services/worker-ts/** + **services/worker-py/**: worker implementations and job handlers.
+- **scripts/**: CLI utilities (doctor, impact, replay, smoke tests).
 
-For the full CLI catalog, including smoke tests and contract runners, see [docs/cli.md](docs/cli.md).
+## Extending the Project
 
-## Reproducible CLI Examples
+- **Add a job type**: create a new handler in `services/worker-ts/src/handlers` (or the Python worker), then register it in the worker registry.
+- **Extend schemas**: update types and validation in `packages/shared/src` to keep SDKs and workers consistent.
+- **Add tooling**: add scripts under `scripts/` and wire them into `pnpm run docs:verify` if they are referenced in docs.
 
-### Impact map: show
+Common mistakes to avoid:
 
-```bash
-cd examples/fixtures/impact
-../../packages/shared/node_modules/.bin/tsx ../../scripts/jobforge-impact.ts show --run demo-run-001
-```
+- Bypassing RPC functions (mutations must go through RPC to keep RLS and state transitions correct).
+- Using the Supabase service role key in a client/browser context.
 
-```text
-Loading impact map for run demo-run-001...
+## Failure & Degradation Model
 
-Impact Map: demo-run-001
-Tenant: tenant-demo / Project: project-demo
-Generated: 2024-01-01T00:00:00.000Z
+- Jobs are retried with exponential backoff until max attempts, then marked `dead`.
+- Idempotent enqueues return the original job for the same `(tenant_id, type, idempotency_key)`.
+- Worker crashes do not lose jobs; unacknowledged jobs return to the queue.
 
-Dependency Tree:
+See [supabase/README.md](supabase/README.md) for status transitions and retry semantics.
 
-▶ demo-run-001 [aaaaaaaa...]
-```
+## Security & Safety Considerations
 
-### Impact map: export
+- Tenant isolation is enforced with RLS policies at the database layer.
+- RPC functions are the only supported mutation path.
+- HTTP connector handlers include SSRF protection and allowlist support.
 
-```bash
-cd examples/fixtures/impact
-../../packages/shared/node_modules/.bin/tsx ../../scripts/jobforge-impact.ts export --run demo-run-001 --output ../../output
-```
-
-```text
-Exporting impact map for run demo-run-001...
-
-✓ Exported to ../../output/impact-demo-run-001-2024-01-01T00-00-00-000Z.json
-
-Graph summary:
-  Nodes: 1
-  Edges: 0
-  Tenant: tenant-demo
-  Created: 2024-01-01T00:00:00.000Z
-```
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      PostgreSQL/Supabase                     │
-│  ┌────────────────┐  ┌──────────────┐  ┌─────────────────┐ │
-│  │ jobforge_jobs  │  │ RPC Functions│  │  RLS Policies   │ │
-│  │ (job queue)    │  │ - enqueue    │  │ (tenant guard)  │ │
-│  │                │  │ - claim      │  │                 │ │
-│  │ + results      │  │ - complete   │  │                 │ │
-│  │ + attempts     │  │ - heartbeat  │  │                 │ │
-│  └────────────────┘  └──────────────┘  └─────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-                              ▲
-                              │ RPC calls
-         ┌────────────────────┼────────────────────┐
-         │                    │                    │
-    ┌────▼─────┐         ┌────▼─────┐       ┌─────▼────┐
-    │ TS SDK   │         │ Py SDK   │       │ Next.js  │
-    │ (client) │         │ (client) │       │ (enqueue)│
-    └──────────┘         └──────────┘       └──────────┘
-         │                    │
-    ┌────▼─────┐         ┌────▼─────┐
-    │ TS Worker│         │ Py Worker│
-    │ (process)│         │ (process)│
-    └──────────┘         └──────────┘
-```
-
-- **Database Layer**: Postgres tables + RPC functions + RLS policies
-- **SDK Layer**: Server-only clients for enqueuing and querying jobs
-- **Worker Layer**: Poll and process jobs with registered handlers
-- **Connector Layer**: Built-in handlers (HTTP, webhook, report, etc.)
-
-See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for in-depth design.
-
-## Monorepo Structure
-
-```
-jobforge/
-├── supabase/
-│   ├── migrations/          # SQL migrations
-│   ├── sql/                 # Helper scripts
-│   ├── tests/               # RLS isolation tests
-│   └── README.md
-├── packages/
-│   ├── sdk-ts/              # TypeScript SDK
-│   ├── sdk-py/              # Python SDK
-│   ├── shared/              # Shared types & constants
-│   └── adapters/            # Integration adapters
-│       ├── settler/         # Contract management
-│       ├── readylayer/      # CDN/asset delivery
-│       ├── aias/            # AI agent system
-│       └── keys/            # API key management
-├── services/
-│   ├── worker-ts/           # TypeScript worker
-│   └── worker-py/           # Python worker
-├── docs/
-│   ├── ARCHITECTURE.md      # System design
-│   ├── RUNBOOK.md           # Operations guide
-│   ├── SECURITY.md          # Security model
-│   └── integrations/        # Product-specific guides
-└── apps/
-    └── demo-next/           # Demo Next.js app
-```
-
-## Built-in Connectors
-
-JobForge includes production-ready connectors:
-
-- **connector.http.request** - HTTP requests with SSRF protection
-- **connector.webhook.deliver** - Webhook delivery with HMAC signing
-- **connector.report.generate** - Report generation (JSON/HTML/CSV)
-
-See [Connectors Documentation](docs/connectors.md) for usage.
-
-## Autopilot Job Templates (Beta)
-
-JobForge includes runnerless autopilot job templates for common operations:
-
-**Ops Jobs:**
-
-- `autopilot.ops.scan` - Infrastructure health/security/cost scanning
-- `autopilot.ops.diagnose` - Root cause analysis
-- `autopilot.ops.recommend` - Generate optimization recommendations
-- `autopilot.ops.apply` - Apply recommendations (action job - requires policy token)
-
-**Support Jobs:**
-
-- `autopilot.support.triage` - Ticket classification and routing
-- `autopilot.support.draft_reply` - Draft support responses
-- `autopilot.support.propose_kb_patch` - Draft KB article updates
-
-**Growth Jobs:**
-
-- `autopilot.growth.seo_scan` - SEO analysis and recommendations
-- `autopilot.growth.experiment_propose` - A/B test recommendations
-- `autopilot.growth.content_draft` - Marketing content generation
-
-**FinOps Jobs:**
-
-- `autopilot.finops.reconcile` - Billing reconciliation
-- `autopilot.finops.anomaly_scan` - Cost anomaly detection
-- `autopilot.finops.churn_risk_report` - Customer churn risk analysis
-
-**Bundle Executor:**
-
-- `jobforge.autopilot.execute_request_bundle` - Execute multiple jobs atomically
-
-### Enabling Autopilot Jobs
-
-```bash
-# Enable autopilot jobs (required for all autopilot job types)
-JOBFORGE_AUTOPILOT_JOBS_ENABLED=1
-
-# Enable action jobs (required for autopilot.ops.apply)
-JOBFORGE_ACTION_JOBS_ENABLED=1
-JOBFORGE_POLICY_TOKEN_SECRET=your-secret-here
-```
-
-See [AUTOPILOT_IMPLEMENTATION.md](AUTOPILOT_IMPLEMENTATION.md) for implementation details.
-
-## Integration Adapters
-
-Drop-in modules for common SaaS products:
-
-- **@jobforge/adapter-settler** - Contract processing, notifications
-- **@jobforge/adapter-readylayer** - Asset optimization, CDN purge
-- **@jobforge/adapter-aias** - AI agent execution, knowledge indexing
-- **@jobforge/adapter-keys** - API key usage aggregation, rotation
-
-See [Integration Guides](docs/integrations/) for copy-paste examples.
-
-## Development
-
-```bash
-# Install dependencies
-pnpm install
-
-# Run fast verification (lint + typecheck + build)
-pnpm run verify:fast
-
-# Run full verification (includes tests)
-pnpm run verify:full
-
-# Format code
-pnpm run format
-
-# Run specific checks
-pnpm run lint
-pnpm run typecheck
-pnpm run test
-pnpm run build
-```
-
-## Documentation
-
-- [Database Schema](supabase/README.md) - Tables, RPC functions, RLS policies
-- [Architecture](docs/ARCHITECTURE.md) - Concurrency model, idempotency, retries
-- [Runbook](docs/RUNBOOK.md) - Operations, monitoring, troubleshooting
-- [Security](docs/SECURITY.md) - SSRF protection, webhook signing, RLS
-- [Integration Guides](docs/integrations/) - Product-specific examples
-
-## License
-
-MIT - See [LICENSE](LICENSE) for details.
+See [docs/SECURITY.md](docs/SECURITY.md) for the full model.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+We welcome:
 
----
+- Docs improvements and examples
+- New job handlers or worker improvements
+- SDK enhancements and bug fixes
 
-**JobForge** - Boring, correct, Postgres-native job processing.
+Start with [CONTRIBUTING.md](CONTRIBUTING.md) for setup, quality gates, and first-time contributor guidance.
+
+## License & Governance
+
+- **License**: MIT (see [LICENSE](LICENSE)).
+- **Governance**: See [GOVERNANCE.md](GOVERNANCE.md) for decision-making and maintainer roles.
