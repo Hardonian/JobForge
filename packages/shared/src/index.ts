@@ -21,6 +21,39 @@ export * from './registry-handshake.js'
 // Runner & Connector Contract Enforcement (Release Hardening)
 export * from './runner-contract-enforcement.js'
 export * from './connector-registry.js'
+// Invocation determinism exports are namespaced to avoid conflicts with replay.js
+export {
+  // Types
+  type InvocationContext,
+  type DecisionStep,
+  type DecisionTrace,
+  type OutputArtifact,
+  type InvocationRecord,
+  type DeterminismValidation,
+  type DeterminismReport,
+  type InvocationRecordManager,
+  type ReplayResult,
+  // Classes
+  DecisionTraceBuilder,
+  InMemoryInvocationManager,
+  // Functions
+  canonicalizeJson,
+  hashCanonicalJson,
+  createInputSnapshot as createInvocationInputSnapshot,
+  verifyInputHash as verifyInvocationInputHash,
+  createOutputArtifact,
+  verifyOutputHash,
+  validateInvocationRecord,
+  generateDeterminismReport,
+  formatDeterminismReport,
+  // Schemas
+  DecisionStepSchema,
+  DecisionTraceSchema,
+  InputSnapshotSchema,
+  OutputArtifactSchema,
+  InvocationContextSchema,
+  InvocationRecordSchema,
+} from './invocation-determinism.js'
 
 // Solo-Founder Accelerator Layer
 export * from './doctor.js'
