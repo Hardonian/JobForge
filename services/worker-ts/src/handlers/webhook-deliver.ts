@@ -6,6 +6,7 @@
 import type { JobContext } from '@jobforge/shared'
 import { z } from 'zod'
 import { createHmac } from 'crypto'
+import { readBodyPreview } from './response-preview'
 
 const WebhookDeliverPayloadSchema = z.object({
   target_url: z.string().url(),
@@ -93,15 +94,13 @@ export async function webhookDeliverHandler(
 
     const duration_ms = Date.now() - startTime
 
-    const responseText = await response.text()
-    const response_preview =
-      responseText.length > 500 ? responseText.substring(0, 500) + '... (truncated)' : responseText
+    const responsePreview = await readBodyPreview(response, 500)
 
     return {
       delivered: response.ok,
       status: response.status,
       duration_ms,
-      response_preview,
+      response_preview: responsePreview.bodyPreview,
       signature,
       timestamp,
     }

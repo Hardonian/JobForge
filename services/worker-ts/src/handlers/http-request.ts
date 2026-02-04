@@ -5,6 +5,9 @@
 
 import type { JobContext } from '@jobforge/shared'
 import { z } from 'zod'
+import { getAllowlistMatcher } from './allowlist-matcher'
+import { collectResponseHeaders } from './response-headers'
+import { readBodyPreview } from './response-preview'
 
 const HttpRequestPayloadSchema = z.object({
   url: z.string().url(),
@@ -14,6 +17,7 @@ const HttpRequestPayloadSchema = z.object({
   timeout_ms: z.number().int().positive().max(300_000).default(30_000),
   allowlist: z.array(z.string()).optional(),
   redact_headers: z.array(z.string()).default(['authorization', 'cookie', 'set-cookie']),
+  response_headers_allowlist: z.array(z.string()).optional(),
 })
 
 export type HttpRequestPayload = z.infer<typeof HttpRequestPayloadSchema>
@@ -61,18 +65,9 @@ function validateUrl(url: string, allowlist?: string[]): void {
   }
 
   // Check allowlist if provided
-  if (allowlist && allowlist.length > 0) {
-    const allowed = allowlist.some((pattern) => {
-      if (pattern.includes('*')) {
-        const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$')
-        return regex.test(parsed.hostname)
-      }
-      return parsed.hostname === pattern || parsed.hostname.endsWith(`.${pattern}`)
-    })
-
-    if (!allowed) {
-      throw new Error(`Host not in allowlist: ${parsed.hostname}`)
-    }
+  const matcher = getAllowlistMatcher(allowlist)
+  if (matcher && !matcher(parsed.hostname.toLowerCase())) {
+    throw new Error(`Host not in allowlist: ${parsed.hostname}`)
   }
 }
 
@@ -106,26 +101,20 @@ export async function httpRequestHandler(
     const _duration_ms = Date.now() - startTime
 
     // Redact sensitive headers
-    const response_headers: Record<string, string> = {}
-    response.headers.forEach((value, key) => {
-      if (!validated.redact_headers.includes(key.toLowerCase())) {
-        response_headers[key] = value
-      }
+    const response_headers = collectResponseHeaders(response, {
+      redactHeaders: validated.redact_headers,
+      allowlist: validated.response_headers_allowlist,
     })
 
     // Read response body with size limit
     const MAX_BODY_SIZE = 1_000_000 // 1MB
-    const bodyText = await response.text()
-    const response_body_preview =
-      bodyText.length > MAX_BODY_SIZE
-        ? bodyText.substring(0, MAX_BODY_SIZE) + '... (truncated)'
-        : bodyText
+    const bodyPreview = await readBodyPreview(response, MAX_BODY_SIZE)
 
     return {
       status: response.status,
       duration_ms: _duration_ms,
       response_headers,
-      response_body_preview,
+      response_body_preview: bodyPreview.bodyPreview,
       success: response.ok,
     }
   } catch (error) {
