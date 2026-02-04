@@ -23,7 +23,7 @@ Options:
   process.exit(EXIT_CODES.success)
 }
 
-const fixturesArgIndex = process.argv.findIndex((arg) => arg === '--fixtures')
+const fixturesArgIndex = process.argv.findIndex((arg: string) => arg === '--fixtures')
 const fixturesValue =
   fixturesArgIndex >= 0 ? process.argv[fixturesArgIndex + 1] : undefined
 

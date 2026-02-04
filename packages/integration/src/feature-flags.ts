@@ -8,7 +8,7 @@
 /**
  * Get environment variable with default value
  */
-function getEnvVar(name: string, defaultValue: string): string {
+function getEnvVar(name: string, defaultValue?: string): string | undefined {
   if (typeof process !== 'undefined' && process.env) {
     return process.env[name] ?? defaultValue
   }
@@ -18,7 +18,8 @@ function getEnvVar(name: string, defaultValue: string): string {
 /**
  * Parse boolean from environment variable
  */
-function parseBool(value: string): boolean {
+function parseBool(value?: string): boolean {
+  if (!value) return false
   return value === '1' || value.toLowerCase() === 'true'
 }
 

@@ -4,18 +4,18 @@
   "private": true,
   "description": "TypeScript client for JobForge runnerless execution plane",
   "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "types": "./src/index.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./src/index.ts",
       "default": "./dist/index.js"
     },
     "./transports/direct": {
-      "types": "./dist/transports/direct.d.ts",
+      "types": "./src/transports/direct.ts",
       "default": "./dist/transports/direct.js"
     },
     "./transports/http": {
-      "types": "./dist/transports/http.d.ts",
+      "types": "./src/transports/http.ts",
       "default": "./dist/transports/http.js"
     }
   },

@@ -21,8 +21,19 @@ export * from './policy-tokens.js'
 export * from './doctor.js'
 export * from './policy-guard.js'
 export * from './impact-map.js'
-export * from './impact-export.js'
 export * from './upgrade-lane.js'
 
 // Explicit re-exports to resolve ambiguities
 export type { TriggerType } from './execution-plane/triggers.js'
+export {
+  buildImpactGraphFromBundleRun,
+  buildImpactExportTree,
+  formatImpactExportTree,
+  type ImpactBundleRunSnapshot,
+  type ImpactExportEdge,
+  type ImpactExportGraph,
+  type ImpactExportNode,
+  type ImpactExportTreeNode,
+  type ImpactEdgeType,
+  type ImpactNodeType,
+} from './impact-export.js'

@@ -1,6 +1,14 @@
 {
   "extends": "@jobforge/typescript-config/base.json",
   "compilerOptions": {
+    "baseUrl": ".",
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
+    "typeRoots": ["../shared/node_modules/@types", "./node_modules/@types"],
+    "paths": {
+      "@jobforge/shared": ["../shared/src/index.ts"],
+      "@jobforge/autopilot-fixtures": ["../autopilot-fixtures/src/index.ts"]
+    },
     "outDir": "./dist",
     "rootDir": "./src",
     "declaration": true,

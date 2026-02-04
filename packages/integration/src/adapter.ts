@@ -17,7 +17,6 @@ import type {
   EventRow,
 } from '@jobforge/sdk-ts'
 import {
-  JOBFORGE_INTEGRATION_ENABLED,
   JOBFORGE_INTEGRATION_DRY_RUN,
   isIntegrationEnabled,
   getTenantMapping,

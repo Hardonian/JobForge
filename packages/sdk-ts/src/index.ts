@@ -28,6 +28,8 @@ export type {
   EventRow,
   SubmitEventParams,
   ListEventsParams,
+  SourceApp,
+  SourceModule,
   ArtifactManifest,
   ManifestRow,
   CreateManifestParams,

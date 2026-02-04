@@ -5,10 +5,10 @@
   "description": "Canonical contract schemas for Autopilot and JobForge",
   "type": "module",
   "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "types": "./src/index.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./src/index.ts",
       "default": "./dist/index.js"
     }
   },
@@ -22,6 +22,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@jobforge/typescript-config": "workspace:*"
+    "@jobforge/typescript-config": "workspace:*",
+    "@types/node": "^20.11.0"
   }
 }

@@ -25,7 +25,6 @@ import {
   JobRequestBundleSchema,
   JobRequestSchema,
   SCHEMA_VERSION,
-  type JobRequest,
   type JobRequestBundle,
 } from '@autopilot/contracts'
 

@@ -5,8 +5,7 @@
  */
 
 import * as fs from 'fs'
-import * as path from 'path'
-import type { BundleTriggerRule, EventEnvelope } from '@jobforge/shared'
+import type { EventEnvelope } from '@jobforge/shared'
 
 // ============================================================================
 // Types
@@ -90,11 +89,6 @@ function formatDate(isoString: string | null): string {
   return date.toLocaleString()
 }
 
-function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms}ms`
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`
-  return `${(ms / 60000).toFixed(1)}m`
-}
 
 function printHeader(title: string): void {
   console.log(`
@@ -118,9 +112,6 @@ function printSuccess(message: string): void {
   console.log(`\n✅ ${message}`)
 }
 
-function printWarning(message: string): void {
-  console.log(`\n⚠️  ${message}`)
-}
 
 function printInfo(message: string): void {
   console.log(`ℹ️  ${message}`)
@@ -576,7 +567,7 @@ async function showImpact(config: ConsoleConfig, args: string[]): Promise<void> 
 
   try {
     const { JobForgeClient } = await loadSdkModule()
-    const { buildImpactGraphFromBundleRun, formatImpactTree } = await loadSharedModule()
+    const { buildImpactGraphFromBundleRun, formatImpactExportTree } = await loadSharedModule()
 
     const client = new JobForgeClient({
       supabaseUrl: config.supabaseUrl,
@@ -647,7 +638,7 @@ async function showImpact(config: ConsoleConfig, args: string[]): Promise<void> 
     if (jsonOutput) {
       console.log(JSON.stringify(graph, null, 2))
     } else {
-      console.log(formatImpactTree(graph))
+      console.log(formatImpactExportTree(graph))
     }
 
     printFooter()

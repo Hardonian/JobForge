@@ -352,8 +352,9 @@ export function verifyLegacyPolicyToken(
   secret: string
 ): PolicyTokenVerificationResult {
   try {
-    // Legacy format: simple HMAC of token data
-    const signature = createHmac('sha256', secret).update(token).digest('hex')
+    if (!secret) {
+      return { valid: false, error: 'Legacy token secret missing' }
+    }
 
     // Legacy tokens don't have structure - just check length
     if (token.length < 32) {

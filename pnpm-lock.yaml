@@ -82,8 +82,44 @@ importers:
         specifier: ^4.10.1
         version: 4.10.2
 
+  packages/autopilot-compat:
+    dependencies:
+      '@jobforge/autopilot-fixtures':
+        specifier: workspace:*
+        version: link:../autopilot-fixtures
+      '@jobforge/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      '@jobforge/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+
+  packages/autopilot-contracts:
+    dependencies:
+      '@autopilot/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+    devDependencies:
+      '@jobforge/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+
+  packages/autopilot-fixtures:
+    dependencies:
+      '@autopilot/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+    devDependencies:
+      '@jobforge/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+
   packages/client:
     dependencies:
+      '@autopilot/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@jobforge/sdk-ts':
         specifier: workspace:*
         version: link:../sdk-ts
@@ -114,6 +150,16 @@ importers:
         version: 1.6.1(@types/node@20.19.30)
 
   packages/config: {}
+
+  packages/contracts:
+    dependencies:
+      zod:
+        specifier: ^3.22.4
+        version: 3.25.76
+    devDependencies:
+      '@jobforge/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
 
   packages/database:
     dependencies:
@@ -331,6 +377,9 @@ importers:
 
   packages/shared:
     dependencies:
+      '@autopilot/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       zod:
         specifier: ^3.22.4
         version: 3.25.76
@@ -391,6 +440,9 @@ importers:
 
   services/worker-ts:
     dependencies:
+      '@autopilot/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@jobforge/sdk-ts':
         specifier: workspace:*
         version: link:../../packages/sdk-ts

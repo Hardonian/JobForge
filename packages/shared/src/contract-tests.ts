@@ -204,9 +204,6 @@ export function checkDeterministicHashing(bundle: JobRequestBundle): {
 } {
   const issues: string[] = []
 
-  // Sort keys for canonical form
-  const canonical = canonicalizeJson(bundle)
-
   // Check for common non-deterministic patterns
   const jsonStr = canonicalizeJson(bundle)
 

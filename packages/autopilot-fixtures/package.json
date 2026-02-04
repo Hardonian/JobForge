@@ -22,6 +22,7 @@
     "@autopilot/contracts": "workspace:*"
   },
   "devDependencies": {
-    "@jobforge/typescript-config": "workspace:*"
+    "@jobforge/typescript-config": "workspace:*",
+    "@types/node": "^20.11.0"
   }
 }

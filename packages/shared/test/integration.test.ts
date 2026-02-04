@@ -2,7 +2,7 @@
  * Integration Tests for JobForge Bundle Triggers, Policy Tokens, and Replay System
  */
 
-import { describe, it, expect, beforeEach, beforeAll } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import {
   // Policy tokens
   generatePolicyToken,
@@ -664,7 +664,7 @@ describe('Replay Bundle System', () => {
         result: { status: 'succeeded' },
       }
 
-      const { bundle, warnings } = convertReplayToBundle(replay)
+      const { bundle } = convertReplayToBundle(replay)
 
       expect(bundle.schema_version).toBe('1.0.0')
       expect(bundle.tenant_id).toBe(TEST_TENANT_ID)

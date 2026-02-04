@@ -82,16 +82,16 @@ export interface ImpactBundleRunSnapshot {
   artifacts?: Array<ArtifactOutput & { run_id?: string }>
 }
 
-export interface ImpactTreeNode {
+export interface ImpactExportTreeNode {
   node: ImpactExportNode
-  children: ImpactTreeNode[]
+  children: ImpactExportTreeNode[]
 }
 
 const SECRET_KEYS = ['token', 'password', 'secret', 'key', 'credential', 'auth']
 
-export function redactSecrets(value: unknown): unknown {
+function redactImpactSecrets(value: unknown): unknown {
   if (Array.isArray(value)) {
-    return value.map((item) => redactSecrets(item))
+    return value.map((item) => redactImpactSecrets(item))
   }
 
   if (value && typeof value === 'object') {
@@ -102,7 +102,7 @@ export function redactSecrets(value: unknown): unknown {
       if (isSecret && typeof entry === 'string') {
         redacted[key] = entry.length > 8 ? `${entry.slice(0, 4)}****${entry.slice(-4)}` : '****'
       } else {
-        redacted[key] = redactSecrets(entry)
+        redacted[key] = redactImpactSecrets(entry)
       }
     }
     return redacted
@@ -112,7 +112,7 @@ export function redactSecrets(value: unknown): unknown {
 }
 
 function normalizeMetadata(metadata: Record<string, unknown>): Record<string, unknown> {
-  return redactSecrets(metadata) as Record<string, unknown>
+  return redactImpactSecrets(metadata) as Record<string, unknown>
 }
 
 function createBundleRequestHash(
@@ -123,7 +123,7 @@ function createBundleRequestHash(
     ...bundle,
     requests: [...bundle.requests].sort((a, b) => a.id.localeCompare(b.id)),
   }
-  return createStableHash(redactSecrets(normalized))
+  return createStableHash(redactImpactSecrets(normalized))
 }
 
 function createNodeHash(node: Omit<ImpactExportNode, 'hash'>): string {
@@ -222,7 +222,7 @@ export function buildImpactGraphFromBundleRun(snapshot: ImpactBundleRunSnapshot)
           source_app: snapshot.event?.source_app,
           actor_id: snapshot.event?.actor_id,
           payload_hash: snapshot.event?.payload
-            ? createStableHash(redactSecrets(snapshot.event.payload))
+            ? createStableHash(redactImpactSecrets(snapshot.event.payload))
             : undefined,
         },
       })
@@ -279,7 +279,9 @@ export function buildImpactGraphFromBundleRun(snapshot: ImpactBundleRunSnapshot)
         idempotency_key: request.idempotency_key,
         required_scopes: request.required_scopes,
         is_action_job: request.is_action_job,
-        payload_hash: request.payload ? createStableHash(redactSecrets(request.payload)) : undefined,
+        payload_hash: request.payload
+          ? createStableHash(redactImpactSecrets(request.payload))
+          : undefined,
       },
     })
     addNode(moduleNode)
@@ -363,7 +365,7 @@ export function buildImpactGraphFromBundleRun(snapshot: ImpactBundleRunSnapshot)
   }
 }
 
-export function buildImpactTree(graph: ImpactExportGraph): ImpactTreeNode {
+export function buildImpactExportTree(graph: ImpactExportGraph): ImpactExportTreeNode {
   const nodeMap = new Map(graph.nodes.map((node) => [node.id, node]))
   const childrenMap = new Map<string, string[]>()
 
@@ -391,7 +393,7 @@ export function buildImpactTree(graph: ImpactExportGraph): ImpactTreeNode {
     throw new Error('Impact graph root node not found')
   }
 
-  const buildNodeTree = (nodeId: string, visited: Set<string>): ImpactTreeNode => {
+  const buildNodeTree = (nodeId: string, visited: Set<string>): ImpactExportTreeNode => {
     const node = nodeMap.get(nodeId)
     if (!node) {
       throw new Error(`Missing node ${nodeId}`)
@@ -422,8 +424,8 @@ export function buildImpactTree(graph: ImpactExportGraph): ImpactTreeNode {
   return buildNodeTree(root.id, new Set())
 }
 
-export function formatImpactTree(graph: ImpactExportGraph): string {
-  const tree = buildImpactTree(graph)
+export function formatImpactExportTree(graph: ImpactExportGraph): string {
+  const tree = buildImpactExportTree(graph)
   const lines: string[] = []
 
   lines.push(`Impact Graph: ${graph.run_id}`)
@@ -435,7 +437,7 @@ export function formatImpactTree(graph: ImpactExportGraph): string {
   lines.push('Tree:')
   lines.push('')
 
-  const formatNode = (node: ImpactTreeNode, prefix: string): void => {
+  const formatNode = (node: ImpactExportTreeNode, prefix: string): void => {
     const label = `${getNodeIcon(node.node.type)} ${node.node.type} ${node.node.id}`
     lines.push(`${prefix}${label}`)
     const nextPrefix = `${prefix}  `

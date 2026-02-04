@@ -117,7 +117,7 @@ export class ObservabilitySpan {
   /**
    * Execute a function within this span
    */
-  async execute<T>(fn: (span: ObservabilitySpan) => Promise<T>, errorMessage?: string): Promise<T> {
+  async execute<T>(fn: (span: ObservabilitySpan) => Promise<T>): Promise<T> {
     try {
       const result = await fn(this)
       this.end('ok')

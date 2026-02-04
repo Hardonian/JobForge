@@ -4,19 +4,19 @@ install:
 	pip install -e ".[dev]"
 
 lint:
-	ruff check src/ tests/
+	@if [ -d tests ]; then ruff check src/ tests/; else ruff check src/; fi
 
 typecheck:
 	mypy src/
 
 format:
-	ruff format src/ tests/
+	@if [ -d tests ]; then ruff format src/ tests/; else ruff format src/; fi
 
 format-check:
-	ruff format --check src/ tests/
+	@if [ -d tests ]; then ruff format --check src/ tests/; else ruff format --check src/; fi
 
 test:
-	pytest tests/ -v
+	@if [ -d tests ]; then pytest tests/ -v; else pytest -v; fi
 
 clean:
 	rm -rf build/ dist/ *.egg-info __pycache__ .pytest_cache .mypy_cache .ruff_cache

@@ -10,7 +10,7 @@
  */
 
 import { execSync } from 'child_process'
-import { existsSync, readFileSync, statSync } from 'fs'
+import { existsSync, readFileSync, readdirSync, statSync } from 'fs'
 import { createHash } from 'crypto'
 import { resolve, isAbsolute } from 'path'
 import { z } from 'zod'
@@ -18,7 +18,6 @@ import type { JobContext } from './types.js'
 import type {
   ArtifactManifest,
   ArtifactOutput,
-  RunMetrics,
   EnvFingerprint,
   ToolVersions,
 } from './execution-plane/manifests.js'
@@ -263,7 +262,7 @@ function getDirectoryStats(dirPath: string): { count: number; size: number } {
   let size = 0
 
   try {
-    const entries = require('fs').readdirSync(dirPath, { withFileTypes: true, recursive: true })
+    const entries = readdirSync(dirPath, { withFileTypes: true, recursive: true })
     for (const entry of entries) {
       if (entry.isFile()) {
         count++
@@ -367,6 +366,7 @@ export async function verifyPackHandler(
         generated_at: new Date().toISOString(),
       },
       manifest: {
+        schema_version: SCHEMA_VERSION,
         manifest_version: '1.0',
         run_id: context.job_id,
         tenant_id: context.tenant_id,

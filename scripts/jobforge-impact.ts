@@ -20,7 +20,7 @@ import { mkdir, readFile, access, writeFile } from 'fs/promises'
 import { join } from 'path'
 import {
   buildImpactGraphFromBundleRun,
-  formatImpactTree,
+  formatImpactExportTree,
   type ImpactBundleRunSnapshot,
   type ImpactExportGraph,
 } from '../packages/shared/src/impact-export.js'
@@ -166,7 +166,7 @@ async function showCommand(options: ShowOptions): Promise<void> {
   if (options.json) {
     console.log(JSON.stringify(graph, null, 2))
   } else {
-    console.log(formatImpactTree(graph))
+    console.log(formatImpactExportTree(graph))
   }
 }
 
