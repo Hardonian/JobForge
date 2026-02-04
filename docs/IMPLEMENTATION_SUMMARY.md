@@ -235,7 +235,7 @@ All should show `false` or `0`.
 
 ---
 
-## 7. EXPLICIT TODOs (Non-Blocking)
+## 7. Future Work (Non-Blocking)
 
 ### High Priority (Post-MVP)
 

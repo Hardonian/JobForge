@@ -13,7 +13,7 @@ We take security seriously. If you discover a security vulnerability within JobF
 ### How to Report
 
 1. **Do NOT** open a public GitHub issue
-2. Email security concerns to: [TBD - Add security contact]
+2. Open a private GitHub Security Advisory for this repository
 3. Include:
    - Description of the vulnerability
    - Steps to reproduce

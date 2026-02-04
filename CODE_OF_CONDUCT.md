@@ -59,8 +59,10 @@ representative at an online or offline event.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the community leaders responsible for enforcement at
-[TBD - Add contact email].
+reported to the community leaders responsible for enforcement by opening a
+GitHub Discussion (preferred) or GitHub Issue and tagging the maintainers.
+For sensitive reports, open a private GitHub Security Advisory and note that
+it is a Code of Conduct report so maintainers can respond privately.
 
 All complaints will be reviewed and investigated promptly and fairly.
 
