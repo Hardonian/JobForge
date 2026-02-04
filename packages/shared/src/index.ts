@@ -18,6 +18,10 @@ export * from './replay-bundles.js'
 export * from './policy-tokens.js'
 export * from './registry-handshake.js'
 
+// Runner & Connector Contract Enforcement (Release Hardening)
+export * from './runner-contract-enforcement.js'
+export * from './connector-registry.js'
+
 // Solo-Founder Accelerator Layer
 export * from './doctor.js'
 export * from './policy-guard.js'

@@ -515,7 +515,7 @@ Valid: ${result.connectors.length}
 Invalid: ${result.invalid_entries.length}
 Warnings: ${result.warnings.length}
 
-${result.valid ? '✓ All connectors valid' : `✗ ${result.errors.length} error(s) found`}
+${result.success ? '✓ All connectors valid' : `✗ ${result.errors.length} error(s) found`}
 ${result.warnings.length > 0 ? `⚠ ${result.warnings.length} warning(s)` : ''}
 `.trim()
 
