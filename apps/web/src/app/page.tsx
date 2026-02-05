@@ -4,7 +4,8 @@ export default function Home(): React.JSX.Element {
       <div className="max-w-2xl text-center">
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">JobForge</h1>
         <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
-          Professional job application tracking and management platform
+          Agent router for multi-tenant SaaS. Routes workloads through PostgreSQL with SQL, RPC, and
+          deterministic execution.
         </p>
       </div>
     </main>

@@ -15,7 +15,8 @@ export const metadata: Metadata = {
     default: 'JobForge',
     template: '%s | JobForge',
   },
-  description: 'Professional job application tracking and management platform',
+  description:
+    'Agent router for multi-tenant SaaS. Routes workloads through PostgreSQL with deterministic execution and tenant isolation.',
   viewport: {
     width: 'device-width',
     initialScale: 1,

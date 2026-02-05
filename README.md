@@ -2,7 +2,7 @@
 
 **Agent Router for Multi-Tenant SaaS**
 
-JobForge routes autonomous agent workloads through Postgres. No Redis, no Kafka, no message bus—just SQL, RPC, and determinism.
+JobForge routes autonomous agent workloads through PostgreSQL. No Redis, no Kafka, no message bus—just SQL, RPC, and determinism.
 
 Built for engineers who want agents that actually complete work, not just start it.
 
@@ -339,4 +339,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ---
 
-**JobForge** - Route agent work through Postgres. No surprises, no lost jobs.
+**JobForge** - Route agent work through PostgreSQL. Idempotent execution with tenant isolation.
