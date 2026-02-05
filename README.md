@@ -4,7 +4,7 @@
 
 JobForge routes autonomous agent workloads through PostgreSQL. No Redis, no Kafka, no message bus—just SQL, RPC, and determinism.
 
-Built for engineers who want agents that actually complete work, not just start it.
+Built for engineers who need agents that complete work with observability and guarantees.
 
 ## What It Does
 
