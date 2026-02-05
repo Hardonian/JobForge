@@ -53,7 +53,11 @@ Environment:
   SUPABASE_SERVICE_ROLE_KEY    Supabase service role key (required)
   WORKER_ID                    Worker ID (default: worker-<timestamp>)
   POLL_INTERVAL_MS             Poll interval in ms (default: 2000)
+  MAX_POLL_INTERVAL_MS         Max poll interval in ms when idle (default: POLL_INTERVAL_MS)
+  IDLE_BACKOFF_MULTIPLIER      Multiplier for idle backoff (default: 2)
   HEARTBEAT_INTERVAL_MS        Heartbeat interval in ms (default: 30000)
+  HEARTBEAT_MAX_INTERVAL_MS    Max heartbeat interval in ms (default: 2x HEARTBEAT_INTERVAL_MS)
+  HEARTBEAT_BACKOFF_MULTIPLIER Multiplier for heartbeat backoff (default: 2)
   CLAIM_LIMIT                  Max jobs claimed per poll (default: 10)
 
 Examples:
@@ -85,7 +89,19 @@ async function main(): Promise<void> {
     supabaseUrl: process.env.SUPABASE_URL || '',
     supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
     pollIntervalMs: parseInt(process.env.POLL_INTERVAL_MS || '2000', 10),
+    maxPollIntervalMs: process.env.MAX_POLL_INTERVAL_MS
+      ? parseInt(process.env.MAX_POLL_INTERVAL_MS, 10)
+      : undefined,
+    idleBackoffMultiplier: process.env.IDLE_BACKOFF_MULTIPLIER
+      ? parseFloat(process.env.IDLE_BACKOFF_MULTIPLIER)
+      : undefined,
     heartbeatIntervalMs: parseInt(process.env.HEARTBEAT_INTERVAL_MS || '30000', 10),
+    heartbeatMaxIntervalMs: process.env.HEARTBEAT_MAX_INTERVAL_MS
+      ? parseInt(process.env.HEARTBEAT_MAX_INTERVAL_MS, 10)
+      : undefined,
+    heartbeatBackoffMultiplier: process.env.HEARTBEAT_BACKOFF_MULTIPLIER
+      ? parseFloat(process.env.HEARTBEAT_BACKOFF_MULTIPLIER)
+      : undefined,
     claimLimit: parseInt(process.env.CLAIM_LIMIT || '10', 10),
   }
 
@@ -95,6 +111,50 @@ async function main(): Promise<void> {
       required: ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'],
     })
     process.exit(EXIT_CODES.validation)
+  }
+
+  if (process.env.MAX_POLL_INTERVAL_MS) {
+    if (
+      config.maxPollIntervalMs === undefined ||
+      Number.isNaN(config.maxPollIntervalMs) ||
+      config.maxPollIntervalMs <= 0
+    ) {
+      logger.error('Invalid MAX_POLL_INTERVAL_MS. Expected a positive number.')
+      process.exit(EXIT_CODES.validation)
+    }
+  }
+
+  if (process.env.IDLE_BACKOFF_MULTIPLIER) {
+    if (
+      config.idleBackoffMultiplier === undefined ||
+      Number.isNaN(config.idleBackoffMultiplier) ||
+      config.idleBackoffMultiplier <= 0
+    ) {
+      logger.error('Invalid IDLE_BACKOFF_MULTIPLIER. Expected a positive number.')
+      process.exit(EXIT_CODES.validation)
+    }
+  }
+
+  if (process.env.HEARTBEAT_MAX_INTERVAL_MS) {
+    if (
+      config.heartbeatMaxIntervalMs === undefined ||
+      Number.isNaN(config.heartbeatMaxIntervalMs) ||
+      config.heartbeatMaxIntervalMs <= 0
+    ) {
+      logger.error('Invalid HEARTBEAT_MAX_INTERVAL_MS. Expected a positive number.')
+      process.exit(EXIT_CODES.validation)
+    }
+  }
+
+  if (process.env.HEARTBEAT_BACKOFF_MULTIPLIER) {
+    if (
+      config.heartbeatBackoffMultiplier === undefined ||
+      Number.isNaN(config.heartbeatBackoffMultiplier) ||
+      config.heartbeatBackoffMultiplier <= 0
+    ) {
+      logger.error('Invalid HEARTBEAT_BACKOFF_MULTIPLIER. Expected a positive number.')
+      process.exit(EXIT_CODES.validation)
+    }
   }
 
   const mode = args.includes('--once') ? 'once' : 'loop'

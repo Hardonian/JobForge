@@ -25,9 +25,9 @@ const CIRCUIT_BREAKER_TTL_MS = 10 * 60 * 1000
 let lastCircuitBreakerSweep = 0
 
 const CIRCUIT_BREAKER_CONFIG = {
-  failureThreshold: 5,
+  failureThreshold: 3,
   resetTimeoutMs: 30000, // 30 seconds
-  halfOpenMaxCalls: 3,
+  halfOpenMaxCalls: 2,
 }
 
 function getCircuitBreaker(endpoint: string): CircuitBreakerState {
@@ -450,7 +450,7 @@ export async function httpJsonV1Handler(
 
   // Step 5: Execute with retries
   const retryConfig = validated.retry_config || {
-    max_retries: 3,
+    max_retries: 2,
     initial_delay_ms: 1000,
     max_delay_ms: 30000,
     backoff_multiplier: 2,

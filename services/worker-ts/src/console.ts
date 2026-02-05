@@ -5,6 +5,8 @@
  */
 
 import * as fs from 'fs'
+import * as path from 'path'
+import { createHash } from 'crypto'
 import type { EventEnvelope } from '@jobforge/shared'
 
 // ============================================================================
@@ -83,6 +85,35 @@ function redactSecrets(obj: Record<string, unknown>): RedactedOutput {
   return redacted
 }
 
+function getArgValue(args: string[], prefix: string): string | undefined {
+  const arg = args.find((value) => value.startsWith(`${prefix}=`))
+  return arg ? arg.split('=').slice(1).join('=') : undefined
+}
+
+function parsePositiveInt(value: string | undefined, label: string): number | undefined {
+  if (value === undefined) {
+    return undefined
+  }
+  const parsed = Number.parseInt(value, 10)
+  if (Number.isNaN(parsed) || parsed < 0) {
+    printError('Invalid argument', `${label} must be a non-negative integer.`)
+    process.exit(EXIT_CODES.validation)
+  }
+  return parsed
+}
+
+function resolveCachePath(key: string): string {
+  const cacheDir = path.join(process.cwd(), '.jobforge-cache')
+  if (!fs.existsSync(cacheDir)) {
+    fs.mkdirSync(cacheDir, { recursive: true })
+  }
+  return path.join(cacheDir, `${key}.json`)
+}
+
+function getCacheKey(payload: Record<string, unknown>): string {
+  return createHash('sha256').update(JSON.stringify(payload)).digest('hex')
+}
+
 function formatDate(isoString: string | null): string {
   if (!isoString) return 'never'
   const date = new Date(isoString)
@@ -130,14 +161,18 @@ function printInfo(message: string): void {
 // ============================================================================
 
 async function listBundles(config: ConsoleConfig, args: string[]): Promise<void> {
-  const sinceArg = args.find((a) => a.startsWith('--since='))
-  const since = sinceArg ? sinceArg.split('=')[1] : undefined
+  const since = getArgValue(args, '--since')
   const jsonOutput = args.includes('--json')
+  const limit = parsePositiveInt(getArgValue(args, '--limit'), '--limit') ?? 50
+  const offset = parsePositiveInt(getArgValue(args, '--offset'), '--offset') ?? 0
+  const cacheSeconds = parsePositiveInt(getArgValue(args, '--cache-seconds'), '--cache-seconds') ?? 0
 
   printHeader('Bundle Runs List')
   console.log(`Tenant: ${config.tenantId}`)
   if (config.projectId) console.log(`Project: ${config.projectId}`)
   if (since) console.log(`Since: ${since}`)
+  console.log(`Limit: ${limit}`)
+  console.log(`Offset: ${offset}`)
 
   try {
     const { JobForgeClient } = await loadSdkModule()
@@ -149,43 +184,78 @@ async function listBundles(config: ConsoleConfig, args: string[]): Promise<void>
     })
 
     // Query for bundle executor jobs
+    const cacheKey = getCacheKey({
+      command: 'bundles:list',
+      tenant: config.tenantId,
+      project: config.projectId,
+      since,
+      limit,
+      offset,
+    })
+    const cachePath = resolveCachePath(cacheKey)
+
+    if (cacheSeconds > 0 && fs.existsSync(cachePath)) {
+      const cached = JSON.parse(fs.readFileSync(cachePath, 'utf8')) as {
+        cached_at: number
+        data: unknown
+      }
+      const ageSeconds = (Date.now() - cached.cached_at) / 1000
+      if (ageSeconds <= cacheSeconds) {
+        printInfo(`Using cached results (${Math.round(ageSeconds)}s old)`)
+        renderBundleList(cached.data as Record<string, unknown>[], jsonOutput)
+        printFooter()
+        return
+      }
+    }
+
     const jobs = await client.listJobs({
       tenant_id: config.tenantId,
       filters: {
         type: 'jobforge.autopilot.execute_request_bundle',
-        limit: 50,
+        limit,
+        offset,
       },
     })
 
-    if (jobs.length === 0) {
-      printInfo('No bundle runs found')
-      printFooter()
-      return
-    }
-
-    if (jsonOutput) {
-      console.log(JSON.stringify(redactSecrets({ bundles: jobs }), null, 2))
-    } else {
-      console.log(`\nFound ${jobs.length} bundle runs:\n`)
-      console.log(
-        `${'Bundle Run ID'.padEnd(40)} ${'Status'.padEnd(12)} ${'Created'.padEnd(25)} ${'Mode'.padEnd(10)}`
+    if (cacheSeconds > 0) {
+      fs.writeFileSync(
+        cachePath,
+        JSON.stringify({ cached_at: Date.now(), data: jobs }, null, 2)
       )
-      console.log('-'.repeat(90))
-
-      for (const job of jobs) {
-        const payload = job.payload as Record<string, string> | undefined
-        const id = job.id.slice(0, 38).padEnd(40)
-        const status = job.status.padEnd(12)
-        const created = formatDate(job.created_at).padEnd(25)
-        const mode = (payload?.mode || 'unknown').padEnd(10)
-        console.log(`${id} ${status} ${created} ${mode}`)
-      }
     }
 
+    renderBundleList(jobs as Record<string, unknown>[], jsonOutput)
     printFooter()
   } catch (error) {
     logUnexpectedError('Failed to list bundles', error)
     process.exit(EXIT_CODES.failure)
+  }
+}
+
+function renderBundleList(jobs: Record<string, unknown>[], jsonOutput: boolean): void {
+  if (jobs.length === 0) {
+    printInfo('No bundle runs found')
+    return
+  }
+
+  if (jsonOutput) {
+    console.log(JSON.stringify(redactSecrets({ bundles: jobs }), null, 2))
+    return
+  }
+
+  console.log(`\nFound ${jobs.length} bundle runs:\n`)
+  console.log(
+    `${'Bundle Run ID'.padEnd(40)} ${'Status'.padEnd(12)} ${'Created'.padEnd(25)} ${'Mode'.padEnd(10)}`
+  )
+  console.log('-'.repeat(90))
+
+  for (const job of jobs) {
+    const payload = (job.payload as Record<string, string> | undefined) || {}
+    const id = String(job.id ?? '').slice(0, 38).padEnd(40)
+    const status = String(job.status ?? '').padEnd(12)
+    const created = String(job.created_at ?? '')
+    const mode = String(payload.mode ?? 'unknown').padEnd(10)
+    console.log(`${id} ${status} ${formatDate(created).padEnd(25)} ${mode}`)
   }
 }
 
@@ -302,6 +372,7 @@ async function showBundle(config: ConsoleConfig, args: string[]): Promise<void> 
 async function listTriggers(config: ConsoleConfig, args: string[]): Promise<void> {
   const jsonOutput = args.includes('--json')
   const projectFilter = config.projectId
+  const cacheSeconds = parsePositiveInt(getArgValue(args, '--cache-seconds'), '--cache-seconds') ?? 0
 
   printHeader('Bundle Trigger Rules')
   console.log(`Tenant: ${config.tenantId}`)
@@ -311,37 +382,68 @@ async function listTriggers(config: ConsoleConfig, args: string[]): Promise<void
     const { listTriggerRules } = await loadSharedModule()
 
     // Use in-memory storage for now (production would use DB)
-    const rules = listTriggerRules(config.tenantId, projectFilter)
+    const cacheKey = getCacheKey({
+      command: 'triggers:list',
+      tenant: config.tenantId,
+      project: projectFilter,
+    })
+    const cachePath = resolveCachePath(cacheKey)
 
-    if (rules.length === 0) {
-      printInfo('No trigger rules found')
-      printFooter()
-      return
-    }
-
-    if (jsonOutput) {
-      console.log(JSON.stringify(redactSecrets({ rules }), null, 2))
-    } else {
-      console.log(`\nFound ${rules.length} trigger rules:\n`)
-      console.log(
-        `${'Rule ID'.padEnd(40)} ${'Name'.padEnd(25)} ${'Enabled'.padEnd(10)} ${'Mode'.padEnd(10)} ${'Fired'.padEnd(8)}`
-      )
-      console.log('-'.repeat(100))
-
-      for (const rule of rules) {
-        const id = rule.rule_id.slice(0, 38).padEnd(40)
-        const name = rule.name.slice(0, 23).padEnd(25)
-        const enabled = (rule.enabled ? '✓' : '✗').padEnd(10)
-        const mode = rule.action.mode.padEnd(10)
-        const fired = String(rule.fire_count).padEnd(8)
-        console.log(`${id} ${name} ${enabled} ${mode} ${fired}`)
+    if (cacheSeconds > 0 && fs.existsSync(cachePath)) {
+      const cached = JSON.parse(fs.readFileSync(cachePath, 'utf8')) as {
+        cached_at: number
+        data: unknown
+      }
+      const ageSeconds = (Date.now() - cached.cached_at) / 1000
+      if (ageSeconds <= cacheSeconds) {
+        printInfo(`Using cached results (${Math.round(ageSeconds)}s old)`)
+        renderTriggerList(cached.data as Array<Record<string, unknown>>, jsonOutput)
+        printFooter()
+        return
       }
     }
 
+    const rules = listTriggerRules(config.tenantId, projectFilter)
+
+    if (cacheSeconds > 0) {
+      fs.writeFileSync(
+        cachePath,
+        JSON.stringify({ cached_at: Date.now(), data: rules }, null, 2)
+      )
+    }
+
+    renderTriggerList(rules as Array<Record<string, unknown>>, jsonOutput)
     printFooter()
   } catch (error) {
     logUnexpectedError('Failed to list triggers', error)
     process.exit(EXIT_CODES.failure)
+  }
+}
+
+function renderTriggerList(rules: Array<Record<string, unknown>>, jsonOutput: boolean): void {
+  if (rules.length === 0) {
+    printInfo('No trigger rules found')
+    return
+  }
+
+  if (jsonOutput) {
+    console.log(JSON.stringify(redactSecrets({ rules }), null, 2))
+    return
+  }
+
+  console.log(`\nFound ${rules.length} trigger rules:\n`)
+  console.log(
+    `${'Rule ID'.padEnd(40)} ${'Name'.padEnd(25)} ${'Enabled'.padEnd(10)} ${'Mode'.padEnd(10)} ${'Fired'.padEnd(8)}`
+  )
+  console.log('-'.repeat(100))
+
+  for (const rule of rules) {
+    const id = String(rule.rule_id ?? '').slice(0, 38).padEnd(40)
+    const name = String(rule.name ?? '').slice(0, 23).padEnd(25)
+    const enabled = (rule.enabled ? '✓' : '✗').padEnd(10)
+    const mode = String((rule as { action?: { mode?: string } }).action?.mode ?? '').padEnd(10)
+    const fired = String(rule.fire_count ?? 0).padEnd(8)
+    console.log(`${id} ${name} ${enabled} ${mode} ${fired}`)
   }
 }
 
@@ -584,6 +686,9 @@ OPTIONS:
   --project=<id>      Project ID (optional, or set JOBFORGE_PROJECT_ID)
   --json              Output as JSON (redacted, default: false)
   --since=<time>      Filter by time (ISO format, default: none)
+  --limit=<n>         Limit list results (default: 50)
+  --offset=<n>        Offset list results (default: 0)
+  --cache-seconds=<n> Cache list results for N seconds (default: 0)
   --run=<id>          Bundle run ID (for bundles:show and replay:export)
   --rule=<id>         Trigger rule ID (for triggers:show and triggers:dryrun)
   --event=<path>      Path to event JSON file (for triggers:dryrun)
