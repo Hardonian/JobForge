@@ -123,6 +123,37 @@ GROUP BY locked_by
 ORDER BY active_jobs DESC;
 ```
 
+**Heartbeat budget (per-tenant, expected per-minute):**
+
+Use this to estimate heartbeat traffic based on running jobs and your configured
+heartbeat interval (replace `:heartbeat_interval_seconds` with your current value).
+Use the same interval configured in workers (for example `HEARTBEAT_INTERVAL_MS / 1000`)
+so alert thresholds match actual heartbeat cadence.
+Example: if `HEARTBEAT_INTERVAL_MS=30000`, use `:heartbeat_interval_seconds = 30`.
+
+```sql
+SELECT
+  tenant_id,
+  COUNT(*) AS running_jobs,
+  ROUND(COUNT(*) * 60.0 / :heartbeat_interval_seconds, 2) AS expected_heartbeats_per_min
+FROM jobforge_jobs
+WHERE status = 'running'
+  AND heartbeat_at > NOW() - INTERVAL '5 minutes'
+GROUP BY tenant_id
+ORDER BY expected_heartbeats_per_min DESC;
+```
+
+**Heartbeat budget (global, expected per-minute):**
+
+```sql
+SELECT
+  COUNT(*) AS running_jobs,
+  ROUND(COUNT(*) * 60.0 / :heartbeat_interval_seconds, 2) AS expected_heartbeats_per_min
+FROM jobforge_jobs
+WHERE status = 'running'
+  AND heartbeat_at > NOW() - INTERVAL '5 minutes';
+```
+
 **Detect crashed workers (no heartbeat >5min):**
 
 ```sql
@@ -171,6 +202,38 @@ docker-compose up --scale worker-ts=5 --scale worker-py=3
 - Add read replicas for analytics queries
 - Partition large tables by date or tenant_id
 
+## Cost Controls
+
+### Idle Polling Backoff (Worker)
+
+To reduce database load during idle periods, configure the worker to back off polling
+when no jobs are claimed and recover immediately when work appears:
+
+```bash
+export POLL_INTERVAL_MS=2000
+export MAX_POLL_INTERVAL_MS=10000
+export IDLE_BACKOFF_MULTIPLIER=2
+```
+
+**Operational guidance:**
+- Keep `MAX_POLL_INTERVAL_MS` low enough to meet latency goals for newly queued jobs.
+- Monitor claim rate reductions with `scripts/worker-idle-benchmark.js` to validate
+  the impact before rolling out broadly.
+
+### Heartbeat Backoff (Worker)
+
+For long-running jobs, workers can back off heartbeat intervals while remaining under
+stale-job thresholds (default detection is >5 minutes):
+
+```bash
+export HEARTBEAT_INTERVAL_MS=30000
+export HEARTBEAT_MAX_INTERVAL_MS=120000
+export HEARTBEAT_BACKOFF_MULTIPLIER=2
+```
+
+Use `scripts/worker-heartbeat-benchmark.js` to quantify heartbeat frequency for
+expected job durations before rolling out.
+
 ## Maintenance
 
 ### Purge Old Jobs
@@ -215,6 +278,8 @@ VACUUM ANALYZE jobforge_job_attempts;
 3. **Worker Down**: No heartbeat from worker in >5 minutes
 4. **Dead Letter Spike**: >100 dead jobs in last hour
 5. **Slow Jobs**: Jobs running >1 hour
+6. **Heartbeat Budget (Per-Tenant)**: expected heartbeats/min exceeds tenant budget
+7. **Heartbeat Budget (Global)**: expected heartbeats/min exceeds global budget
 
 ### Example Alert (Prometheus)
 
