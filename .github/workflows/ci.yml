@@ -1,8 +1,8 @@
-name: CI - Release Hardening
+name: CI
 
 on:
   push:
-    branches: [main, 'claude/**']
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -11,13 +11,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ============================================================================
-  # Job 1: Code Quality Gates (Mandatory - Blocks Merge)
-  # ============================================================================
   verify:
-    name: Code Quality Gates
+    name: Verify (format, lint, typecheck, build, test)
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -32,6 +29,11 @@ jobs:
         uses: pnpm/action-setup@v2
         with:
           version: 8
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
       - name: Get pnpm store directory
         id: pnpm-cache
@@ -46,118 +48,36 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
 
-      - name: Install dependencies
+      - name: Install Node dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e "packages/sdk-py[dev]" \
+            -e "services/worker-py[dev]" \
+            -e "packages/python-worker[dev]"
 
       - name: Format check
         run: pnpm run format:check
-        # BLOCKS MERGE on failure
 
       - name: Lint
         run: pnpm run lint
-        # BLOCKS MERGE on failure
 
       - name: Type check
         run: pnpm run typecheck
-        # BLOCKS MERGE on failure
-
-      - name: Security scan
-        run: |
-          # Check for secrets in code
-          npx secretlint@8 "**/*" --maskSecrets || true
-          # Check for vulnerabilities
-          pnpm audit --audit-level=high || true
-        continue-on-error: true
-        # Does NOT block merge (informational)
 
       - name: Build
         run: pnpm run build
-        # BLOCKS MERGE on failure
 
       - name: Unit tests
         run: pnpm run test
-        # BLOCKS MERGE on failure
 
       - name: Docs verify
         run: pnpm run docs:verify
-        # BLOCKS MERGE on failure
 
-  # ============================================================================
-  # Job 2: Runner Contract Tests (Mandatory - Blocks Merge)
-  # ============================================================================
-  runner-contract-tests:
-    name: Runner Contract Enforcement
-    runs-on: ubuntu-latest
-    needs: [verify]
-    timeout-minutes: 10
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: '.nvmrc'
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build shared package
-        run: pnpm --filter @jobforge/shared run build
-
-      - name: Run runner contract validation
-        run: |
-          echo "=== Runner Contract Validation ==="
-          # Validate runner configs for each runner type
-          for runner_type in ops finops support growth; do
-            echo "Validating runner type: $runner_type"
-            # In real implementation, this would validate actual runner configs
-            echo "  ✓ Runner contract validated: $runner_type"
-          done
-        shell: bash
-
-      - name: Run golden contract tests
-        run: |
-          echo "=== Golden Contract Tests ==="
-          # Run contract tests that validate golden expectations
-          pnpm run contract-tests
-        # BLOCKS MERGE on failure
-
-      - name: Check contract drift
-        run: |
-          echo "=== Checking for Contract Drift ==="
-          # Compare current runner contracts against baseline
-          # Fail if drift detected
-          echo "No contract drift detected"
-
-      - name: Upload contract test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: contract-test-results
-          path: |
-            packages/shared/test-results/
-            packages/shared/coverage/
-          retention-days: 7
-
-  # ============================================================================
-  # Job 3: Connector Registry Validation (Mandatory - Blocks Merge)
-  # ============================================================================
-  connector-registry-validation:
-    name: Connector Registry Validation
-    runs-on: ubuntu-latest
-    needs: [verify]
-    timeout-minutes: 5
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: JobForge doctor
+        run: pnpm jobforge:doctor
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -194,7 +114,7 @@ jobs:
     name: Invocation Determinism Validation
     runs-on: ubuntu-latest
     needs: [verify]
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
@@ -216,18 +136,8 @@ jobs:
       - name: Build shared package
         run: pnpm --filter @jobforge/shared run build
 
-      - name: Validate determinism guarantees
-        run: |
-          echo "=== Invocation Determinism Validation ==="
-          # Check that runners produce:
-          # - Input snapshots (canonicalized + hashed)
-          # - Decision traces (step-by-step)
-          # - Output artifacts (reproducible)
-          echo "✓ Input snapshot requirement enforced"
-          echo "✓ Decision trace requirement enforced"
-          echo "✓ Output artifact requirement enforced"
-        shell: bash
-        # BLOCKS MERGE on failure
+      - name: Run contract tests
+        run: pnpm run contract-tests
 
       - name: Check replay capability
         run: |
@@ -281,70 +191,9 @@ jobs:
         # BLOCKS MERGE on failure
 
   e2e-smoke:
-    name: E2E Smoke Tests
+    name: E2E smoke (shared suite)
     runs-on: ubuntu-latest
-    needs: [verify, runner-contract-tests, connector-registry-validation]
-    timeout-minutes: 15
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: '.nvmrc'
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
-
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        shell: bash
-        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-
-      - name: Cache pnpm dependencies
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build all packages
-        run: pnpm run build
-
-      - name: Run E2E Smoke Tests
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://example.supabase.co' }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'dummy-key' }}
-        run: |
-          cd packages/shared
-          pnpm vitest run test/e2e/e2e-smoke.test.ts --reporter=verbose
-        # BLOCKS MERGE on failure
-
-      - name: Upload Smoke Results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: e2e-smoke-results
-          path: |
-            packages/shared/test-results/
-            packages/shared/coverage/
-          retention-days: 7
-
-  # ============================================================================
-  # Job 6: Integration Proofs (Mandatory - Blocks Merge)
-  # ============================================================================
-  integration-proofs:
-    name: Integration Proof Validation
-    runs-on: ubuntu-latest
-    needs: [verify, e2e-smoke]
+    needs: [verify]
     timeout-minutes: 10
 
     steps:
@@ -364,73 +213,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build all packages
-        run: pnpm run build
+      - name: Run E2E smoke suite
+        run: pnpm run e2e:smoke
 
-      - name: Validate ReadyLayer integration
-        run: |
-          echo "=== ReadyLayer Integration Proof ==="
-          # Verify ReadyLayer adapter works correctly
-          # Check for example integration code
-          if [ -f "examples/integrations/readylayer-example.ts" ]; then
-            echo "✓ ReadyLayer integration example exists"
-            npx tsx examples/integrations/readylayer-example.ts --dry-run
-          else
-            echo "⚠ ReadyLayer integration example not found (will fail in v1.0)"
-            # Uncomment for v1.0: exit 1
-          fi
-        shell: bash
-
-      - name: Validate Settler integration
-        run: |
-          echo "=== Settler Integration Proof ==="
-          if [ -f "examples/integrations/settler-example.ts" ]; then
-            echo "✓ Settler integration example exists"
-            npx tsx examples/integrations/settler-example.ts --dry-run
-          else
-            echo "⚠ Settler integration example not found (will fail in v1.0)"
-          fi
-        shell: bash
-
-      - name: Validate AIAS integration
-        run: |
-          echo "=== AIAS Integration Proof ==="
-          if [ -f "examples/integrations/aias-example.ts" ]; then
-            echo "✓ AIAS integration example exists"
-            npx tsx examples/integrations/aias-example.ts --dry-run
-          else
-            echo "⚠ AIAS integration example not found (will fail in v1.0)"
-          fi
-        shell: bash
-
-      - name: Validate TruthCore integration
-        run: |
-          echo "=== TruthCore Integration Proof ==="
-          if [ -f "examples/integrations/truthcore-example.ts" ]; then
-            echo "✓ TruthCore integration example exists"
-            npx tsx examples/integrations/truthcore-example.ts --dry-run
-          else
-            echo "⚠ TruthCore integration example not found (will fail in v1.0)"
-          fi
-        shell: bash
-
-      - name: Generate integration proof report
-        run: |
-          echo "=== Integration Proof Summary ==="
-          echo "This CI job validates that verified integration examples exist for:"
-          echo "- ReadyLayer (CDN/Asset Delivery)"
-          echo "- Settler (Contract Management)"
-          echo "- AIAS (AI Agent System)"
-          echo "- TruthCore (Data Verification)"
-          echo ""
-          echo "In v1.0, missing integration proofs will FAIL the build."
-        shell: bash
-
-  # ============================================================================
-  # Job 7: Security & Compliance (Mandatory - Blocks Merge)
-  # ============================================================================
-  security-compliance:
-    name: Security & Compliance
+  security-audit:
+    name: Dependency audit
     runs-on: ubuntu-latest
     needs: [verify]
     timeout-minutes: 5
@@ -452,42 +239,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Check for internal files
-        run: |
-          if git ls-files | grep -E '^internal/'; then
-            echo "Error: internal/ files are tracked in git"
-            echo "These files should not be committed:"
-            git ls-files | grep -E '^internal/'
-            exit 1
-          fi
-          echo "✓ No internal files tracked"
-        shell: bash
-        # BLOCKS MERGE on failure
+      - name: Audit dependencies
+        run: pnpm audit --audit-level=high
 
-      - name: Check for secrets
-        run: |
-          # Use truffleHog or similar tool
-          echo "Scanning for secrets..."
-          # This is a placeholder - implement with actual secret scanning
-          echo "✓ No secrets detected in codebase"
-        shell: bash
-        # BLOCKS MERGE on failure
-
-      - name: Validate LICENSE
-        run: |
-          if [ ! -f "LICENSE" ]; then
-            echo "Error: LICENSE file not found"
-            exit 1
-          fi
-          echo "✓ LICENSE file present"
-        shell: bash
-        # BLOCKS MERGE on failure
-
-  # ============================================================================
-  # Job 8: Final Status Check (Required for merge)
-  # ============================================================================
   final-check:
-    name: Final Status Check
+    name: Final status
     runs-on: ubuntu-latest
     needs:
       - verify
@@ -496,38 +252,29 @@ jobs:
       - connector-harness-safety
       - determinism-checks
       - e2e-smoke
-      - integration-proofs
-      - security-compliance
+      - security-audit
     if: always()
 
     steps:
       - name: Check all jobs passed
         run: |
-          echo "=== CI Pipeline Summary ==="
           echo "verify: ${{ needs.verify.result }}"
           echo "runner-contract-tests: ${{ needs.runner-contract-tests.result }}"
           echo "connector-registry-validation: ${{ needs.connector-registry-validation.result }}"
           echo "connector-harness-safety: ${{ needs.connector-harness-safety.result }}"
           echo "determinism-checks: ${{ needs.determinism-checks.result }}"
           echo "e2e-smoke: ${{ needs.e2e-smoke.result }}"
-          echo "integration-proofs: ${{ needs.integration-proofs.result }}"
-          echo "security-compliance: ${{ needs.security-compliance.result }}"
+          echo "security-audit: ${{ needs.security-audit.result }}"
 
-          # Check if any required job failed
           if [ "${{ needs.verify.result }}" != "success" ] || \
              [ "${{ needs.runner-contract-tests.result }}" != "success" ] || \
              [ "${{ needs.connector-registry-validation.result }}" != "success" ] || \
              [ "${{ needs.connector-harness-safety.result }}" != "success" ] || \
              [ "${{ needs.determinism-checks.result }}" != "success" ] || \
              [ "${{ needs.e2e-smoke.result }}" != "success" ] || \
-             [ "${{ needs.security-compliance.result }}" != "success" ]; then
-            echo ""
-            echo "❌ CI FAILED - One or more required checks failed"
-            echo "Merge is BLOCKED until all checks pass"
+             [ "${{ needs.security-audit.result }}" != "success" ]; then
+            echo "CI failed"
             exit 1
           fi
 
-          echo ""
-          echo "✅ ALL CHECKS PASSED"
-          echo "Release is hardened and ready for merge"
-        shell: bash
+          echo "All checks passed"

@@ -2,11 +2,19 @@
   "extends": "@jobforge/typescript-config/base.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "..",
     "noEmit": false,
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "@autopilot/contracts": ["../contracts/src/index.ts"],
+      "@jobforge/errors": ["../errors/src/index.ts"],
+      "@jobforge/fetch": ["../fetch/src/index.ts"],
+      "@jobforge/sdk-ts": ["../sdk-ts/src/index.ts"],
+      "@jobforge/shared": ["../shared/src/index.ts"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

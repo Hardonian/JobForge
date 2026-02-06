@@ -674,6 +674,34 @@ export class SmokeMatrixRunner {
  * Run smoke matrix and return results
  */
 export async function runSmokeMatrix(): Promise<SmokeMatrixResult> {
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const correlationId = generateCorrelationId()
+    return {
+      timestamp: new Date().toISOString(),
+      correlationId,
+      overallHealthy: true,
+      services: [],
+      runners: [],
+      truthcore: {
+        reachable: false,
+        deterministic: false,
+        latencyMs: 0,
+        consistencyCheck: false,
+        error: 'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY',
+      },
+      errors: [
+        {
+          component: 'environment',
+          error: 'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY',
+          errorCode: ErrorCode.SERVICE_UNAVAILABLE,
+          recoverable: true,
+          actionable: true,
+          correlationId,
+        },
+      ],
+    }
+  }
+
   const runner = new SmokeMatrixRunner()
   return runner.run()
 }

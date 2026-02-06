@@ -1054,8 +1054,6 @@ export async function withDeterminismSpan<T>(
 // Backward Compatibility Exports (Legacy API from original file)
 // ============================================================================
 
-import { createHash } from 'crypto'
-
 // Legacy types for backward compatibility
 export interface InvocationContext {
   invocation_id: string

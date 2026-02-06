@@ -6,7 +6,9 @@ import json
 import os
 import time
 from datetime import UTC, datetime
+from ipaddress import ip_address, ip_network
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 from pydantic import BaseModel, Field, field_validator
@@ -43,6 +45,39 @@ class WebhookDeliverResult(BaseModel):
     timestamp: str
 
 
+PRIVATE_NETWORKS = [
+    ip_network("10.0.0.0/8"),
+    ip_network("127.0.0.0/8"),
+    ip_network("169.254.0.0/16"),
+    ip_network("172.16.0.0/12"),
+    ip_network("192.168.0.0/16"),
+    ip_network("::1/128"),
+    ip_network("fc00::/7"),
+    ip_network("fe80::/10"),
+]
+
+
+def assert_safe_webhook_target(target_url: str) -> None:
+    parsed = urlparse(target_url)
+    if parsed.scheme not in {"http", "https"}:
+        raise ValueError(f"Unsupported webhook protocol: {parsed.scheme}")
+
+    hostname = (parsed.hostname or "").lower()
+    if not hostname:
+        raise ValueError("Webhook target hostname is required")
+
+    if hostname in {"localhost"} or hostname.endswith((".localhost", ".local", ".internal")):
+        raise ValueError(f"Unsafe webhook target hostname: {hostname}")
+
+    try:
+        ip = ip_address(hostname)
+    except ValueError:
+        return
+
+    if any(ip in network for network in PRIVATE_NETWORKS):
+        raise ValueError(f"Unsafe webhook target IP: {hostname}")
+
+
 def generate_signature(payload: str, secret: str, algo: str) -> str:
     """
     Generate HMAC signature for webhook payload.
@@ -72,6 +107,7 @@ def webhook_deliver_handler(payload: dict[str, Any], context: dict[str, Any]) ->
         Delivery result
     """
     validated = WebhookDeliverPayload.model_validate(payload)
+    assert_safe_webhook_target(validated.target_url)
 
     timestamp = datetime.now(UTC).isoformat()
 

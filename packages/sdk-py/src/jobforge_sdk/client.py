@@ -14,6 +14,7 @@ from .models import (
     HeartbeatJobParams,
     JobResultRow,
     JobRow,
+    JobStatus,
     ListJobsParams,
     RescheduleJobParams,
 )
@@ -224,12 +225,16 @@ class JobForgeClient:
         """
         filters = {}
         if params.filters:
+            status_value: list[str] | str | None = None
+            if isinstance(params.filters.status, list):
+                status_value = [status.value for status in params.filters.status]
+            elif isinstance(params.filters.status, JobStatus):
+                status_value = params.filters.status.value
+            else:
+                status_value = params.filters.status
+
             filters = {
-                "status": (
-                    params.filters.status.value
-                    if hasattr(params.filters.status, "value")
-                    else params.filters.status
-                ),
+                "status": status_value,
                 "type": params.filters.type,
                 "limit": params.filters.limit,
                 "offset": params.filters.offset,

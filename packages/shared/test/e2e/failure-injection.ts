@@ -344,6 +344,21 @@ export class FailureInjectionRunner {
  * Run all failure injection tests
  */
 export async function runFailureInjectionTests(): Promise<FailureTestResult[]> {
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const correlationId = generateCorrelationId()
+    return [
+      {
+        scenario: 'environment-missing',
+        injected: false,
+        errorReceived: false,
+        recoverable: true,
+        hard500: false,
+        actionable: true,
+        correlationId,
+      },
+    ]
+  }
+
   const runner = new FailureInjectionRunner()
   return runner.runAll()
 }

@@ -6,6 +6,7 @@
 import type { JobContext } from '@jobforge/shared'
 import { z } from 'zod'
 import { createHmac } from 'crypto'
+import { isIP } from 'net'
 import { readBodyPreview } from './response-preview'
 
 const WebhookDeliverPayloadSchema = z.object({
@@ -29,6 +30,63 @@ export interface WebhookDeliverResult {
   timestamp: string
 }
 
+const PRIVATE_HOSTNAMES = new Set(['localhost'])
+
+function isPrivateIpv4(hostname: string): boolean {
+  const [a, b] = hostname.split('.').map((segment) => Number(segment))
+  if ([a, b].some((value) => Number.isNaN(value))) {
+    return false
+  }
+  if (a === 10 || a === 127 || a === 0) {
+    return true
+  }
+  if (a === 169 && b === 254) {
+    return true
+  }
+  if (a === 192 && b === 168) {
+    return true
+  }
+  if (a === 172 && b >= 16 && b <= 31) {
+    return true
+  }
+  return false
+}
+
+function isPrivateIpv6(hostname: string): boolean {
+  const normalized = hostname.toLowerCase()
+  return (
+    normalized === '::1' ||
+    normalized.startsWith('fc') ||
+    normalized.startsWith('fd') ||
+    normalized.startsWith('fe80')
+  )
+}
+
+function assertSafeWebhookTarget(targetUrl: string): void {
+  const url = new URL(targetUrl)
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+    throw new Error(`Unsupported webhook protocol: ${url.protocol}`)
+  }
+
+  const hostname = url.hostname.toLowerCase()
+  if (
+    PRIVATE_HOSTNAMES.has(hostname) ||
+    hostname.endsWith('.localhost') ||
+    hostname.endsWith('.local') ||
+    hostname.endsWith('.internal')
+  ) {
+    throw new Error(`Unsafe webhook target hostname: ${hostname}`)
+  }
+
+  const ipType = isIP(hostname)
+  if (ipType === 4 && isPrivateIpv4(hostname)) {
+    throw new Error(`Unsafe webhook target IP: ${hostname}`)
+  }
+  if (ipType === 6 && isPrivateIpv6(hostname)) {
+    throw new Error(`Unsafe webhook target IP: ${hostname}`)
+  }
+}
+
 /**
  * Generate HMAC signature for webhook payload
  */
@@ -46,6 +104,7 @@ export async function webhookDeliverHandler(
   context: JobContext
 ): Promise<WebhookDeliverResult> {
   const validated = WebhookDeliverPayloadSchema.parse(payload)
+  assertSafeWebhookTarget(validated.target_url)
 
   const timestamp = new Date().toISOString()
 

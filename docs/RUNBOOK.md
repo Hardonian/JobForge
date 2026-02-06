@@ -216,6 +216,7 @@ export IDLE_BACKOFF_MULTIPLIER=2
 ```
 
 **Operational guidance:**
+
 - Keep `MAX_POLL_INTERVAL_MS` low enough to meet latency goals for newly queued jobs.
 - Monitor claim rate reductions with `scripts/worker-idle-benchmark.js` to validate
   the impact before rolling out broadly.
