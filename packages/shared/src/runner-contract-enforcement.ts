@@ -5,7 +5,6 @@
  */
 
 import { z } from 'zod'
-import { type ConnectorCapability } from '@autopilot/contracts'
 
 // ============================================================================
 // Runner Type Enum

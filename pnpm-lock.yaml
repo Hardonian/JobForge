@@ -403,6 +403,9 @@ importers:
         specifier: ^3.22.4
         version: 3.25.76
     devDependencies:
+      '@jobforge/errors':
+        specifier: workspace:*
+        version: link:../errors
       '@jobforge/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
