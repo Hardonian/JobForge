@@ -23,13 +23,16 @@
     "verify:full": "pnpm run verify:fast && pnpm run test && pnpm run build",
     "docs:verify": "node scripts/docs-verify.js",
     "clean": "turbo run clean && rm -rf node_modules",
-    "jobforge:doctor": "pnpm --filter @jobforge/worker-ts exec tsx scripts/jobforge-doctor.ts",
-    "jobforge:impact:show": "pnpm --filter @jobforge/worker-ts exec tsx scripts/jobforge-impact.ts show",
-    "jobforge:impact:export": "pnpm --filter @jobforge/worker-ts exec tsx scripts/jobforge-impact.ts export",
-    "jobforge:impact:compare": "pnpm --filter @jobforge/worker-ts exec tsx scripts/jobforge-impact.ts compare",
-    "jobforge:daily": "pnpm --filter @jobforge/worker-ts exec tsx scripts/jobforge-daily.ts",
-    "policy:ci-check": "pnpm --filter @jobforge/worker-ts exec tsx scripts/policy-ci-check.ts",
-    "modules:sync-fixtures": "pnpm --filter @jobforge/worker-ts exec tsx scripts/modules-sync-fixtures.ts"
+    "jobforge:doctor": "tsx scripts/jobforge-doctor.ts",
+    "jobforge:impact:show": "tsx scripts/jobforge-impact.ts show",
+    "jobforge:impact:export": "tsx scripts/jobforge-impact.ts export",
+    "jobforge:impact:compare": "tsx scripts/jobforge-impact.ts compare",
+    "jobforge:daily": "tsx scripts/jobforge-daily.ts",
+    "policy:ci-check": "tsx scripts/policy-ci-check.ts",
+    "modules:sync-fixtures": "tsx scripts/modules-sync-fixtures.ts",
+    "connectors:test": "tsx scripts/connectors-test.ts",
+    "registry:check": "tsx scripts/registry-check.ts",
+    "contracts:check": "pnpm run contract-tests"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.18.0",
@@ -37,6 +40,7 @@
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^9.1.2",
     "prettier": "^3.8.1",
+    "tsx": "^4.7.0",
     "turbo": "^2.8.2",
     "typescript": "^5.9.3"
   }

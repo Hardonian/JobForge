@@ -1,0 +1,13 @@
+{
+  "type": "object",
+  "properties": {
+    "delay_ms": {
+      "type": "number",
+      "description": "Optional delay in milliseconds before echoing the input",
+      "minimum": 0,
+      "maximum": 60000,
+      "default": 0
+    }
+  },
+  "additionalProperties": false
+}

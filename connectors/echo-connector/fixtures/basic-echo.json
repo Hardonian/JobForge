@@ -1,0 +1,31 @@
+{
+  "name": "basic-echo",
+  "description": "Basic echo test — input should be reflected in output",
+  "config": {
+    "connector_id": "echo-connector",
+    "auth_type": "none",
+    "settings": {},
+    "retry_policy": {
+      "max_retries": 2,
+      "base_delay_ms": 100,
+      "max_delay_ms": 1000,
+      "backoff_multiplier": 2
+    },
+    "timeout_ms": 5000
+  },
+  "input": {
+    "operation": "echo",
+    "payload": {
+      "message": "hello world"
+    }
+  },
+  "context": {
+    "trace_id": "trace-fixture-001",
+    "tenant_id": "00000000-0000-0000-0000-000000000001",
+    "dry_run": false,
+    "attempt_no": 1
+  },
+  "expected": {
+    "ok": true
+  }
+}

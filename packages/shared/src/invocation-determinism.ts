@@ -12,10 +12,69 @@
  */
 
 import { randomUUID, createHash } from 'crypto'
-import type { TraceContext } from '@jobforge/integration'
-import { generateTraceId } from '@jobforge/integration'
-import { ObservabilityLogger, ObservabilitySpan } from '@jobforge/observability'
 import type { RunnerConfig } from './runner-contract-enforcement.js'
+
+// Inlined from @jobforge/integration to avoid circular dependency
+// (integration depends on shared, so shared cannot depend on integration)
+interface TraceContext {
+  trace_id: string
+  tenant_id: string
+  project_id?: string
+  actor_id?: string
+  source_app: string
+  started_at: string
+}
+
+function generateTraceId(): string {
+  return randomUUID()
+}
+
+// Lightweight stubs for observability types to avoid circular dependency
+// (observability depends on shared, so shared cannot depend on observability)
+interface LogContext {
+  [key: string]: unknown
+}
+
+class ObservabilityLogger {
+  constructor(_config: { service: string; defaultContext?: LogContext }) {}
+  info(message: string, _context?: LogContext): void {
+    if (typeof console !== 'undefined') console.log(`[INFO] ${message}`)
+  }
+  warn(message: string, _context?: LogContext): void {
+    if (typeof console !== 'undefined') console.warn(`[WARN] ${message}`)
+  }
+  error(message: string, _context?: LogContext): void {
+    if (typeof console !== 'undefined') console.error(`[ERROR] ${message}`)
+  }
+  logError(message: string, _error: Error, _context?: LogContext): void {
+    if (typeof console !== 'undefined') console.error(`[ERROR] ${message}`)
+  }
+}
+
+class ObservabilitySpan {
+  private _logger: ObservabilityLogger
+  constructor(options: {
+    traceId: string
+    spanName: string
+    service: string
+    tenantId?: string
+    additionalContext?: LogContext
+  }) {
+    this._logger = new ObservabilityLogger({ service: options.service })
+  }
+  end(_status: 'ok' | 'error' = 'ok', _error?: Error): void {}
+  getLogger(): ObservabilityLogger { return this._logger }
+  async execute<T>(fn: (span: ObservabilitySpan) => Promise<T>): Promise<T> {
+    try {
+      const result = await fn(this)
+      this.end('ok')
+      return result
+    } catch (error) {
+      this.end('error', error instanceof Error ? error : new Error(String(error)))
+      throw error
+    }
+  }
+}
 import {
   createInputSnapshot as createReplayInputSnapshot,
   getCodeFingerprint,

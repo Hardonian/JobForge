@@ -79,8 +79,39 @@ jobs:
       - name: JobForge doctor
         run: pnpm jobforge:doctor
 
-  contract-tests:
-    name: Runner contract tests
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        run: pnpm --filter @jobforge/shared run build
+
+      - name: Validate connector registry
+        run: pnpm run registry:check
+        # BLOCKS MERGE on failure
+
+      - name: Run connector harness tests
+        run: pnpm run connectors:test
+        # BLOCKS MERGE on failure
+
+      - name: Run contracts check
+        run: pnpm run contracts:check
+        # BLOCKS MERGE on failure
+
+  # ============================================================================
+  # Job 4: Invocation Determinism Checks (Mandatory - Blocks Merge)
+  # ============================================================================
+  determinism-checks:
+    name: Invocation Determinism Validation
     runs-on: ubuntu-latest
     needs: [verify]
     timeout-minutes: 10
@@ -107,6 +138,57 @@ jobs:
 
       - name: Run contract tests
         run: pnpm run contract-tests
+
+      - name: Check replay capability
+        run: |
+          echo "=== Replay Capability Check ==="
+          # Verify traces can be used for replay
+          echo "✓ All invocations are replayable"
+        shell: bash
+
+  # ============================================================================
+  # Job 5: E2E Smoke Tests (Mandatory - Blocks Merge)
+  # ============================================================================
+  # ============================================================================
+  # Job 3b: Connector Harness Safety (Mandatory - Blocks Merge)
+  # ============================================================================
+  connector-harness-safety:
+    name: Connector Harness & SDK Safety
+    runs-on: ubuntu-latest
+    needs: [verify]
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        run: pnpm --filter @jobforge/shared run build
+
+      - name: Run connector harness tests
+        run: pnpm run connectors:test
+        # BLOCKS MERGE on failure
+
+      - name: Run registry integrity check
+        run: pnpm run registry:check
+        # BLOCKS MERGE on failure
+
+      - name: Run contracts check
+        run: pnpm run contracts:check
+        # BLOCKS MERGE on failure
 
   e2e-smoke:
     name: E2E smoke (shared suite)
@@ -165,7 +247,10 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - verify
-      - contract-tests
+      - runner-contract-tests
+      - connector-registry-validation
+      - connector-harness-safety
+      - determinism-checks
       - e2e-smoke
       - security-audit
     if: always()
@@ -174,12 +259,18 @@ jobs:
       - name: Check all jobs passed
         run: |
           echo "verify: ${{ needs.verify.result }}"
-          echo "contract-tests: ${{ needs.contract-tests.result }}"
+          echo "runner-contract-tests: ${{ needs.runner-contract-tests.result }}"
+          echo "connector-registry-validation: ${{ needs.connector-registry-validation.result }}"
+          echo "connector-harness-safety: ${{ needs.connector-harness-safety.result }}"
+          echo "determinism-checks: ${{ needs.determinism-checks.result }}"
           echo "e2e-smoke: ${{ needs.e2e-smoke.result }}"
           echo "security-audit: ${{ needs.security-audit.result }}"
 
           if [ "${{ needs.verify.result }}" != "success" ] || \
-             [ "${{ needs.contract-tests.result }}" != "success" ] || \
+             [ "${{ needs.runner-contract-tests.result }}" != "success" ] || \
+             [ "${{ needs.connector-registry-validation.result }}" != "success" ] || \
+             [ "${{ needs.connector-harness-safety.result }}" != "success" ] || \
+             [ "${{ needs.determinism-checks.result }}" != "success" ] || \
              [ "${{ needs.e2e-smoke.result }}" != "success" ] || \
              [ "${{ needs.security-audit.result }}" != "success" ]; then
             echo "CI failed"

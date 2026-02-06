@@ -28,6 +28,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@jobforge/errors": "workspace:*",
     "@jobforge/typescript-config": "workspace:*",
     "@supabase/supabase-js": "^2.39.0",
     "@types/node": "^20.11.0",
