@@ -1,0 +1,29 @@
+{
+  "connector_id": "echo-connector",
+  "name": "Echo Connector",
+  "version": "1.0.0",
+  "description": "A reference connector that echoes its input. Used for harness testing and as a template for new connectors.",
+  "connector_type": "utility",
+  "auth_type": "none",
+  "supported_operations": ["echo", "echo.delayed"],
+  "rate_limits": {
+    "requests_per_second": 100,
+    "burst_size": 200
+  },
+  "retry_policy": {
+    "max_retries": 3,
+    "base_delay_ms": 1000,
+    "max_delay_ms": 30000,
+    "backoff_multiplier": 2
+  },
+  "config_schema": {
+    "type": "object",
+    "properties": {
+      "delay_ms": {
+        "type": "number",
+        "description": "Optional delay before echoing (for testing timeouts)"
+      }
+    }
+  },
+  "capabilities": ["deterministic", "stateless", "idempotent"]
+}

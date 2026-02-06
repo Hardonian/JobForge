@@ -80,6 +80,9 @@ export {
   type CreateOutputArtifactOptions,
 } from './invocation-determinism.js'
 
+// Connector Harness & SDK Safety
+export * from './connector-harness/index.js'
+
 // Solo-Founder Accelerator Layer
 export * from './doctor.js'
 export * from './policy-guard.js'
