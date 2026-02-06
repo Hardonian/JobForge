@@ -17,7 +17,6 @@ import { generateTraceId } from '@jobforge/integration'
 import { ObservabilityLogger, ObservabilitySpan } from '@jobforge/observability'
 import type { RunnerConfig } from './runner-contract-enforcement.js'
 import {
-  canonicalizeObject,
   createInputSnapshot as createReplayInputSnapshot,
   getCodeFingerprint,
   getRuntimeFingerprint,
@@ -566,7 +565,6 @@ export async function verifyInvocationDeterminism(
   snapshot: InvocationSnapshot,
   runnerConfig?: RunnerConfig
 ): Promise<InvocationDeterminismReport> {
-  const startTime = Date.now()
   const checks: DeterminismCheck[] = []
   const recommendations: string[] = []
 
@@ -996,8 +994,6 @@ export async function withDeterminismSpan<T>(
 // ============================================================================
 // Backward Compatibility Exports (Legacy API from original file)
 // ============================================================================
-
-import { createHash } from 'crypto'
 
 // Legacy types for backward compatibility
 export interface InvocationContext {
@@ -1558,31 +1554,4 @@ export function formatDeterminismReport(report: DeterminismReport): string {
   lines.push('='.repeat(70))
 
   return lines.join('\n')
-}
-
-// ============================================================================
-// Export Public API
-// ============================================================================
-
-// New API exports
-export {
-  DecisionTraceLogger,
-  DeterminismEnforcer,
-  createInvocationSnapshot,
-  verifyInvocationDeterminism,
-  captureInvocationIO,
-  withDeterminismSpan,
-  isInvocationDeterminismEnabled,
-  isStrictDeterminismMode,
-}
-
-export type {
-  IOCaptureConfig,
-  CapturedIO,
-  DecisionTrace,
-  InvocationSnapshot,
-  DeterminismCheck,
-  InvocationDeterminismReport,
-  DeterminismViolation,
-  DeterminismEnforcementOptions,
 }

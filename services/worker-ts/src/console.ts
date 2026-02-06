@@ -165,7 +165,8 @@ async function listBundles(config: ConsoleConfig, args: string[]): Promise<void>
   const jsonOutput = args.includes('--json')
   const limit = parsePositiveInt(getArgValue(args, '--limit'), '--limit') ?? 50
   const offset = parsePositiveInt(getArgValue(args, '--offset'), '--offset') ?? 0
-  const cacheSeconds = parsePositiveInt(getArgValue(args, '--cache-seconds'), '--cache-seconds') ?? 0
+  const cacheSeconds =
+    parsePositiveInt(getArgValue(args, '--cache-seconds'), '--cache-seconds') ?? 0
 
   printHeader('Bundle Runs List')
   console.log(`Tenant: ${config.tenantId}`)
@@ -218,10 +219,7 @@ async function listBundles(config: ConsoleConfig, args: string[]): Promise<void>
     })
 
     if (cacheSeconds > 0) {
-      fs.writeFileSync(
-        cachePath,
-        JSON.stringify({ cached_at: Date.now(), data: jobs }, null, 2)
-      )
+      fs.writeFileSync(cachePath, JSON.stringify({ cached_at: Date.now(), data: jobs }, null, 2))
     }
 
     renderBundleList(jobs as Record<string, unknown>[], jsonOutput)
@@ -251,7 +249,9 @@ function renderBundleList(jobs: Record<string, unknown>[], jsonOutput: boolean):
 
   for (const job of jobs) {
     const payload = (job.payload as Record<string, string> | undefined) || {}
-    const id = String(job.id ?? '').slice(0, 38).padEnd(40)
+    const id = String(job.id ?? '')
+      .slice(0, 38)
+      .padEnd(40)
     const status = String(job.status ?? '').padEnd(12)
     const created = String(job.created_at ?? '')
     const mode = String(payload.mode ?? 'unknown').padEnd(10)
@@ -372,7 +372,8 @@ async function showBundle(config: ConsoleConfig, args: string[]): Promise<void> 
 async function listTriggers(config: ConsoleConfig, args: string[]): Promise<void> {
   const jsonOutput = args.includes('--json')
   const projectFilter = config.projectId
-  const cacheSeconds = parsePositiveInt(getArgValue(args, '--cache-seconds'), '--cache-seconds') ?? 0
+  const cacheSeconds =
+    parsePositiveInt(getArgValue(args, '--cache-seconds'), '--cache-seconds') ?? 0
 
   printHeader('Bundle Trigger Rules')
   console.log(`Tenant: ${config.tenantId}`)
@@ -406,10 +407,7 @@ async function listTriggers(config: ConsoleConfig, args: string[]): Promise<void
     const rules = listTriggerRules(config.tenantId, projectFilter)
 
     if (cacheSeconds > 0) {
-      fs.writeFileSync(
-        cachePath,
-        JSON.stringify({ cached_at: Date.now(), data: rules }, null, 2)
-      )
+      fs.writeFileSync(cachePath, JSON.stringify({ cached_at: Date.now(), data: rules }, null, 2))
     }
 
     renderTriggerList(rules as Array<Record<string, unknown>>, jsonOutput)
@@ -438,8 +436,12 @@ function renderTriggerList(rules: Array<Record<string, unknown>>, jsonOutput: bo
   console.log('-'.repeat(100))
 
   for (const rule of rules) {
-    const id = String(rule.rule_id ?? '').slice(0, 38).padEnd(40)
-    const name = String(rule.name ?? '').slice(0, 23).padEnd(25)
+    const id = String(rule.rule_id ?? '')
+      .slice(0, 38)
+      .padEnd(40)
+    const name = String(rule.name ?? '')
+      .slice(0, 23)
+      .padEnd(25)
     const enabled = (rule.enabled ? '✓' : '✗').padEnd(10)
     const mode = String((rule as { action?: { mode?: string } }).action?.mode ?? '').padEnd(10)
     const fired = String(rule.fire_count ?? 0).padEnd(8)

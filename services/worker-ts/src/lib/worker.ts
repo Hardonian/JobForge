@@ -45,8 +45,7 @@ export class Worker {
       basePollIntervalMs
     )
     const idleBackoffMultiplier = Math.max(config.idleBackoffMultiplier ?? 2, 1)
-    const baseHeartbeatIntervalMs =
-      config.heartbeatIntervalMs ?? DEFAULT_HEARTBEAT_INTERVAL_MS
+    const baseHeartbeatIntervalMs = config.heartbeatIntervalMs ?? DEFAULT_HEARTBEAT_INTERVAL_MS
     const maxHeartbeatIntervalMs = Math.max(
       config.heartbeatMaxIntervalMs ?? baseHeartbeatIntervalMs * 2,
       baseHeartbeatIntervalMs
@@ -67,7 +66,7 @@ export class Worker {
       claimLimit: 10,
       maxPollIntervalMs,
       idleBackoffMultiplier,
-      heartbeatMaxIntervalMs,
+      heartbeatMaxIntervalMs: maxHeartbeatIntervalMs,
       heartbeatBackoffMultiplier,
       ...configWithoutClient,
     }
