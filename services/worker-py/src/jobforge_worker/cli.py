@@ -59,6 +59,7 @@ def main() -> None:
         try:
             from pydantic import ValidationError
             from pydantic_settings import BaseSettings
+
             from .handlers import register_handlers
             from .lib.registry import HandlerRegistry
             from .lib.worker import Worker

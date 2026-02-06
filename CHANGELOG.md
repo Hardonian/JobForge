@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Defensive Python tooling scripts (skip when ruff/mypy unavailable)
 - @autopilot/contracts package with canonical schemas
 - Type re-exports from @autopilot/contracts in @jobforge/shared
+- Web health endpoint with rate limiting and structured logging
+- E2E smoke suite hardened for dry-run execution and CI gating
+- Python SDK + worker tests for webhook signing and client RPC behavior
+- Deployment guide and updated reality map
 
 ### Fixed
 
@@ -21,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - packages/contracts tsconfig path resolution
 - Python lint/typecheck failures when tools unavailable
 - Unused variable lint errors in observability and integration packages
+- Worker lint errors and SSRF protection gaps in webhook delivery
 
 ### Changed
 

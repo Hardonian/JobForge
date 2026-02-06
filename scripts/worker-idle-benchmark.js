@@ -66,7 +66,13 @@ async function main() {
   const elapsedMs = Date.now() - startedAt
   const claimsPerMinute = (claimCount / elapsedMs) * 60_000
 
-  console.log(JSON.stringify({ duration_ms: elapsedMs, claim_count: claimCount, claims_per_min: claimsPerMinute }))
+  console.log(
+    JSON.stringify({
+      duration_ms: elapsedMs,
+      claim_count: claimCount,
+      claims_per_min: claimsPerMinute,
+    })
+  )
 }
 
 main().catch((error) => {

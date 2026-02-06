@@ -322,11 +322,30 @@ pnpm run test
 pnpm run build
 ```
 
+## Health Check
+
+The web app exposes a health endpoint:
+
+```
+GET /api/health
+```
+
+The response includes a correlation ID and is rate-limited in memory.
+
+## E2E Tests
+
+Smoke + failure-path workflows run via the shared E2E suite:
+
+```bash
+pnpm run e2e:smoke
+```
+
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md) - System design, RPC definitions
 - [Runbook](docs/RUNBOOK.md) - Operations, monitoring
 - [Security](docs/SECURITY.md) - RLS, SSRF protection, signing
+- [Deployment](docs/DEPLOYMENT.md) - Local and production setup
 - [Integration Guides](docs/integrations/) - Adapter usage
 
 ## License

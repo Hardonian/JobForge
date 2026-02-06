@@ -6,7 +6,6 @@
  */
 
 import { z } from 'zod'
-import { type ConnectorCapability } from '@autopilot/contracts'
 
 // ============================================================================
 // Connector Status Enum
