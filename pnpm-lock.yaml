@@ -364,6 +364,31 @@ importers:
         specifier: ^5.0.5
         version: 5.0.10
 
+  packages/sdk:
+    dependencies:
+      '@jobforge/sdk-ts':
+        specifier: workspace:*
+        version: link:../sdk-ts
+      '@jobforge/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      '@jobforge/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^20.11.0
+        version: 20.19.30
+      eslint:
+        specifier: ^8.56.0
+        version: 8.57.1
+      typescript:
+        specifier: ^5.3.3
+        version: 5.9.3
+      vitest:
+        specifier: ^1.2.0
+        version: 1.6.1(@types/node@20.19.30)
+
   packages/sdk-py: {}
 
   packages/sdk-ts:

@@ -211,14 +211,11 @@ async function main(): Promise<void> {
   const { execSync } = await import('child_process')
   try {
     const sharedDir = resolve(process.cwd(), 'packages/shared')
-    execSync(
-      'npx vitest run test/connector-harness.test.ts --reporter=verbose',
-      {
-        cwd: sharedDir,
-        stdio: 'inherit',
-        env: { ...process.env, NODE_ENV: 'test' },
-      }
-    )
+    execSync('npx vitest run test/connector-harness.test.ts --reporter=verbose', {
+      cwd: sharedDir,
+      stdio: 'inherit',
+      env: { ...process.env, NODE_ENV: 'test' },
+    })
     console.log('\n  ✓ Harness unit tests passed')
   } catch {
     console.log('\n  ✗ Harness unit tests FAILED')

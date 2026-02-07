@@ -1,4 +1,3 @@
-/// <reference path="./compat.d.ts" />
 /**
  * @jobforge/shared - Common types and utilities
  */

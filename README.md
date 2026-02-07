@@ -222,6 +222,164 @@ pnpm exec tsx scripts/validate-connector.ts connectors/my-connector
 pnpm exec tsx scripts/generate-registry.ts --output docs/connectors/
 ```
 
+## Build a Connector in 5 Minutes
+
+JobForge connectors are deterministic functions that implement the `runConnector` interface. Here's how to build one:
+
+### 1. Install the SDK
+
+```bash
+npm install @jobforge/sdk
+# or
+pnpm add @jobforge/sdk
+```
+
+### 2. Create Your Connector
+
+```typescript
+import { z } from 'zod'
+import { type ConnectorFn, EvidenceBuilder, hashOutput } from '@jobforge/sdk'
+
+// Define input schema
+const MyConnectorInputSchema = z.object({
+  message: z.string().min(1),
+  uppercase: z.boolean().default(false),
+})
+
+// Implement the connector function
+export const myConnector: ConnectorFn = async (params) => {
+  const builder = new EvidenceBuilder({
+    connector_id: params.config.connector_id,
+    trace_id: params.context.trace_id,
+    tenant_id: params.context.tenant_id,
+    input: params.input,
+  })
+
+  try {
+    // Validate input
+    const validated = MyConnectorInputSchema.parse(params.input.payload)
+
+    // Process
+    const result = validated.uppercase ? validated.message.toUpperCase() : validated.message
+
+    // Return success with evidence
+    return {
+      ok: true,
+      data: { result },
+      evidence: builder.buildSuccess({ result }),
+    }
+  } catch (error) {
+    // Return failure with evidence
+    return {
+      ok: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Invalid input',
+        retryable: false,
+      },
+      evidence: builder.buildFailure({
+        code: 'VALIDATION_ERROR',
+        message: 'Invalid input',
+        retryable: false,
+      }),
+    }
+  }
+}
+```
+
+### 3. Test Your Connector
+
+```typescript
+import { runConnector } from '@jobforge/sdk'
+
+const result = await runConnector(myConnector, {
+  config: {
+    connector_id: 'my-connector',
+    auth_type: 'none',
+    settings: {},
+    retry_policy: {
+      max_retries: 0,
+      base_delay_ms: 1000,
+      max_delay_ms: 1000,
+      backoff_multiplier: 1,
+    },
+    timeout_ms: 5000,
+  },
+  input: {
+    operation: 'process',
+    payload: { message: 'hello', uppercase: true },
+  },
+  context: {
+    trace_id: 'test-123',
+    tenant_id: '00000000-0000-0000-0000-000000000001',
+    dry_run: false,
+    attempt_no: 1,
+  },
+})
+
+console.log(result.data?.result) // "HELLO"
+```
+
+### 4. Add Metadata (Optional)
+
+Create `metadata.json` for the connector registry:
+
+```json
+{
+  "connector_id": "my-connector",
+  "version": "1.0.0",
+  "status": "stable",
+  "name": "My Connector",
+  "description": "Processes messages with optional uppercase transformation",
+  "supported_job_types": ["process"],
+  "capabilities": {
+    "bidirectional": false,
+    "streaming": false,
+    "batch": false,
+    "real_time": false,
+    "webhook": false,
+    "polling": false
+  },
+  "auth": {
+    "required": false,
+    "methods": ["none"]
+  },
+  "rate_limits": {
+    "requests_per_second": 10,
+    "burst_size": 20
+  }
+}
+```
+
+### 5. Publish to Registry
+
+Submit a PR to add your connector to the JobForge registry. ControlPlane will automatically load it!
+
+## How ControlPlane Loads Connectors
+
+ControlPlane discovers and loads connectors through the JobForge registry:
+
+### Registry Discovery
+
+1. **Registry Index**: ControlPlane fetches `https://registry.jobforge.dev/index.json` containing all published connectors
+2. **Metadata Validation**: Each connector's `metadata.json` is validated against the schema
+3. **Capability Filtering**: Connectors are filtered by runtime capabilities (Node.js version, network access, etc.)
+4. **Dependency Resolution**: Required packages are installed in isolated environments
+
+### Runtime Loading
+
+1. **Container Provisioning**: Each connector runs in a secure container with resource limits
+2. **Code Execution**: Connectors are loaded via `import()` with timeout protection
+3. **Evidence Collection**: All executions produce tamper-proof evidence packets
+4. **Health Monitoring**: Connectors are monitored for performance and reliability
+
+### Security Model
+
+- **Isolated Execution**: Each connector runs in its own container
+- **Resource Limits**: CPU, memory, and network access are restricted
+- **Evidence Verification**: All outputs are cryptographically signed
+- **Audit Logging**: Every execution is logged with tenant attribution
+
 ## Integration Examples
 
 See `examples/integrations/` for working code:

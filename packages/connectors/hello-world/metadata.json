@@ -1,0 +1,84 @@
+{
+  "connector_id": "hello-world",
+  "version": "1.0.0",
+  "status": "stable",
+  "maturity": "production",
+  "name": "Hello World Connector",
+  "description": "Example connector that echoes messages for testing the JobForge SDK",
+  "icon": null,
+  "documentation_url": null,
+  "supported_job_types": ["echo", "greet"],
+  "capabilities": {
+    "bidirectional": false,
+    "streaming": false,
+    "batch": false,
+    "real_time": false,
+    "webhook": false,
+    "polling": false
+  },
+  "auth": {
+    "required": false,
+    "methods": ["none"],
+    "scopes": null,
+    "token_refresh": false,
+    "credentials_storage": "none"
+  },
+  "rate_limits": {
+    "requests_per_second": 10,
+    "burst_size": 20,
+    "quota_period": "second",
+    "quota_limit": null,
+    "retry_after_header": false
+  },
+  "failure_modes": [
+    {
+      "type": "timeout",
+      "retryable": true,
+      "retry_strategy": "exponential_backoff",
+      "max_retries": 3,
+      "fallback_behavior": "fail",
+      "circuit_breaker": false
+    },
+    {
+      "type": "validation_error",
+      "retryable": false,
+      "retry_strategy": "none",
+      "max_retries": 0,
+      "fallback_behavior": "fail",
+      "circuit_breaker": false
+    }
+  ],
+  "data": {
+    "input_schema": null,
+    "output_schema": null,
+    "max_payload_size": 1024,
+    "supported_formats": ["json"],
+    "compression": null
+  },
+  "requirements": {
+    "min_runner_version": null,
+    "required_features": null,
+    "dependencies": null,
+    "network_access": false,
+    "sandboxed": true
+  },
+  "observability": {
+    "metrics": true,
+    "logs": true,
+    "traces": true,
+    "health_check": true
+  },
+  "compliance": {
+    "data_classification": "public",
+    "pii_handling": false,
+    "encryption_in_transit": true,
+    "encryption_at_rest": false,
+    "audit_logging": false
+  },
+  "support": {
+    "owner_team": "platform",
+    "contact_email": null,
+    "sla_tier": "best_effort",
+    "issue_tracker": null
+  }
+}

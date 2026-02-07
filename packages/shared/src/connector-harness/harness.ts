@@ -100,10 +100,7 @@ export class ConnectorHarness {
   /**
    * Run a single fixture with all simulated failures.
    */
-  async runFixture(
-    connectorFn: ConnectorFn,
-    fixture: HarnessFixture
-  ): Promise<HarnessTestResult> {
+  async runFixture(connectorFn: ConnectorFn, fixture: HarnessFixture): Promise<HarnessTestResult> {
     const startTime = Date.now()
     const errors: string[] = []
 
@@ -190,7 +187,9 @@ export class ConnectorHarness {
         }
       }
     } catch (err) {
-      errors.push(`Connector threw unhandled error: ${err instanceof Error ? err.message : String(err)}`)
+      errors.push(
+        `Connector threw unhandled error: ${err instanceof Error ? err.message : String(err)}`
+      )
     } finally {
       // Restore console
       if (this.options.capture_logs !== false) {
@@ -291,9 +290,7 @@ export class ConnectorHarness {
       }
 
       if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-        results.push(
-          ...this.extractSecretValues(value as Record<string, unknown>, fullPath)
-        )
+        results.push(...this.extractSecretValues(value as Record<string, unknown>, fullPath))
       }
     }
 

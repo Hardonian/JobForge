@@ -138,10 +138,11 @@ describe('runConnector', () => {
   })
 
   it('returns a valid ConnectorResult on failure', async () => {
-    const result = await runConnector(
-      createFailingConnector('EXTERNAL_ERROR', false),
-      { config: validConfig, input: validInput, context: validContext }
-    )
+    const result = await runConnector(createFailingConnector('EXTERNAL_ERROR', false), {
+      config: validConfig,
+      input: validInput,
+      context: validContext,
+    })
 
     expect(result.ok).toBe(false)
     expect(result.error).toBeDefined()
@@ -153,10 +154,11 @@ describe('runConnector', () => {
   })
 
   it('always emits an evidence packet, even on failure', async () => {
-    const result = await runConnector(
-      createFailingConnector('CRASH', false),
-      { config: validConfig, input: validInput, context: validContext }
-    )
+    const result = await runConnector(createFailingConnector('CRASH', false), {
+      config: validConfig,
+      input: validInput,
+      context: validContext,
+    })
 
     expect(result.evidence).toBeDefined()
     expect(result.evidence.connector_id).toBe('test-connector')
@@ -181,10 +183,11 @@ describe('Evidence Packet', () => {
   })
 
   it('validates against EvidencePacketSchema on failure', async () => {
-    const result = await runConnector(
-      createFailingConnector('FAIL', false),
-      { config: validConfig, input: validInput, context: validContext }
-    )
+    const result = await runConnector(createFailingConnector('FAIL', false), {
+      config: validConfig,
+      input: validInput,
+      context: validContext,
+    })
 
     const validation = EvidencePacketSchema.safeParse(result.evidence)
     expect(validation.success).toBe(true)
@@ -615,7 +618,12 @@ describe('Golden Harness', () => {
             connector_id: 'secret-test',
             auth_type: 'api_key',
             settings: { api_key: 'sk-secret-key', endpoint: 'https://api.test.com' },
-            retry_policy: { max_retries: 0, base_delay_ms: 10, max_delay_ms: 100, backoff_multiplier: 2 },
+            retry_policy: {
+              max_retries: 0,
+              base_delay_ms: 10,
+              max_delay_ms: 100,
+              backoff_multiplier: 2,
+            },
             timeout_ms: 5000,
           },
           expected: { ok: true },
@@ -761,9 +769,9 @@ describe('Adversarial Cases', () => {
     }
 
     const redacted = redactFields(input)
-    const l3 = (redacted.level1 as Record<string, unknown>)
-    const l2 = (l3.level2 as Record<string, unknown>)
-    const l1 = (l2.level3 as Record<string, unknown>)
+    const l3 = redacted.level1 as Record<string, unknown>
+    const l2 = l3.level2 as Record<string, unknown>
+    const l1 = l2.level3 as Record<string, unknown>
     expect(l1.api_key).toBe('[REDACTED]')
     expect(l1.safe).toBe('visible')
   })

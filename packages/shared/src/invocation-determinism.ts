@@ -63,7 +63,9 @@ class ObservabilitySpan {
     this._logger = new ObservabilityLogger({ service: options.service })
   }
   end(_status: 'ok' | 'error' = 'ok', _error?: Error): void {}
-  getLogger(): ObservabilityLogger { return this._logger }
+  getLogger(): ObservabilityLogger {
+    return this._logger
+  }
   async execute<T>(fn: (span: ObservabilitySpan) => Promise<T>): Promise<T> {
     try {
       const result = await fn(this)

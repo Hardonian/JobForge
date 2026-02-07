@@ -34,11 +34,7 @@ export {
 } from './evidence.js'
 
 // Runner
-export {
-  runConnector,
-  ConnectorValidationError,
-  ConnectorTimeoutError,
-} from './runner.js'
+export { runConnector, ConnectorValidationError, ConnectorTimeoutError } from './runner.js'
 
 // Harness (test utilities)
 export {
