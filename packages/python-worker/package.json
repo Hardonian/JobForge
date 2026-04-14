@@ -14,6 +14,6 @@
     "clean": "rimraf build dist *.egg-info .pytest_cache .mypy_cache .ruff_cache"
   },
   "devDependencies": {
-    "rimraf": "^5.0.5"
+    "rimraf": "^6.1.3"
   }
 }
