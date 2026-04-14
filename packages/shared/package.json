@@ -30,7 +30,7 @@
   "devDependencies": {
     "@jobforge/errors": "workspace:*",
     "@jobforge/typescript-config": "workspace:*",
-    "@supabase/supabase-js": "^2.39.0",
+    "@supabase/supabase-js": "^2.103.0",
     "@types/node": "^20.11.0",
     "eslint": "^8.56.0",
     "typescript": "^5.3.3",
