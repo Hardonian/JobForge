@@ -2,14 +2,11 @@
   "extends": "@jobforge/typescript-config/base.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "..",
+    "rootDir": "./src",
     "declaration": true,
     "declarationMap": true,
     "noEmit": false,
-    "baseUrl": ".",
-    "paths": {
-      "@jobforge/shared": ["../shared/src/index.ts"]
-    }
+    "baseUrl": "."
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "**/*.test.ts"]

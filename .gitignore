@@ -20,6 +20,16 @@ build/
 out/
 *.tsbuildinfo
 
+# TypeScript build artifacts in source folders (from tsc)
+packages/*/src/**/*.js
+packages/*/src/**/*.d.ts
+packages/*/src/**/*.d.ts.map
+packages/*/src/**/*.js.map
+services/*/src/**/*.js
+services/*/src/**/*.d.ts
+services/*/src/**/*.d.ts.map
+services/*/src/**/*.js.map
+
 # Environment
 .env
 .env*.local
