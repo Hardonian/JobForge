@@ -26,6 +26,6 @@
     "eslint": "^8.56.0",
     "prisma": "^5.8.1",
     "typescript": "^5.3.3",
-    "vitest": "^1.2.0"
+    "vitest": "^3.2.6"
   }
 }
