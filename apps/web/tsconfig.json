@@ -2,6 +2,9 @@
   "extends": "@jobforge/typescript-config/nextjs.json",
   "compilerOptions": {
     "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
     "plugins": [
       {
         "name": "next"

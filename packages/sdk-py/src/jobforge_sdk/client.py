@@ -74,9 +74,7 @@ class JobForgeClient:
         """Call Supabase RPC function."""
         response = self._client.post(f"/rpc/{function}", json=params)
         if response.status_code >= 400:
-            raise JobForgeError(
-                f"RPC call failed: {response.status_code} {response.text}"
-            )
+            raise JobForgeError(f"RPC call failed: {response.status_code} {response.text}")
         return response.json()
 
     def enqueue_job(self, params: EnqueueJobParams) -> JobRow:
@@ -101,9 +99,7 @@ class JobForgeClient:
                 "p_payload": params.payload,
                 "p_idempotency_key": params.idempotency_key,
                 "p_run_at": (
-                    params.run_at.isoformat()
-                    if params.run_at
-                    else datetime.utcnow().isoformat()
+                    params.run_at.isoformat() if params.run_at else datetime.utcnow().isoformat()
                 ),
                 "p_max_attempts": params.max_attempts,
             },
@@ -298,9 +294,7 @@ class JobForgeClient:
         if response.status_code == 404:
             return None
         if response.status_code >= 400:
-            raise JobForgeError(
-                f"Get result failed: {response.status_code} {response.text}"
-            )
+            raise JobForgeError(f"Get result failed: {response.status_code} {response.text}")
 
         data = response.json()
         if not data:

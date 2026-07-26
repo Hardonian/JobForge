@@ -1,5 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { generateCorrelationId, extractCorrelationId } from '@jobforge/errors'
+
+function extractCorrelationId(headers: Headers): string | undefined {
+  for (const name of ['x-correlation-id', 'x-request-id', 'x-trace-id']) {
+    const value = headers.get(name)
+    if (value) return value
+  }
+  return undefined
+}
+
+function generateCorrelationId(): string {
+  return crypto.randomUUID()
+}
 
 /**
  * Next.js middleware for correlation ID tracking.
@@ -7,8 +18,7 @@ import { generateCorrelationId, extractCorrelationId } from '@jobforge/errors'
  */
 export function middleware(request: NextRequest): NextResponse {
   // Extract existing correlation ID from headers or generate new one
-  const correlationId =
-    extractCorrelationId(Object.fromEntries(request.headers.entries())) ?? generateCorrelationId()
+  const correlationId = extractCorrelationId(request.headers) ?? generateCorrelationId()
 
   // Clone request headers and add correlation ID
   const requestHeaders = new Headers(request.headers)

@@ -155,9 +155,7 @@ def webhook_deliver_handler(payload: dict[str, Any], context: dict[str, Any]) ->
 
         response_text = response.text
         response_preview = (
-            response_text[:500] + "... (truncated)"
-            if len(response_text) > 500
-            else response_text
+            response_text[:500] + "... (truncated)" if len(response_text) > 500 else response_text
         )
 
         result = WebhookDeliverResult(

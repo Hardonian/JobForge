@@ -93,13 +93,13 @@ def validate_url_ssrf(url: str, allowlist: list[str]) -> None:
     # Check allowlist if provided
     if allowlist:
         allowed = False
-        for pattern in allowlist:
-            if "*" in pattern:
-                regex = re.compile("^" + pattern.replace("*", ".*") + "$")
+        for allowed_pattern in allowlist:
+            if "*" in allowed_pattern:
+                regex = re.compile("^" + allowed_pattern.replace("*", ".*") + "$")
                 if regex.match(hostname):
                     allowed = True
                     break
-            elif hostname == pattern or hostname.endswith(f".{pattern}"):
+            elif hostname == allowed_pattern or hostname.endswith(f".{allowed_pattern}"):
                 allowed = True
                 break
 
@@ -130,18 +130,13 @@ def http_request_handler(payload: dict[str, Any], context: dict[str, Any]) -> di
     start_time = time.time()
 
     with httpx.Client(timeout=validated.timeout_ms / 1000.0) as client:
-        # Prepare request body
-        body_data = None
-        if validated.body and validated.method not in ["GET", "HEAD"]:
-            body_data = validated.body
-
-        # Make request
+        body_text = validated.body if isinstance(validated.body, str) else None
         response = client.request(
             method=validated.method,
             url=validated.url,
             headers=validated.headers,
-            json=body_data if isinstance(validated.body, dict) else None,
-            content=body_data if isinstance(validated.body, str) else None,
+            json=validated.body if isinstance(validated.body, dict) else None,
+            content=body_text,
         )
 
     duration_ms = int((time.time() - start_time) * 1000)

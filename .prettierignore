@@ -5,6 +5,7 @@ build
 .turbo
 out
 coverage
+apps/web/next-env.d.ts
 internal
 .agent-artifacts
 .claude

@@ -9,6 +9,7 @@
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
+    "incremental": false,
     "baseUrl": ".",
     "paths": {
       "@autopilot/contracts": ["../contracts/src/index.ts"],

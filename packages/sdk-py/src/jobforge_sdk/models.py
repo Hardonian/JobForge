@@ -1,14 +1,14 @@
 """Pydantic models for JobForge."""
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 
-class JobStatus(str, Enum):
+class JobStatus(StrEnum):
     """Job status enum."""
 
     QUEUED = "queued"

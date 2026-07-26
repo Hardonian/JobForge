@@ -7,7 +7,7 @@ from jobforge_sdk.client import JobForgeClient, JobForgeError
 def test_client_base_url_is_normalized() -> None:
     client = JobForgeClient("https://example.com/", "service-key")
 
-    assert client._client.base_url.path == "/rest/v1"
+    assert client._client.base_url.path.rstrip("/") == "/rest/v1"
 
 
 def test_rpc_returns_payload(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -137,7 +137,9 @@ def json_to_csv(data: dict[str, Any]) -> str:
     rows = ["Key,Value"]
 
     for key, value in data.items():
-        value_str = json.dumps(value).replace('"', '""') if isinstance(value, (dict, list)) else str(value)
+        value_str = (
+            json.dumps(value).replace('"', '""') if isinstance(value, (dict, list)) else str(value)
+        )
         rows.append(f'"{key}","{value_str}"')
 
     return "\n".join(rows)
