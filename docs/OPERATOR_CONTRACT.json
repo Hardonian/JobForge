@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "product": "JobForge",
+  "scope": "local_repository",
+  "commands": {
+    "status": "pnpm run jobforge:status",
+    "doctor": "JOBFORGE_DOCTOR_ENABLED=1 pnpm run jobforge:doctor -- --json",
+    "verify": "pnpm run verify:fast && pnpm run contract-tests",
+    "rollback": "restore_previous_verified_migration_and_application_version"
+  },
+  "evidence": {"required": ["status_json", "doctor_json", "contract_tests"], "worker_retry_safety_required": true},
+  "rollback": {"automatic": false, "operator_action_required": true, "data_migrations": "forward_fix_or_restore_verified_database_backup"},
+  "claims": {"hosted": false, "customer_proof": false, "revenue_proof": false, "distributed_exactly_once": false}
+}

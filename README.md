@@ -4,7 +4,7 @@
 
 JobForge routes autonomous agent workloads through PostgreSQL. No Redis, no Kafka, no message bus—just SQL, RPC, and determinism.
 
-Built for engineers who need agents that complete work with observability and guarantees.
+Built for engineers who need durable job routing and inspectable execution state. It does not by itself guarantee worker correctness, distributed exactly-once execution, hosted availability, customer adoption, or revenue.
 
 ## What It Does
 
@@ -97,7 +97,19 @@ pip install -r requirements.txt
 python -m jobforge_worker.cli run
 ```
 
-## For Contributors
+## Operator Status, Doctor, and Verification
+
+These commands are read-only unless `--apply` is explicitly used. The doctor is disabled by default to avoid accidental diagnostics in production-like environments.
+
+```bash
+pnpm run jobforge:status
+JOBFORGE_DOCTOR_ENABLED=1 pnpm run jobforge:doctor -- --json
+pnpm run verify:fast
+pnpm run contract-tests
+```
+
+Use the status JSON plus doctor JSON and contract-test output as the operator evidence set. Rollback means restoring a previously verified migration/application version; JobForge does not claim automatic data rollback.
+
 
 ### Add a Runner
 

@@ -23,6 +23,7 @@
     "verify:full": "pnpm run verify:fast && pnpm run test && pnpm run build",
     "docs:verify": "node scripts/docs-verify.js",
     "clean": "turbo run clean && rm -rf node_modules",
+    "jobforge:status": "tsx scripts/jobforge-status.ts",
     "jobforge:doctor": "tsx scripts/jobforge-doctor.ts",
     "jobforge:impact:show": "tsx scripts/jobforge-impact.ts show",
     "jobforge:impact:export": "tsx scripts/jobforge-impact.ts export",
