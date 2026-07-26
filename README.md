@@ -8,7 +8,7 @@ Built for engineers who need agents that complete work with observability and gu
 
 ## What It Does
 
-JobForge is an **agent router**: it takes jobs from AI agents, SaaS webhooks, or internal services and guarantees they run exactly once, in order, with full observability.
+JobForge is an **agent router**: it takes jobs from AI agents, SaaS webhooks, or internal services and provides durable, idempotent enqueue/state-transition guarantees, ordered processing where configured, and full observability. Workers must still be safe under retry; this is not a claim of distributed exactly-once execution.
 
 ```
 ┌──────────────────────────────────────────────────────────────┐

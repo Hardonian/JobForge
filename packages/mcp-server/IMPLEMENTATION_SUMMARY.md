@@ -2,7 +2,7 @@
 
 ## Overview
 
-Successfully implemented a production-ready Platform MCP Server inside the JobForge monorepo as requested. The server exposes JobForge's execution plane and ReadyLayer governance via the Model Context Protocol (stdio transport).
+Successfully implemented a verified Platform MCP Server inside the JobForge monorepo as requested. The server exposes JobForge's execution plane and ReadyLayer governance via the Model Context Protocol (stdio transport). Production deployment still requires environment-specific authorization, tenant-isolation, and operational gates.
 
 ## ✅ Verification Gates Passed
 
