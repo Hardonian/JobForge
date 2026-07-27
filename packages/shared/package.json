@@ -31,7 +31,7 @@
     "@jobforge/errors": "workspace:*",
     "@jobforge/typescript-config": "workspace:*",
     "@supabase/supabase-js": "^2.39.0",
-    "@types/node": "^20.11.0",
+    "@types/node": "^26.1.1",
     "eslint": "^8.56.0",
     "typescript": "^5.3.3",
     "vitest": "^3.2.6",
