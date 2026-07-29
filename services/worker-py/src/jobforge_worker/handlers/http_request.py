@@ -135,8 +135,8 @@ def http_request_handler(payload: dict[str, Any], context: dict[str, Any]) -> di
             method=validated.method,
             url=validated.url,
             headers=validated.headers,
-            json=validated.body if isinstance(validated.body, dict) else None,
-            content=body_text,
+            json=validated.body if isinstance(validated.body, dict) and validated.method not in {"GET", "HEAD"} else None,
+            content=body_text if validated.method not in {"GET", "HEAD"} else None,
         )
 
     duration_ms = int((time.time() - start_time) * 1000)
