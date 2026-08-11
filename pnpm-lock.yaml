@@ -234,8 +234,8 @@ importers:
   packages/database:
     dependencies:
       '@prisma/client':
-        specifier: ^5.8.1
-        version: 5.22.0(prisma@5.22.0)
+        specifier: ^7.9.1
+        version: 7.9.1(prisma@5.22.0)(typescript@5.9.3)
     devDependencies:
       '@jobforge/config':
         specifier: workspace:*
@@ -1391,17 +1391,25 @@ packages:
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
     dev: true
 
-  /@prisma/client@5.22.0(prisma@5.22.0):
-    resolution: {integrity: sha512-M0SVXfyHnQREBKxCgyo7sffrKttwE6R8PMq330MIUF0pTwjUhLbW84pFDlf06B27XyCR++VtjugEnIHdr07SVA==}
-    engines: {node: '>=16.13'}
-    requiresBuild: true
+  /@prisma/client-runtime-utils@7.9.1:
+    resolution: {integrity: sha512-mVIBGYdO5CFmK0HvjxrtfIyQQcPdb88pSCeVQriVQPVZyDovIWblpHfOgcS8QO187j3QF0ePArH8qPhp0AU2vg==}
+    dev: false
+
+  /@prisma/client@7.9.1(prisma@5.22.0)(typescript@5.9.3):
+    resolution: {integrity: sha512-+xgrh2EhJVF79wC0yX5G4PI1Rdcm7Qn/nekNQ+t/O153wtNggruHal+fXHSa0QE+Tp/Cw5wvxeCEhZZ59xGm8Q==}
+    engines: {node: ^20.19 || ^22.12 || >=24.0}
     peerDependencies:
       prisma: '*'
+      typescript: '>=5.4.0'
     peerDependenciesMeta:
       prisma:
         optional: true
+      typescript:
+        optional: true
     dependencies:
+      '@prisma/client-runtime-utils': 7.9.1
       prisma: 5.22.0
+      typescript: 5.9.3
     dev: false
 
   /@prisma/debug@5.22.0:
@@ -5735,7 +5743,6 @@ packages:
     resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
     engines: {node: '>=14.17'}
     hasBin: true
-    dev: true
 
   /ufo@1.6.3:
     resolution: {integrity: sha512-yDJTmhydvl5lJzBmy/hyOAA0d+aqCBuwl818haVdYCRrWV84o7YyeVm4QlVHStqNrrJSTb6jKuFAVqAFsr+K3Q==}
