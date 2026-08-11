@@ -50,3 +50,7 @@ pnpm-debug.log*
 .cache/
 .temp/
 .tmp/
+__pycache__/
+.pytest_cache/
+.vscode/
+*.pyc
