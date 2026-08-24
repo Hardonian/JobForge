@@ -33,7 +33,7 @@
     "@supabase/supabase-js": "^2.39.0",
     "@types/node": "^26.1.2",
     "eslint": "^8.56.0",
-    "typescript": "^5.3.3",
+    "typescript": "^7.0.2",
     "vitest": "^3.2.6",
     "tsx": "^4.7.0"
   }
