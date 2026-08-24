@@ -108,13 +108,13 @@ importers:
         version: link:../../packages/ui
       next:
         specifier: '>=16.2.11'
-        version: 16.2.12(@types/node@26.1.2)(react-dom@19.2.8)(react@18.3.1)
+        version: 16.2.12(@types/node@26.1.2)(react-dom@19.2.8)(react@19.2.8)
       react:
-        specifier: ^18.2.0
-        version: 18.3.1
+        specifier: ^19.2.8
+        version: 19.2.8
       react-dom:
         specifier: ^19.2.8
-        version: 19.2.8(react@18.3.1)
+        version: 19.2.8(react@19.2.8)
     devDependencies:
       '@jobforge/typescript-config':
         specifier: workspace:*
@@ -123,11 +123,11 @@ importers:
         specifier: ^26.1.2
         version: 26.1.2
       '@types/react':
-        specifier: ^18.2.48
-        version: 18.3.27
+        specifier: ^19.2.18
+        version: 19.2.18
       '@types/react-dom':
         specifier: ^19.2.4
-        version: 19.2.4(@types/react@18.3.27)
+        version: 19.2.4(@types/react@19.2.18)
       autoprefixer:
         specifier: ^10.4.17
         version: 10.4.24(postcss@8.5.23)
@@ -536,11 +536,11 @@ importers:
         specifier: ^26.1.2
         version: 26.1.2
       '@types/react':
-        specifier: ^18.2.48
-        version: 18.3.27
+        specifier: ^19.2.18
+        version: 19.2.18
       '@types/react-dom':
         specifier: ^19.2.4
-        version: 19.2.4(@types/react@18.3.27)
+        version: 19.2.4(@types/react@19.2.18)
       eslint:
         specifier: ^8.56.0
         version: 8.57.1
@@ -1935,22 +1935,17 @@ packages:
   /@types/phoenix@1.6.7:
     resolution: {integrity: sha512-oN9ive//QSBkf19rfDv45M7eZPi0eEXylht2OLEXicu5b4KoQ1OzXIw+xDSGWxSxe1JmepRR/ZH283vsu518/Q==}
 
-  /@types/prop-types@15.7.15:
-    resolution: {integrity: sha512-F6bEyamV9jKGAFBEmlQnesRPGOQqS2+Uwi0Em15xenOxHaf2hv6L8YCVn3rPdPJOiJfPiCnLIRyvwVaqMY3MIw==}
-    dev: true
-
-  /@types/react-dom@19.2.4(@types/react@18.3.27):
+  /@types/react-dom@19.2.4(@types/react@19.2.18):
     resolution: {integrity: sha512-Bsc+QHgp+P/F02XDzNCY9jnZNCUuLki36KT7VKrTXXLdHf+vHMNZnW1rVu5DNW/rCK+fya3DATySbLM4yhtKUw==}
     peerDependencies:
       '@types/react': ^19.2.0
     dependencies:
-      '@types/react': 18.3.27
+      '@types/react': 19.2.18
     dev: true
 
-  /@types/react@18.3.27:
-    resolution: {integrity: sha512-cisd7gxkzjBKU2GgdYrTdtQx1SORymWyaAFhaxQPK9bYO9ot3Y5OikQRvY0VYQtvwjeQnizCINJAenh/V7MK2w==}
+  /@types/react@19.2.18:
+    resolution: {integrity: sha512-AnzbBERsrLKtk2XSfTbYRLjQPdy116Sty4q+T+Bp3IC4l6jNBvreVPAHmpq9qhXQM7CXZPjLVmGMw9sy+hxQ3w==}
     dependencies:
-      '@types/prop-types': 15.7.15
       csstype: 3.2.3
     dev: true
 
@@ -4447,7 +4442,7 @@ packages:
     engines: {node: '>= 0.6'}
     dev: false
 
-  /next@16.2.12(@types/node@26.1.2)(react-dom@19.2.8)(react@18.3.1):
+  /next@16.2.12(@types/node@26.1.2)(react-dom@19.2.8)(react@19.2.8):
     resolution: {integrity: sha512-iD59eYQWmbFcEbX7v/acG5DRym9iw1DdaPoD0WTA920naWsE25wShzJW4+UvAs8MK9EC2kBfIH6vtto1H1PHGw==}
     engines: {node: '>=20.9.0'}
     hasBin: true
@@ -4473,9 +4468,9 @@ packages:
       baseline-browser-mapping: 2.9.19
       caniuse-lite: 1.0.30001767
       postcss: 8.5.23
-      react: 18.3.1
-      react-dom: 19.2.8(react@18.3.1)
-      styled-jsx: 5.1.6(react@18.3.1)
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+      styled-jsx: 5.1.6(react@19.2.8)
     optionalDependencies:
       '@next/swc-darwin-arm64': 16.2.12
       '@next/swc-darwin-x64': 16.2.12
@@ -4869,12 +4864,12 @@ packages:
       scheduler: 0.23.2
     dev: false
 
-  /react-dom@19.2.8(react@18.3.1):
+  /react-dom@19.2.8(react@19.2.8):
     resolution: {integrity: sha512-rVprimfGBG3DR+Tq0IQG2DT5PxKth1WIGDmj5yPmlzr4YBe7uyE+Du4oVqTDXZSHGGGXRtTJEGSSePyQCMBglQ==}
     peerDependencies:
       react: ^19.2.8
     dependencies:
-      react: 18.3.1
+      react: 19.2.8
       scheduler: 0.27.0
     dev: false
 
@@ -4887,6 +4882,11 @@ packages:
     engines: {node: '>=0.10.0'}
     dependencies:
       loose-envify: 1.4.0
+    dev: false
+
+  /react@19.2.8:
+    resolution: {integrity: sha512-PWaYA1L/q9u2u7xYQi+Y3L3Yfnie7XyLeaJICV1MGD6LprsBxcAqGjYyr0eY3p+QdsA+x/Irkt4Qif8D63+Sbw==}
+    engines: {node: '>=0.10.0'}
     dev: false
 
   /read-cache@1.0.0:
@@ -5448,7 +5448,7 @@ packages:
       js-tokens: 9.0.1
     dev: true
 
-  /styled-jsx@5.1.6(react@18.3.1):
+  /styled-jsx@5.1.6(react@19.2.8):
     resolution: {integrity: sha512-qSVyDTeMotdvQYoHWLNGwRFJHC+i+ZvdBRYosOFgC+Wg1vx4frN2/RG/NA7SYqqvKNLf39P2LSRA2pu6n0XYZA==}
     engines: {node: '>= 12.0.0'}
     peerDependencies:
@@ -5462,7 +5462,7 @@ packages:
         optional: true
     dependencies:
       client-only: 0.0.1
-      react: 18.3.1
+      react: 19.2.8
     dev: false
 
   /sucrase@3.35.1:
