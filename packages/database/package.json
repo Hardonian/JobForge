@@ -25,7 +25,7 @@
     "@types/node": "^26.1.2",
     "eslint": "^8.56.0",
     "prisma": "^5.8.1",
-    "typescript": "^5.3.3",
+    "typescript": "^7.0.2",
     "vitest": "^3.2.6"
   }
 }
