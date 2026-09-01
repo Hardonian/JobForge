@@ -108,7 +108,7 @@ importers:
         version: link:../../packages/ui
       next:
         specifier: ^16.3.3
-        version: 16.3.3(@types/node@26.1.2)(react-dom@19.2.8)(react@19.2.8)
+        version: 16.3.3(@types/node@26.4.0)(react-dom@19.2.8)(react@19.2.8)
       react:
         specifier: ^19.2.8
         version: 19.2.8
@@ -120,8 +120,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/typescript-config
       '@types/node':
-        specifier: ^26.1.2
-        version: 26.1.2
+        specifier: ^26.4.0
+        version: 26.4.0
       '@types/react':
         specifier: ^19.2.18
         version: 19.2.18
@@ -208,8 +208,8 @@ importers:
         specifier: workspace:*
         version: link:../typescript-config
       '@types/node':
-        specifier: ^26.1.2
-        version: 26.1.2
+        specifier: ^26.4.0
+        version: 26.4.0
       eslint:
         specifier: ^8.56.0
         version: 8.57.1
@@ -221,7 +221,7 @@ importers:
         version: 7.0.2
       vitest:
         specifier: ^3.2.6
-        version: 3.2.7(@types/node@26.1.2)(esbuild@0.27.2)(tsx@4.21.0)
+        version: 3.2.7(@types/node@26.4.0)(esbuild@0.27.2)(tsx@4.21.0)
 
   packages/config: {}
 
@@ -235,8 +235,8 @@ importers:
         specifier: workspace:*
         version: link:../typescript-config
       '@types/node':
-        specifier: ^26.1.2
-        version: 26.1.2
+        specifier: ^26.4.0
+        version: 26.4.0
 
   packages/database:
     dependencies:
@@ -251,8 +251,8 @@ importers:
         specifier: workspace:*
         version: link:../typescript-config
       '@types/node':
-        specifier: ^26.1.2
-        version: 26.1.2
+        specifier: ^26.4.0
+        version: 26.4.0
       eslint:
         specifier: ^8.56.0
         version: 8.57.1
@@ -264,7 +264,7 @@ importers:
         version: 7.0.2
       vitest:
         specifier: ^3.2.6
-        version: 3.2.7(@types/node@26.1.2)(esbuild@0.27.2)(tsx@4.21.0)
+        version: 3.2.7(@types/node@26.4.0)(esbuild@0.27.2)(tsx@4.21.0)
 
   packages/design-system:
     devDependencies:
@@ -287,8 +287,8 @@ importers:
         specifier: workspace:*
         version: link:../typescript-config
       '@types/node':
-        specifier: ^26.1.2
-        version: 26.1.2
+        specifier: ^26.4.0
+        version: 26.4.0
       eslint:
         specifier: ^8.56.0
         version: 8.57.1
@@ -297,7 +297,7 @@ importers:
         version: 7.0.2
       vitest:
         specifier: ^3.2.6
-        version: 3.2.7(@types/node@26.1.2)(esbuild@0.27.2)(tsx@4.21.0)
+        version: 3.2.7(@types/node@26.4.0)(esbuild@0.27.2)(tsx@4.21.0)
 
   packages/fetch:
     dependencies:
@@ -312,8 +312,8 @@ importers:
         specifier: workspace:*
         version: link:../typescript-config
       '@types/node':
-        specifier: ^26.1.2
-        version: 26.1.2
+        specifier: ^26.4.0
+        version: 26.4.0
       eslint:
         specifier: ^8.56.0
         version: 8.57.1
@@ -322,7 +322,7 @@ importers:
         version: 7.0.2
       vitest:
         specifier: ^3.2.6
-        version: 3.2.7(@types/node@26.1.2)(esbuild@0.27.2)(tsx@4.21.0)
+        version: 3.2.7(@types/node@26.4.0)(esbuild@0.27.2)(tsx@4.21.0)
 
   packages/integration:
     dependencies:
@@ -343,8 +343,8 @@ importers:
         version: 3.25.76
     devDependencies:
       '@types/node':
-        specifier: ^26.1.2
-        version: 26.1.2
+        specifier: ^26.4.0
+        version: 26.4.0
       tsup:
         specifier: ^8.0.0
         version: 8.5.1(tsx@4.21.0)(typescript@7.0.2)
@@ -353,7 +353,7 @@ importers:
         version: 7.0.2
       vitest:
         specifier: ^3.2.6
-        version: 3.2.7(@types/node@26.1.2)(esbuild@0.27.2)(tsx@4.21.0)
+        version: 3.2.7(@types/node@26.4.0)(esbuild@0.27.2)(tsx@4.21.0)
 
   packages/mcp-server:
     dependencies:
@@ -386,8 +386,8 @@ importers:
         specifier: workspace:*
         version: link:../typescript-config
       '@types/node':
-        specifier: ^26.1.2
-        version: 26.1.2
+        specifier: ^26.4.0
+        version: 26.4.0
       eslint:
         specifier: ^8.56.0
         version: 8.57.1
@@ -396,7 +396,7 @@ importers:
         version: 7.0.2
       vitest:
         specifier: ^3.2.6
-        version: 3.2.7(@types/node@26.1.2)(esbuild@0.27.2)(tsx@4.21.0)
+        version: 3.2.7(@types/node@26.4.0)(esbuild@0.27.2)(tsx@4.21.0)
 
   packages/observability:
     dependencies:
@@ -411,8 +411,8 @@ importers:
         specifier: workspace:*
         version: link:../typescript-config
       '@types/node':
-        specifier: ^26.1.2
-        version: 26.1.2
+        specifier: ^26.4.0
+        version: 26.4.0
       eslint:
         specifier: ^8.56.0
         version: 8.57.1
@@ -421,7 +421,7 @@ importers:
         version: 7.0.2
       vitest:
         specifier: ^3.2.6
-        version: 3.2.7(@types/node@26.1.2)(esbuild@0.27.2)(tsx@4.21.0)
+        version: 3.2.7(@types/node@26.4.0)(esbuild@0.27.2)(tsx@4.21.0)
 
   packages/python-worker:
     devDependencies:
@@ -442,8 +442,8 @@ importers:
         specifier: workspace:*
         version: link:../typescript-config
       '@types/node':
-        specifier: ^26.1.2
-        version: 26.1.2
+        specifier: ^26.4.0
+        version: 26.4.0
       eslint:
         specifier: ^8.56.0
         version: 8.57.1
@@ -452,7 +452,7 @@ importers:
         version: 7.0.2
       vitest:
         specifier: ^3.2.6
-        version: 3.2.7(@types/node@26.1.2)(esbuild@0.27.2)(tsx@4.21.0)
+        version: 3.2.7(@types/node@26.4.0)(esbuild@0.27.2)(tsx@4.21.0)
 
   packages/sdk-py: {}
 
@@ -472,8 +472,8 @@ importers:
         specifier: workspace:*
         version: link:../typescript-config
       '@types/node':
-        specifier: ^26.1.2
-        version: 26.1.2
+        specifier: ^26.4.0
+        version: 26.4.0
       eslint:
         specifier: ^8.56.0
         version: 8.57.1
@@ -482,7 +482,7 @@ importers:
         version: 7.0.2
       vitest:
         specifier: ^3.2.6
-        version: 3.2.7(@types/node@26.1.2)(esbuild@0.27.2)(tsx@4.21.0)
+        version: 3.2.7(@types/node@26.4.0)(esbuild@0.27.2)(tsx@4.21.0)
 
   packages/shared:
     dependencies:
@@ -503,8 +503,8 @@ importers:
         specifier: ^2.112.3
         version: 2.112.3
       '@types/node':
-        specifier: ^26.1.2
-        version: 26.1.2
+        specifier: ^26.4.0
+        version: 26.4.0
       eslint:
         specifier: ^8.56.0
         version: 8.57.1
@@ -516,7 +516,7 @@ importers:
         version: 7.0.2
       vitest:
         specifier: ^3.2.6
-        version: 3.2.7(@types/node@26.1.2)(esbuild@0.27.2)(tsx@4.21.0)
+        version: 3.2.7(@types/node@26.4.0)(esbuild@0.27.2)(tsx@4.21.0)
 
   packages/typescript-config: {}
 
@@ -533,8 +533,8 @@ importers:
         specifier: workspace:*
         version: link:../typescript-config
       '@types/node':
-        specifier: ^26.1.2
-        version: 26.1.2
+        specifier: ^26.4.0
+        version: 26.4.0
       '@types/react':
         specifier: ^19.2.18
         version: 19.2.18
@@ -573,8 +573,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/typescript-config
       '@types/node':
-        specifier: ^26.1.2
-        version: 26.1.2
+        specifier: ^26.4.0
+        version: 26.4.0
       eslint:
         specifier: ^8.56.0
         version: 8.57.1
@@ -586,7 +586,7 @@ importers:
         version: 7.0.2
       vitest:
         specifier: ^3.2.6
-        version: 3.2.7(@types/node@26.1.2)(esbuild@0.27.2)(tsx@4.21.0)
+        version: 3.2.7(@types/node@26.4.0)(esbuild@0.27.2)(tsx@4.21.0)
 
 packages:
 
@@ -1983,8 +1983,8 @@ packages:
     resolution: {integrity: sha512-dRLjCWHYg4oaA77cxO64oO+7JwCwnIzkZPdrrC71jQmQtlhM556pwKo5bUzqvZndkVbeFLIIi+9TC40JNF5hNQ==}
     dev: true
 
-  /@types/node@26.1.2:
-    resolution: {integrity: sha512-Vu4a5UFA9rIIFJ7rB/Vaafh9lrCQszopTCx6KjFboXTGQbPNasehVR5TEiithSDGyd1DEiUByggTZsg8jukeIg==}
+  /@types/node@26.4.0:
+    resolution: {integrity: sha512-faiGnoIrLH/V8cibOMEAZ8pMw6oXqSukl29ra4mN8GdaB2ZewzeaLj+INpV5N+Z1eKWzY+IzaIZH2EIR6YZRNQ==}
     dependencies:
       undici-types: 8.3.0
 
@@ -2009,7 +2009,7 @@ packages:
   /@types/ws@8.18.1:
     resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
     dependencies:
-      '@types/node': 26.1.2
+      '@types/node': 26.4.0
     dev: false
 
   /@typescript-eslint/eslint-plugin@7.18.0(@typescript-eslint/parser@7.18.0)(eslint@8.57.1)(typescript@7.0.2):
@@ -2481,7 +2481,7 @@ packages:
       '@vitest/spy': 3.2.7
       estree-walker: 3.0.3
       magic-string: 0.30.21
-      vite: 8.1.5(@types/node@26.1.2)(esbuild@0.27.2)(tsx@4.21.0)
+      vite: 8.1.5(@types/node@26.4.0)(esbuild@0.27.2)(tsx@4.21.0)
     dev: true
 
   /@vitest/pretty-format@3.2.7:
@@ -4667,7 +4667,7 @@ packages:
     engines: {node: '>= 0.6'}
     dev: false
 
-  /next@16.3.3(@types/node@26.1.2)(react-dom@19.2.8)(react@19.2.8):
+  /next@16.3.3(@types/node@26.4.0)(react-dom@19.2.8)(react@19.2.8):
     resolution: {integrity: sha512-tuRTx1nQ/yVw83cwJBo9F+njGUgMn3UHQycreWHB8XsStvvAh1AthbI8/4IpKnFaF58F+iSiHejYOlMQ/eq83g==}
     engines: {node: '>=20.9.0'}
     hasBin: true
@@ -4705,7 +4705,7 @@ packages:
       '@next/swc-linux-x64-musl': 16.3.3
       '@next/swc-win32-arm64-msvc': 16.3.3
       '@next/swc-win32-x64-msvc': 16.3.3
-      sharp: 0.35.4(@types/node@26.1.2)
+      sharp: 0.35.4(@types/node@26.4.0)
     transitivePeerDependencies:
       - '@babel/core'
       - '@types/node'
@@ -5430,7 +5430,7 @@ packages:
     resolution: {integrity: sha512-E5LDX7Wrp85Kil5bhZv46j8jOeboKq5JMmYM3gVGdGH8xFpPWXUMsNrlODCrkoxMEeNi/XZIwuRvY4XNwYMJpw==}
     dev: false
 
-  /sharp@0.35.4(@types/node@26.1.2):
+  /sharp@0.35.4(@types/node@26.4.0):
     resolution: {integrity: sha512-n++8XWcj+jCOr2IOl7h8LbKnGBDY4aPbmprMONBNFdn0ImXqpGVv5zliDs0V9HbmbCQLpbuo2ej9rAoOQTvMDA==}
     engines: {node: '>=20.9.0'}
     requiresBuild: true
@@ -5441,7 +5441,7 @@ packages:
         optional: true
     dependencies:
       '@img/colour': 1.1.0
-      '@types/node': 26.1.2
+      '@types/node': 26.4.0
       detect-libc: 2.1.2
       semver: 7.8.5
     optionalDependencies:
@@ -6088,7 +6088,7 @@ packages:
     engines: {node: '>= 0.8'}
     dev: false
 
-  /vite-node@3.2.4(@types/node@26.1.2)(esbuild@0.27.2)(tsx@4.21.0):
+  /vite-node@3.2.4(@types/node@26.4.0)(esbuild@0.27.2)(tsx@4.21.0):
     resolution: {integrity: sha512-EbKSKh+bh1E1IFxeO0pg1n4dvoOTt0UDiXMd/qn++r98+jPO1xtJilvXldeuQ8giIB5IkpjCgMleHMNEsGH6pg==}
     engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
     hasBin: true
@@ -6097,7 +6097,7 @@ packages:
       debug: 4.4.3
       es-module-lexer: 1.7.0
       pathe: 2.0.3
-      vite: 8.1.5(@types/node@26.1.2)(esbuild@0.27.2)(tsx@4.21.0)
+      vite: 8.1.5(@types/node@26.4.0)(esbuild@0.27.2)(tsx@4.21.0)
     transitivePeerDependencies:
       - '@types/node'
       - '@vitejs/devtools'
@@ -6114,7 +6114,7 @@ packages:
       - yaml
     dev: true
 
-  /vite@8.1.5(@types/node@26.1.2)(esbuild@0.27.2)(tsx@4.21.0):
+  /vite@8.1.5(@types/node@26.4.0)(esbuild@0.27.2)(tsx@4.21.0):
     resolution: {integrity: sha512-7ULLwsCdYx/nRyrpiEwvqb5TFHrMVZyBt+rg/OAXT7rgj/z+DtTDyKFeLAdDkubDVDKD8jOsndmy7m55XcfUsw==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
@@ -6157,7 +6157,7 @@ packages:
       yaml:
         optional: true
     dependencies:
-      '@types/node': 26.1.2
+      '@types/node': 26.4.0
       esbuild: 0.27.2
       lightningcss: 1.33.0
       picomatch: 4.0.5
@@ -6169,7 +6169,7 @@ packages:
       fsevents: 2.3.3
     dev: true
 
-  /vitest@3.2.7(@types/node@26.1.2)(esbuild@0.27.2)(tsx@4.21.0):
+  /vitest@3.2.7(@types/node@26.4.0)(esbuild@0.27.2)(tsx@4.21.0):
     resolution: {integrity: sha512-KrxIJ62Fd89gfysR4WotlgZABiz2dqFPgqGzX7s+CwsqLFomRH7777ZcrOD6+WVAh7khPQP41A+BKbpcJFrdEg==}
     engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
     hasBin: true
@@ -6198,7 +6198,7 @@ packages:
         optional: true
     dependencies:
       '@types/chai': 5.2.3
-      '@types/node': 26.1.2
+      '@types/node': 26.4.0
       '@vitest/expect': 3.2.7
       '@vitest/mocker': 3.2.7(vite@8.1.5)
       '@vitest/pretty-format': 3.2.7
@@ -6218,8 +6218,8 @@ packages:
       tinyglobby: 0.2.17
       tinypool: 1.1.1
       tinyrainbow: 2.0.0
-      vite: 8.1.5(@types/node@26.1.2)(esbuild@0.27.2)(tsx@4.21.0)
-      vite-node: 3.2.4(@types/node@26.1.2)(esbuild@0.27.2)(tsx@4.21.0)
+      vite: 8.1.5(@types/node@26.4.0)(esbuild@0.27.2)(tsx@4.21.0)
+      vite-node: 3.2.4(@types/node@26.4.0)(esbuild@0.27.2)(tsx@4.21.0)
       why-is-node-running: 2.3.0
     transitivePeerDependencies:
       - '@vitejs/devtools'
