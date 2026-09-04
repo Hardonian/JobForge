@@ -6,6 +6,10 @@ JobForge routes autonomous agent workloads through PostgreSQL. No Redis, no Kafk
 
 Built for engineers who need agents that complete work with observability and guarantees.
 
+<!-- BEGIN: REPO HERO -->
+![Repository hero generated locally on the GPU stack](assets/repo-hero.png)
+<!-- END: REPO HERO -->
+
 ## What It Does
 
 JobForge is an **agent router**: it takes jobs from AI agents, SaaS webhooks, or internal services and guarantees they run exactly once, in order, with full observability.
