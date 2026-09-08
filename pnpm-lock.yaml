@@ -147,8 +147,8 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
       webpack-bundle-analyzer:
-        specifier: ^5.3.1
-        version: 5.3.1
+        specifier: ^5.3.2
+        version: 5.3.2
 
   packages/autopilot-compat:
     dependencies:
@@ -6922,8 +6922,8 @@ packages:
       - yaml
     dev: true
 
-  /webpack-bundle-analyzer@5.3.1:
-    resolution: {integrity: sha512-wP2EusncRGL1tZyMHC/umLkjPdYMkTL9nPEKh8G8dkYCJ9TyF6xnXFqjhdqmv5J900irN/g0P5jMvLT22krEXQ==}
+  /webpack-bundle-analyzer@5.3.2:
+    resolution: {integrity: sha512-IagCa/GrdxSz+ba9OMgK7UCfQp97HtXbgjXu7ObcqmRo9PTp0d+24rgY+mIFOx7JPQ9bo6FGsqZhA55rYRZrrQ==}
     engines: {node: '>= 20.9.0'}
     hasBin: true
     dependencies:
