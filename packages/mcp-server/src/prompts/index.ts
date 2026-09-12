@@ -20,7 +20,11 @@ export const PROMPTS: McpPromptDefinition[] = [
     description: 'Diagnose and propose remediation for a failed or dead JobForge job execution.',
     arguments: [
       { name: 'job_id', description: 'The UUID of the failed job', required: true },
-      { name: 'include_logs', description: 'Whether to inspect full attempt logs', required: false },
+      {
+        name: 'include_logs',
+        description: 'Whether to inspect full attempt logs',
+        required: false,
+      },
     ],
     template: (args) =>
       `Please inspect failed job ${args.job_id} using JobForge MCP tools (jobforge.jobs.get and jobforge.artifacts.get). ` +

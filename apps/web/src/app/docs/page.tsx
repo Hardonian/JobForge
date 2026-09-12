@@ -1,6 +1,5 @@
 import React from 'react'
-import { Card } from '@jobforge/ui/card'
-import { Badge } from '@jobforge/ui/badge'
+import { Card, Badge } from '@jobforge/ui'
 
 interface EndpointDoc {
   method: 'GET' | 'POST' | 'DELETE'
@@ -28,7 +27,11 @@ const ENDPOINTS: EndpointDoc[] = [
     method: 'POST',
     path: '/api/jobs',
     description: 'Enqueue a single job or batch of jobs atomically into the priority queue.',
-    headers: ['X-Tenant-ID (required)', 'Authorization (Bearer token)', 'Content-Type: application/json'],
+    headers: [
+      'X-Tenant-ID (required)',
+      'Authorization (Bearer token)',
+      'Content-Type: application/json',
+    ],
   },
   {
     method: 'POST',
@@ -62,7 +65,8 @@ export default function ApiDocsPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">API Documentation & Endpoints</h1>
         <p className="text-muted-foreground">
-          REST API reference for integrating autonomous agents, CI systems, and external SaaS webhooks.
+          REST API reference for integrating autonomous agents, CI systems, and external SaaS
+          webhooks.
         </p>
       </div>
 
@@ -70,7 +74,11 @@ export default function ApiDocsPage() {
         {ENDPOINTS.map((ep) => (
           <Card key={`${ep.method}-${ep.path}`} className="p-6 space-y-3">
             <div className="flex items-center space-x-3">
-              <Badge variant={ep.method === 'GET' ? 'neutral' : ep.method === 'POST' ? 'success' : 'danger'}>
+              <Badge
+                variant={
+                  ep.method === 'GET' ? 'neutral' : ep.method === 'POST' ? 'success' : 'danger'
+                }
+              >
                 {ep.method}
               </Badge>
               <code className="font-mono text-sm font-semibold">{ep.path}</code>

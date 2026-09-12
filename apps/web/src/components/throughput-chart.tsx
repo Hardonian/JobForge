@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Card } from '@jobforge/ui/card'
+import { Card } from '@jobforge/ui'
 
 interface Point {
   time: string
@@ -40,7 +40,9 @@ export function ThroughputChart({ data = DEFAULT_DATA }: { data?: Point[] }) {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-semibold text-sm">System Throughput & Queue Velocity</h3>
-          <p className="text-xs text-muted-foreground">Jobs executed per minute over the last 2 hours</p>
+          <p className="text-xs text-muted-foreground">
+            Jobs executed per minute over the last 2 hours
+          </p>
         </div>
         <div className="flex items-center space-x-4 text-xs">
           <div className="flex items-center space-x-1">
@@ -52,7 +54,12 @@ export function ThroughputChart({ data = DEFAULT_DATA }: { data?: Point[] }) {
 
       <div className="w-full overflow-hidden">
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-32 stroke-blue-500 fill-none">
-          <polyline strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" points={points} />
+          <polyline
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            points={points}
+          />
         </svg>
       </div>
 

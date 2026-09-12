@@ -9,7 +9,11 @@ export interface TenantOption {
 }
 
 const DEFAULT_TENANTS: TenantOption[] = [
-  { id: '00000000-0000-0000-0000-000000000001', name: 'Primary Enterprise', slug: 'primary-enterprise' },
+  {
+    id: '00000000-0000-0000-0000-000000000001',
+    name: 'Primary Enterprise',
+    slug: 'primary-enterprise',
+  },
   { id: '00000000-0000-0000-0000-000000000002', name: 'Staging E2E Tenant', slug: 'staging-e2e' },
   { id: '00000000-0000-0000-0000-000000000003', name: 'FinOps Pilot Fleet', slug: 'finops-pilot' },
 ]

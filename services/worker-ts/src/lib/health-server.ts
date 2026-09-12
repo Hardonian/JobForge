@@ -6,7 +6,8 @@ export interface HealthServerOptions {
 }
 
 export function startHealthServer(options: HealthServerOptions = {}): http.Server {
-  const port = options.port ?? (process.env.HEALTH_PORT ? parseInt(process.env.HEALTH_PORT, 10) : 8080)
+  const port =
+    options.port ?? (process.env.HEALTH_PORT ? parseInt(process.env.HEALTH_PORT, 10) : 8080)
   const isReady = options.isReady ?? (() => true)
 
   const server = http.createServer((req, res) => {

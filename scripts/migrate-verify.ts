@@ -40,7 +40,9 @@ export function verifyMigrations(migrationsDir: string): MigrationCheckResult[] 
       if (line.startsWith('--')) continue
 
       if (line.includes('CREATE TABLE') && !line.includes('IF NOT EXISTS')) {
-        warnings.push(`Line ${i + 1}: CREATE TABLE without IF NOT EXISTS (recommend IF NOT EXISTS for idempotency)`)
+        warnings.push(
+          `Line ${i + 1}: CREATE TABLE without IF NOT EXISTS (recommend IF NOT EXISTS for idempotency)`
+        )
       }
       if (line.includes('CREATE TABLE')) {
         hasTable = true

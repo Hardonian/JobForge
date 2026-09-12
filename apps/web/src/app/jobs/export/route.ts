@@ -10,7 +10,16 @@ export async function GET(req: NextRequest) {
   const tenantId = req.headers.get('x-tenant-id') || '00000000-0000-0000-0000-000000000001'
   const status = url.searchParams.get('status') || 'all'
 
-  const headers = ['id', 'tenant_id', 'type', 'priority', 'status', 'attempts', 'run_at', 'finished_at']
+  const headers = [
+    'id',
+    'tenant_id',
+    'type',
+    'priority',
+    'status',
+    'attempts',
+    'run_at',
+    'finished_at',
+  ]
 
   const sampleRows = [
     [

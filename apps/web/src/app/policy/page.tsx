@@ -1,9 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Card } from '@jobforge/ui/card'
-import { Badge } from '@jobforge/ui/badge'
-import { Button } from '@jobforge/ui/button'
+import { Card, Badge, Button } from '@jobforge/ui'
 
 interface PolicyRule {
   domain: string
@@ -14,7 +12,7 @@ interface PolicyRule {
 }
 
 export default function PolicyGuardPage() {
-  const [policies, setPolicies] = useState<PolicyRule[]>([
+  const [policies] = useState<PolicyRule[]>([
     {
       domain: 'autopilot.finops',
       level: 'RECOMMEND_ONLY',

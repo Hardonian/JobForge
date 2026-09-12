@@ -38,6 +38,6 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ status: 'ok', provider: 'jobforge-auth' })
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(_req: NextRequest) {
   return NextResponse.json({ status: 'authenticated', session_id: 'sess_' + Date.now() })
 }

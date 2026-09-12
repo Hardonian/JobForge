@@ -24,9 +24,7 @@ export interface TenantPurgeResult {
   durationMs: number
 }
 
-export async function purgeTenantData(
-  options: TenantPurgeOptions
-): Promise<TenantPurgeResult> {
+export async function purgeTenantData(options: TenantPurgeOptions): Promise<TenantPurgeResult> {
   const start = Date.now()
 
   if (!options.tenantId) {
@@ -60,7 +58,9 @@ async function main() {
   const anonymize = args.includes('--anonymize')
 
   if (!tenantId) {
-    console.log('Usage: npx tsx scripts/tenant-data-purge.ts --tenant <tenant-uuid> [--dry-run] [--anonymize]')
+    console.log(
+      'Usage: npx tsx scripts/tenant-data-purge.ts --tenant <tenant-uuid> [--dry-run] [--anonymize]'
+    )
     process.exit(1)
   }
 
