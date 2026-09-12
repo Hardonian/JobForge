@@ -1,0 +1,40 @@
+replicaCount: 2
+
+image:
+  repository: jobforge/worker-ts
+  pullPolicy: IfNotPresent
+  tag: "1.0.0"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+env:
+  NODE_ENV: production
+  LOG_LEVEL: info
+  WORKER_CONCURRENCY: "10"
+  WORKER_POLL_INTERVAL_MS: "1000"
+
+secrets:
+  supabaseUrl: ""
+  supabaseServiceRoleKey: ""
+  policyTokenSecret: ""
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1024Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

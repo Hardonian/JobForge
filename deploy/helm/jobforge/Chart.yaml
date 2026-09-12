@@ -1,0 +1,15 @@
+apiVersion: v2
+name: jobforge
+description: Enterprise Multi-Tenant AI Agent Router & Queue Helm Chart
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - agent-router
+  - job-queue
+  - postgres
+  - multi-tenant
+home: https://github.com/Hardonian/JobForge
+maintainers:
+  - name: JobForge Maintainers
+    email: maintainers@jobforge.dev
