@@ -1,5 +1,5 @@
 // Prisma schema for JobForge
-// Job orchestration with production constraints and indexes
+// Multi-tenant agent router schema synchronized with Supabase SQL
 
 generator client {
   provider        = "prisma-client-js"
@@ -11,113 +11,117 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Job definition and configuration
-model Job {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  // Job configuration as JSONB for flexibility
-  config      Json     @default("{}")
-  // Job status: pending, running, completed, failed, cancelled
-  status      String   @default("pending")
-  // Priority for job execution (higher = more important)
-  priority    Int      @default(0)
-  // Maximum retry attempts
-  maxRetries  Int      @default(3)
-  // Current retry count
-  retryCount  Int      @default(0)
-  // Scheduled execution time
-  scheduledAt DateTime?
-  // When the job started executing
-  startedAt   DateTime?
-  // When the job completed (success or failure)
-  completedAt DateTime?
-  // Error message if job failed
-  error       String?
-  // Correlation ID for tracing
-  correlationId String?
-  // Created and updated timestamps
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model JobforgeTenant {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  slug      String   @unique
+  tier      String   @default("standard")
+  isActive  Boolean  @default(true) @map("is_active")
+  isPaused  Boolean  @default(false) @map("is_paused")
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  // Relations
-  executions JobExecution[]
+  jobs      JobforgeJob[]
+  apiKeys   JobforgeApiKey[]
+  quota     JobforgeQuota?
 
-  // Indexes for common queries
-  @@index([status, priority, scheduledAt], name: "idx_job_execution_queue")
-  @@index([status, createdAt], name: "idx_job_status_created")
-  @@index([correlationId], name: "idx_job_correlation")
-  @@index([createdAt], name: "idx_job_created")
-  @@map("jobs")
+  @@map("jobforge_tenants")
 }
 
-// Job execution history
-model JobExecution {
-  id            String   @id @default(cuid())
-  jobId         String
-  // Execution status: running, completed, failed
-  status        String
-  // When this execution started
-  startedAt     DateTime @default(now())
-  // When this execution completed
-  completedAt   DateTime?
-  // Duration in milliseconds
-  duration      Int?
-  // Error message if execution failed
-  error         String?
-  // Execution logs (optional, for debugging)
-  logs          String?
-  // Correlation ID for tracing
-  correlationId String?
-  // Worker/instance that executed this job
-  workerId      String?
+model JobforgeJob {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  type           String
+  payload        Json      @default("{}")
+  status         String    @default("queued")
+  attempts       Int       @default(0)
+  maxAttempts    Int       @default(5) @map("max_attempts")
+  priority       Int       @default(0)
+  timeoutMs      Int       @default(300000) @map("timeout_ms")
+  runAt          DateTime  @default(now()) @map("run_at") @db.Timestamptz(6)
+  lockedAt       DateTime? @map("locked_at") @db.Timestamptz(6)
+  lockedBy       String?   @map("locked_by")
+  heartbeatAt    DateTime? @map("heartbeat_at") @db.Timestamptz(6)
+  startedAt      DateTime? @map("started_at") @db.Timestamptz(6)
+  finishedAt     DateTime? @map("finished_at") @db.Timestamptz(6)
+  idempotencyKey String?   @map("idempotency_key")
+  createdBy      String?   @map("created_by")
+  error          Json?
+  resultId       String?   @map("result_id") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  // Relations
-  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  tenant         JobforgeTenant       @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  results        JobforgeJobResult[]
+  attemptsList   JobforgeJobAttempt[]
 
-  // Indexes for common queries
-  @@index([jobId, startedAt], name: "idx_execution_job_started")
-  @@index([status, startedAt], name: "idx_execution_status")
-  @@index([correlationId], name: "idx_execution_correlation")
-  @@map("job_executions")
+  @@unique([tenantId, type, idempotencyKey], name: "jobforge_jobs_idempotency_unique")
+  @@index([tenantId, status, priority, runAt], name: "idx_jobforge_jobs_claim")
+  @@index([status, heartbeatAt], name: "idx_jobforge_jobs_stuck")
+  @@map("jobforge_jobs")
 }
 
-// Job schedule/cron configuration
-model JobSchedule {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  description String?
-  // Cron expression for scheduling
-  cronExpression String
-  // Job configuration to create
-  jobConfig   Json
-  // Whether this schedule is active
-  enabled     Boolean  @default(true)
-  // Last time a job was created from this schedule
-  lastRunAt   DateTime?
-  // Next scheduled run time
-  nextRunAt   DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model JobforgeJobResult {
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  jobId       String      @map("job_id") @db.Uuid
+  tenantId    String      @map("tenant_id") @db.Uuid
+  result      Json        @default("{}")
+  artifactRef String?     @map("artifact_ref")
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  // Indexes
-  @@index([enabled, nextRunAt], name: "idx_schedule_active")
-  @@map("job_schedules")
+  job         JobforgeJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId], name: "idx_jobforge_job_results_job_id")
+  @@index([tenantId, createdAt], name: "idx_jobforge_job_results_tenant")
+  @@map("jobforge_job_results")
 }
 
-// Distributed lock for job processing
-model JobLock {
-  id         String   @id @default(cuid())
-  // Resource being locked (e.g., "job:123")
-  resource   String   @unique
-  // Instance/worker holding the lock
-  ownerId    String
-  // When the lock was acquired
-  acquiredAt DateTime @default(now())
-  // When the lock expires
-  expiresAt  DateTime
+model JobforgeJobAttempt {
+  id         String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  jobId      String      @map("job_id") @db.Uuid
+  tenantId   String      @map("tenant_id") @db.Uuid
+  attemptNo  Int         @map("attempt_no")
+  startedAt  DateTime    @default(now()) @map("started_at") @db.Timestamptz(6)
+  finishedAt DateTime?   @map("finished_at") @db.Timestamptz(6)
+  error      Json?
+  createdAt  DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  // Indexes
-  @@index([expiresAt], name: "idx_lock_expiry")
-  @@map("job_locks")
+  job        JobforgeJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId, attemptNo], name: "idx_jobforge_job_attempts_job_id")
+  @@index([tenantId, createdAt], name: "idx_jobforge_job_attempts_tenant")
+  @@map("jobforge_job_attempts")
+}
+
+model JobforgeApiKey {
+  id         String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId   String         @map("tenant_id") @db.Uuid
+  name       String
+  keyPrefix  String         @map("key_prefix")
+  keyHash    String         @unique @map("key_hash")
+  scopes     Json           @default("[\"jobs:read\", \"jobs:write\"]")
+  expiresAt  DateTime?      @map("expires_at") @db.Timestamptz(6)
+  revokedAt  DateTime?      @map("revoked_at") @db.Timestamptz(6)
+  lastUsedAt DateTime?      @map("last_used_at") @db.Timestamptz(6)
+  createdAt  DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tenant     JobforgeTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([keyHash], name: "idx_jobforge_api_keys_hash")
+  @@index([tenantId], name: "idx_jobforge_api_keys_tenant")
+  @@map("jobforge_api_keys")
+}
+
+model JobforgeQuota {
+  tenantId           String         @id @map("tenant_id") @db.Uuid
+  maxConcurrentJobs  Int            @default(10) @map("max_concurrent_jobs")
+  maxMonthlyJobs     Int            @default(50000) @map("max_monthly_jobs")
+  maxPayloadBytes    Int            @default(5242880) @map("max_payload_bytes")
+  burstAllowance     Int            @default(5) @map("burst_allowance")
+  updatedAt          DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenant             JobforgeTenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("jobforge_quotas")
 }

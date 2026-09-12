@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: supabase/postgres:15.1.1.78
+    container_name: jobforge-postgres
+    environment:
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  worker-ts:
+    build:
+      context: .
+      dockerfile: services/worker-ts/Dockerfile
+    container_name: jobforge-worker-ts
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SUPABASE_URL: http://postgres:5432
+      SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy_dev_key
+      WORKER_ID: worker-ts-docker-1
+      JOBFORGE_AUTOPILOT_JOBS_ENABLED: "1"
+      VERIFY_PACK_ENABLED: "1"
+    restart: on-failure
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: jobforge-web
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - '3000:3000'
+    environment:
+      NEXT_PUBLIC_SUPABASE_URL: http://localhost:5432
+      SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy_dev_key
+      PORT: 3000
+
+volumes:
+  pgdata:

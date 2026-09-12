@@ -79,18 +79,6 @@ jobs:
       - name: JobForge doctor
         run: pnpm jobforge:doctor
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: '.nvmrc'
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-        with:
-          version: 8
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
 
       - name: Build shared package
         run: pnpm --filter @jobforge/shared run build
