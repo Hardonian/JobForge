@@ -20,15 +20,15 @@ import {
   decompressPayload,
 } from '@jobforge/shared'
 
-export interface QueryResult<T = unknown> {
+export interface QueryResult<T = any> {
   rows: T[]
   rowCount?: number
 }
 
-export type SqlQueryFunction = <T = unknown>(
+export type SqlQueryFunction = (
   sql: string,
   params?: unknown[]
-) => Promise<QueryResult<T> | T[]>
+) => Promise<QueryResult<any> | any[]>
 
 export interface DirectPgClientConfig {
   /**
