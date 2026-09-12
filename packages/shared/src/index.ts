@@ -88,6 +88,8 @@ export * from './doctor.js'
 export * from './policy-guard.js'
 export * from './impact-map.js'
 export * from './upgrade-lane.js'
+export * from './workflow.js'
 
 // Explicit re-exports to resolve ambiguities
 export type { TriggerType } from './execution-plane/triggers.js'
+

@@ -21,6 +21,8 @@ export const jobRowSchema = z.object({
   status: jobStatusSchema,
   attempts: z.number().int().min(0),
   max_attempts: z.number().int().min(1),
+  priority: z.number().int().default(0),
+  timeout_ms: z.number().int().positive().default(300000),
   run_at: z.string().datetime(),
   locked_at: z.string().datetime().nullable(),
   locked_by: z.string().nullable(),
@@ -40,8 +42,25 @@ export const enqueueJobParamsSchema = z.object({
   type: z.string().min(1),
   payload: z.record(z.unknown()),
   idempotency_key: z.string().optional(),
+  priority: z.number().int().min(-100).max(100).optional(),
+  timeout_ms: z.number().int().positive().max(86400000).optional(),
   run_at: z.string().datetime().optional(),
   max_attempts: z.number().int().min(1).max(10).optional(),
+})
+
+export const batchEnqueueJobItemSchema = z.object({
+  type: z.string().min(1),
+  payload: z.record(z.unknown()),
+  idempotency_key: z.string().optional(),
+  priority: z.number().int().min(-100).max(100).optional(),
+  timeout_ms: z.number().int().positive().max(86400000).optional(),
+  run_at: z.string().datetime().optional(),
+  max_attempts: z.number().int().min(1).max(10).optional(),
+})
+
+export const batchEnqueueJobParamsSchema = z.object({
+  tenant_id: z.string().uuid(),
+  jobs: z.array(batchEnqueueJobItemSchema).min(1).max(1000),
 })
 
 export const completeJobParamsSchema = z.object({
@@ -52,3 +71,4 @@ export const completeJobParamsSchema = z.object({
   result: z.record(z.unknown()).optional(),
   artifact_ref: z.string().optional(),
 })
+

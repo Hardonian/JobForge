@@ -13,6 +13,8 @@ export interface JobRow {
   status: JobStatus
   attempts: number
   max_attempts: number
+  priority: number
+  timeout_ms: number
   run_at: string // ISO timestamp
   locked_at: string | null
   locked_by: string | null
@@ -27,32 +29,36 @@ export interface JobRow {
   updated_at: string
 }
 
-export interface JobResultRow {
+export interface TenantRow {
   id: string
-  job_id: string
+  name: string
+  slug: string
+  tier: 'free' | 'standard' | 'pro' | 'enterprise'
+  is_active: boolean
+  is_paused: boolean
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
+export interface ApiKeyRow {
+  id: string
   tenant_id: string
-  result: Record<string, unknown>
-  artifact_ref: string | null
+  name: string
+  key_prefix: string
+  scopes: string[]
+  expires_at: string | null
+  revoked_at: string | null
+  last_used_at: string | null
   created_at: string
 }
 
-export interface JobAttemptRow {
-  id: string
-  job_id: string
+export interface QuotaRow {
   tenant_id: string
-  attempt_no: number
-  started_at: string
-  finished_at: string | null
-  error: Record<string, unknown> | null
-  created_at: string
-}
-
-export interface ConnectorConfigRow {
-  id: string
-  tenant_id: string
-  connector_type: string
-  config: Record<string, unknown>
-  created_at: string
+  max_concurrent_jobs: number
+  max_monthly_jobs: number
+  max_payload_bytes: number
+  burst_allowance: number
   updated_at: string
 }
 
@@ -61,8 +67,33 @@ export interface EnqueueJobParams {
   type: string
   payload: Record<string, unknown>
   idempotency_key?: string
+  priority?: number
+  timeout_ms?: number
   run_at?: string // ISO timestamp, defaults to now
   max_attempts?: number // defaults to 5
+}
+
+export interface BatchEnqueueJobItem {
+  type: string
+  payload: Record<string, unknown>
+  idempotency_key?: string
+  priority?: number
+  timeout_ms?: number
+  max_attempts?: number
+  run_at?: string
+}
+
+export interface BatchEnqueueJobParams {
+  tenant_id: string
+  jobs: BatchEnqueueJobItem[]
+}
+
+export interface ReclaimStuckJobsResult {
+  reclaimed_count: number
+}
+
+export interface BulkRescheduleDeadResult {
+  rescheduled_count: number
 }
 
 export interface ClaimJobsParams {

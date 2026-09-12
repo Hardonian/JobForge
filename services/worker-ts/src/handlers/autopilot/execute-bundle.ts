@@ -19,7 +19,9 @@ import {
   isAutopilotJobsEnabled,
   isActionJobsEnabled,
   JOBFORGE_POLICY_TOKEN_SECRET,
+  verifyPolicyToken as verifyPolicyTokenCrypto,
 } from '@jobforge/shared'
+import { JobForgeClient } from '@jobforge/sdk-ts'
 import {
   JobRequestBundleSchema,
   JobRequestSchema,
@@ -117,8 +119,6 @@ function verifyPolicyToken(
     }
   }
 
-  // TODO: Implement proper HMAC verification
-  // For now, just check that a secret is configured
   if (!JOBFORGE_POLICY_TOKEN_SECRET) {
     return {
       valid: false,
@@ -126,11 +126,11 @@ function verifyPolicyToken(
     }
   }
 
-  // Basic token format validation (stub)
-  if (token.length < 32) {
+  const verification = verifyPolicyTokenCrypto(token, JOBFORGE_POLICY_TOKEN_SECRET)
+  if (!verification.valid) {
     return {
       valid: false,
-      reason: 'Invalid policy token format',
+      reason: verification.error || 'Invalid policy token signature or expired',
     }
   }
 
