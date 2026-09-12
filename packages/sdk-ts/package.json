@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "TypeScript SDK for JobForge (server-only)",
+  "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -29,7 +30,7 @@
     "@jobforge/typescript-config": "workspace:*",
     "@types/node": "^26.4.0",
     "eslint": "^8.56.0",
-    "typescript": "^7.0.2",
+    "typescript": "^5.9.3",
     "vitest": "^5.0.0"
   }
 }

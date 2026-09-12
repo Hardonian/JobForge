@@ -59,6 +59,33 @@ import {
 } from './autopilot/execute-bundle'
 import { runModuleCliHandler, RunModuleCliPayloadSchema } from './autopilot/run-module-cli'
 
+// Adapter handlers
+import { aiasAgentExecuteHandler, aiasKnowledgeIndexHandler } from './adapters/aias'
+import {
+  settlerContractProcessHandler,
+  settlerNotificationSendHandler,
+  settlerReportMonthlyHandler,
+} from './adapters/settler'
+import {
+  keysUsageAggregateHandler,
+  keysQuotaCheckHandler,
+  keysRotationScheduleHandler,
+} from './adapters/keys'
+import {
+  AiasAgentExecutePayloadSchema,
+  AiasKnowledgeIndexPayloadSchema,
+} from '@jobforge/adapter-aias'
+import {
+  SettlerContractProcessPayloadSchema,
+  SettlerNotificationSendPayloadSchema,
+  SettlerReportMonthlyPayloadSchema,
+} from '@jobforge/adapter-settler'
+import {
+  KeysUsageAggregatePayloadSchema,
+  KeysQuotaCheckPayloadSchema,
+  KeysRotationSchedulePayloadSchema,
+} from '@jobforge/adapter-keys'
+
 /**
  * Create and configure the default handler registry
  */
@@ -69,15 +96,14 @@ export function createDefaultRegistry(): HandlerRegistry {
   registry.register('connector.http.request', httpRequestHandler, {
     timeoutMs: 60_000, // 1 minute
     validate: (payload) => {
-      // Basic validation - actual validation done in handler via zod
       return typeof payload === 'object' && payload !== null && 'url' in payload
     },
   })
 
-  // Register HTTP JSON v1 connector (advanced connector with circuit breaker, retries, SSRF protection)
+  // Register HTTP JSON v1 connector
   registry.register('connector.http_json_v1', httpJsonV1Handler, {
     timeoutMs: 120_000, // 2 minutes (allows for retries)
-    maxAttempts: 5, // Allow more attempts for retryable failures
+    maxAttempts: 5,
     validate: (payload) => {
       const result = HttpJsonRequestSchema.safeParse(payload)
       return result.success
@@ -196,7 +222,7 @@ export function createDefaultRegistry(): HandlerRegistry {
   })
 
   // ============================================================================
-  // JobForge Bundle Executor (First-class job type)
+  // JobForge Bundle Executor
   // ============================================================================
 
   registry.register('jobforge.autopilot.execute_request_bundle', executeRequestBundleHandler, {
@@ -209,6 +235,50 @@ export function createDefaultRegistry(): HandlerRegistry {
     validate: (payload) => RunModuleCliPayloadSchema.safeParse(payload).success,
   })
 
+  // ============================================================================
+  // Adapter Handlers (AIAS, Settler, Keys)
+  // ============================================================================
+
+  registry.register('aias.agent.execute', aiasAgentExecuteHandler, {
+    timeoutMs: 300_000,
+    validate: (payload) => AiasAgentExecutePayloadSchema.safeParse(payload).success,
+  })
+
+  registry.register('aias.knowledge.index', aiasKnowledgeIndexHandler, {
+    timeoutMs: 300_000,
+    validate: (payload) => AiasKnowledgeIndexPayloadSchema.safeParse(payload).success,
+  })
+
+  registry.register('settler.contract.process', settlerContractProcessHandler, {
+    timeoutMs: 180_000,
+    validate: (payload) => SettlerContractProcessPayloadSchema.safeParse(payload).success,
+  })
+
+  registry.register('settler.notification.send', settlerNotificationSendHandler, {
+    timeoutMs: 60_000,
+    validate: (payload) => SettlerNotificationSendPayloadSchema.safeParse(payload).success,
+  })
+
+  registry.register('settler.report.monthly', settlerReportMonthlyHandler, {
+    timeoutMs: 300_000,
+    validate: (payload) => SettlerReportMonthlyPayloadSchema.safeParse(payload).success,
+  })
+
+  registry.register('keys.usage.aggregate', keysUsageAggregateHandler, {
+    timeoutMs: 180_000,
+    validate: (payload) => KeysUsageAggregatePayloadSchema.safeParse(payload).success,
+  })
+
+  registry.register('keys.quota.check', keysQuotaCheckHandler, {
+    timeoutMs: 60_000,
+    validate: (payload) => KeysQuotaCheckPayloadSchema.safeParse(payload).success,
+  })
+
+  registry.register('keys.rotation.schedule', keysRotationScheduleHandler, {
+    timeoutMs: 60_000,
+    validate: (payload) => KeysRotationSchedulePayloadSchema.safeParse(payload).success,
+  })
+
   return registry
 }
 
@@ -218,13 +288,16 @@ export { webhookDeliverHandler, reportGenerateHandler }
 
 // Export autopilot handlers for testing
 export { opsScanHandler, opsDiagnoseHandler, opsRecommendHandler, opsApplyHandler }
-
 export { supportTriageHandler, supportDraftReplyHandler, supportProposeKbPatchHandler }
-
 export { growthSeoScanHandler, growthExperimentProposeHandler, growthContentDraftHandler }
-
 export { finopsReconcileHandler, finopsAnomalyScanHandler, finopsChurnRiskReportHandler }
+export { executeRequestBundleHandler, runModuleCliHandler }
 
-export { executeRequestBundleHandler }
-
-export { runModuleCliHandler }
+// Export adapter handlers for testing
+export { aiasAgentExecuteHandler, aiasKnowledgeIndexHandler }
+export {
+  settlerContractProcessHandler,
+  settlerNotificationSendHandler,
+  settlerReportMonthlyHandler,
+}
+export { keysUsageAggregateHandler, keysQuotaCheckHandler, keysRotationScheduleHandler }

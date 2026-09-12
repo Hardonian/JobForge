@@ -1,10 +1,12 @@
 /**
  * HTTP Request Connector
- * Executes HTTP requests with SSRF protection
+ * Executes HTTP requests with SSRF protection including DNS-rebinding prevention
  */
 
 import type { JobContext } from '@jobforge/shared'
 import { z } from 'zod'
+import { promises as dns } from 'node:dns'
+import { isIP } from 'node:net'
 import { getAllowlistMatcher } from './allowlist-matcher'
 import { collectResponseHeaders } from './response-headers'
 import { readBodyPreview } from './response-preview'
@@ -30,44 +32,134 @@ export interface HttpRequestResult {
   success: boolean
 }
 
-const BLOCKED_HOSTS = [
+const BLOCKED_HOSTNAMES = [
   'localhost',
   '127.0.0.1',
   '0.0.0.0',
   '169.254.169.254', // AWS metadata
   'metadata.google.internal', // GCP metadata
-]
-
-const PRIVATE_IP_RANGES = [
-  /^10\./,
-  /^172\.(1[6-9]|2[0-9]|3[0-1])\./,
-  /^192\.168\./,
-  /^127\./,
-  /^0\./,
+  'instance-data',
 ]
 
 /**
- * SSRF protection: validate URL against allowlist and block private IPs
+ * Validates whether an IP address belongs to a private, loopback, or link-local range.
  */
-function validateUrl(url: string, allowlist?: string[]): void {
-  const parsed = new URL(url)
+export function isPrivateIp(ip: string): boolean {
+  const version = isIP(ip)
+  if (!version) return true // Invalid IP considered unsafe
 
-  // Check blocked hosts
-  if (BLOCKED_HOSTS.includes(parsed.hostname.toLowerCase())) {
-    throw new Error(`Blocked host: ${parsed.hostname}`)
+  if (version === 4) {
+    const parts = ip.split('.').map((p) => parseInt(p, 10))
+    if (parts.length !== 4 || parts.some((p) => isNaN(p) || p < 0 || p > 255)) {
+      return true
+    }
+
+    const [a, b] = parts
+
+    // 0.0.0.0/8
+    if (a === 0) return true
+    // 10.0.0.0/8
+    if (a === 10) return true
+    // 127.0.0.0/8 (Loopback)
+    if (a === 127) return true
+    // 169.254.0.0/16 (Link-local / Cloud metadata)
+    if (a === 169 && b === 254) return true
+    // 172.16.0.0/12 (172.16.0.0 - 172.31.255.255)
+    if (a === 172 && b >= 16 && b <= 31) return true
+    // 192.168.0.0/16
+    if (a === 192 && b === 168) return true
+    // 100.64.0.0/10 (Carrier-grade NAT)
+    if (a === 100 && b >= 64 && b <= 127) return true
+    // 224.0.0.0/4 (Multicast) or 240.0.0.0/4 (Reserved)
+    if (a >= 224) return true
+
+    return false
   }
 
-  // Check private IP ranges
-  for (const pattern of PRIVATE_IP_RANGES) {
-    if (pattern.test(parsed.hostname)) {
-      throw new Error(`Private IP address not allowed: ${parsed.hostname}`)
+  if (version === 6) {
+    const lower = ip.toLowerCase()
+    // Loopback ::1
+    if (lower === '::1' || lower === '0:0:0:0:0:0:0:1') return true
+    // Unspecified ::
+    if (lower === '::' || lower === '0:0:0:0:0:0:0:0') return true
+    // IPv4-mapped IPv6 (::ffff:x.x.x.x)
+    if (lower.startsWith('::ffff:')) {
+      const ipv4Part = lower.replace('::ffff:', '')
+      if (isIP(ipv4Part) === 4) {
+        return isPrivateIp(ipv4Part)
+      }
+      return true
     }
+    // Unique local address fc00::/7 (fc00... or fd00...)
+    if (lower.startsWith('fc') || lower.startsWith('fd')) return true
+    // Link-local fe80::/10
+    if (
+      lower.startsWith('fe8') ||
+      lower.startsWith('fe9') ||
+      lower.startsWith('fea') ||
+      lower.startsWith('feb')
+    ) {
+      return true
+    }
+
+    return false
+  }
+
+  return true
+}
+
+/**
+ * SSRF protection: validate URL against allowlist and resolve DNS to prevent DNS-rebinding
+ */
+export async function validateUrl(url: string, allowlist?: string[]): Promise<void> {
+  const parsed = new URL(url)
+  const hostname = parsed.hostname.toLowerCase()
+
+  // Only allow http and https protocols
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error(`Unsupported protocol: ${parsed.protocol}`)
+  }
+
+  // Check static blocked hostnames
+  if (BLOCKED_HOSTNAMES.includes(hostname)) {
+    throw new Error(`Blocked host: ${hostname}`)
   }
 
   // Check allowlist if provided
   const matcher = getAllowlistMatcher(allowlist)
-  if (matcher && !matcher(parsed.hostname.toLowerCase())) {
-    throw new Error(`Host not in allowlist: ${parsed.hostname}`)
+  if (matcher && !matcher(hostname)) {
+    throw new Error(`Host not in allowlist: ${hostname}`)
+  }
+
+  // If hostname is already a direct IP address
+  if (isIP(hostname)) {
+    if (isPrivateIp(hostname)) {
+      throw new Error(`Private IP address not allowed: ${hostname}`)
+    }
+    return
+  }
+
+  // Resolve hostname via DNS to prevent DNS rebinding attacks
+  try {
+    const addresses = await dns.lookup(hostname, { all: true })
+    if (!addresses || addresses.length === 0) {
+      throw new Error(`DNS resolution returned no records for host: ${hostname}`)
+    }
+
+    for (const record of addresses) {
+      if (isPrivateIp(record.address)) {
+        throw new Error(
+          `Host ${hostname} resolves to prohibited private IP address: ${record.address}`
+        )
+      }
+    }
+  } catch (err) {
+    if (err instanceof Error && err.message.includes('prohibited private IP address')) {
+      throw err
+    }
+    throw new Error(
+      `DNS resolution failed for host ${hostname}: ${err instanceof Error ? err.message : String(err)}`
+    )
   }
 }
 
@@ -80,8 +172,8 @@ export async function httpRequestHandler(
 ): Promise<HttpRequestResult> {
   const validated = HttpRequestPayloadSchema.parse(payload)
 
-  // SSRF protection
-  validateUrl(validated.url, validated.allowlist)
+  // SSRF protection with DNS resolution check
+  await validateUrl(validated.url, validated.allowlist)
 
   const startTime = Date.now()
 
@@ -118,8 +210,6 @@ export async function httpRequestHandler(
       success: response.ok,
     }
   } catch (error) {
-    const _duration_ms = Date.now() - startTime
-
     throw new Error(
       `HTTP request failed: ${error instanceof Error ? error.message : String(error)}`
     )

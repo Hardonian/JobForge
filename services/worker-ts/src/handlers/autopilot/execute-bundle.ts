@@ -185,13 +185,13 @@ function createManifest(
 // Bundle Processing
 // ============================================================================
 
-function processBundle(
+async function processBundle(
   bundle: JobRequestBundle,
   payloadTenantId: string,
   payloadProjectId: string | undefined,
   policyTokenValid: boolean,
   mode: 'dry_run' | 'execute'
-): { childRuns: ChildRunResult[]; summary: ExecuteBundleResult['summary'] } {
+): Promise<{ childRuns: ChildRunResult[]; summary: ExecuteBundleResult['summary'] }> {
   const childRuns: ChildRunResult[] = []
   const summary: ExecuteBundleResult['summary'] = {
     total: bundle.requests.length,
@@ -293,17 +293,38 @@ function processBundle(
       continue
     }
 
-    // In execute mode, we would actually enqueue
-    // For now, stub the execution
-    // TODO: Integrate with actual job enqueue system
-    childRuns.push({
-      request_id: request.id,
-      job_type: request.job_type,
-      status: 'queued',
-      job_id: `stub-${request.id}-${Date.now()}`,
-      reason: 'Job queued for execution',
-    })
-    summary.queued++
+    // In execute mode, enqueue via SDK client
+    try {
+      const supabaseUrl = process.env.SUPABASE_URL || 'http://localhost:54321'
+      const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'dummy_key'
+      const client = new JobForgeClient({ supabaseUrl, supabaseKey })
+      const enqueued = await client.enqueueJob({
+        tenant_id: payloadTenantId,
+        type: request.job_type,
+        payload:
+          request.payload ||
+          ((request as Record<string, unknown>).inputs as Record<string, unknown>) ||
+          {},
+        idempotency_key: request.idempotency_key || `bundle-${request.id}`,
+      })
+      childRuns.push({
+        request_id: request.id,
+        job_type: request.job_type,
+        status: 'queued',
+        job_id: enqueued.id,
+        reason: 'Job queued for execution via SDK',
+      })
+      summary.queued++
+    } catch (enqueueErr) {
+      childRuns.push({
+        request_id: request.id,
+        job_type: request.job_type,
+        status: 'error',
+        error: enqueueErr instanceof Error ? enqueueErr.message : String(enqueueErr),
+        reason: 'Failed to enqueue job',
+      })
+      summary.errors++
+    }
   }
 
   return { childRuns, summary }
@@ -326,7 +347,7 @@ export async function executeRequestBundleHandler(
       context,
       'failed',
       [],
-      { duration_ms: 0 },
+      { duration_ms: Date.now() - startTime },
       { message: flagCheck.reason, code: 'FEATURE_FLAG_DISABLED' }
     )
 
@@ -362,7 +383,7 @@ export async function executeRequestBundleHandler(
     // We still process all jobs, but action jobs will be denied
 
     // Process the bundle
-    const { childRuns, summary } = processBundle(
+    const { childRuns, summary } = await processBundle(
       bundle,
       validated.tenant_id,
       validated.project_id,

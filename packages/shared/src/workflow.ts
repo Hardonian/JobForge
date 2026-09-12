@@ -35,7 +35,10 @@ export interface WorkflowExecutionState {
 /**
  * Validates whether a workflow DAG is acyclic (contains no loops).
  */
-export function validateWorkflowAcyclic(workflow: WorkflowDefinition): { valid: boolean; error?: string } {
+export function validateWorkflowAcyclic(workflow: WorkflowDefinition): {
+  valid: boolean
+  error?: string
+} {
   const nodeMap = new Map(workflow.nodes.map((n) => [n.id, n]))
   const visited = new Set<string>()
   const visiting = new Set<string>()
@@ -85,4 +88,56 @@ export function getReadyNodes(
     if (completedNodeIds.has(node.id) || activeNodeIds.has(node.id)) return false
     return node.depends_on.every((depId) => completedNodeIds.has(depId))
   })
+}
+
+/**
+ * Executes a workflow DAG in dependency order
+ */
+export async function executeWorkflowDAG(
+  workflow: WorkflowDefinition,
+  executor: (
+    node: WorkflowNode,
+    resolvedInputs: Record<string, unknown>
+  ) => Promise<Record<string, unknown>>
+): Promise<Map<string, Record<string, unknown>>> {
+  const validation = validateWorkflowAcyclic(workflow)
+  if (!validation.valid) {
+    throw new Error(`Invalid workflow DAG: ${validation.error}`)
+  }
+
+  const completed = new Map<string, Record<string, unknown>>()
+  const completedIds = new Set<string>()
+  const activeIds = new Set<string>()
+
+  while (completedIds.size < workflow.nodes.length) {
+    const ready = getReadyNodes(workflow, completedIds, activeIds)
+    if (ready.length === 0 && activeIds.size === 0) {
+      throw new Error('Workflow deadlock or unresolvable dependencies detected')
+    }
+
+    // Execute all currently ready nodes in parallel
+    const promises = ready.map(async (node) => {
+      activeIds.add(node.id)
+      try {
+        // Resolve inputs with parent outputs
+        const resolvedInputs = { ...node.inputs }
+        for (const depId of node.depends_on) {
+          const depOutput = completed.get(depId)
+          if (depOutput) {
+            resolvedInputs[`dep_${depId}`] = depOutput
+          }
+        }
+
+        const result = await executor(node, resolvedInputs)
+        completed.set(node.id, result)
+        completedIds.add(node.id)
+      } finally {
+        activeIds.delete(node.id)
+      }
+    })
+
+    await Promise.all(promises)
+  }
+
+  return completed
 }

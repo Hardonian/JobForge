@@ -29,6 +29,35 @@ export interface JobRow {
   updated_at: string
 }
 
+export interface JobResultRow {
+  id: string
+  job_id: string
+  tenant_id: string
+  result: Record<string, unknown>
+  artifact_ref: string | null
+  created_at: string
+}
+
+export interface JobAttemptRow {
+  id: string
+  job_id: string
+  tenant_id: string
+  attempt_no: number
+  started_at: string
+  finished_at: string | null
+  error: Record<string, unknown> | null
+  created_at: string
+}
+
+export interface ConnectorConfigRow {
+  id: string
+  tenant_id: string
+  connector_type: string
+  config: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
 export interface TenantRow {
   id: string
   name: string

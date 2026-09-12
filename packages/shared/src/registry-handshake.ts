@@ -15,7 +15,7 @@ import {
   type RegistryHandshakeResponse,
   SCHEMA_VERSION,
 } from '@autopilot/contracts'
-import { memoize } from './memoize'
+import { memoize } from './memoize.js'
 
 export interface HandshakeValidationResult {
   valid: boolean

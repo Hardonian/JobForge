@@ -24,6 +24,6 @@ export async function formatCompatibilityReport(
 export function resolveFixturesDir(input?: string): string {
   if (!input) return getFixturesRoot()
   if (path.isAbsolute(input)) return input
-  const baseDir = path.dirname(fileURLToPath(import.meta.url))
+  const baseDir = path.dirname(fileURLToPath(new URL(import.meta.url)))
   return path.resolve(baseDir, input)
 }

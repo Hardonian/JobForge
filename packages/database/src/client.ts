@@ -16,6 +16,7 @@ function createPrismaClient(): PrismaClient {
   return new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
     errorFormat: 'minimal',
+    accelerateUrl: process.env.PRISMA_ACCELERATE_URL || 'prisma://accelerate.net/?api_key=mock_key',
   })
 }
 

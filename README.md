@@ -7,6 +7,7 @@ JobForge routes autonomous agent workloads through PostgreSQL. No Redis, no Kafk
 Built for engineers who need agents that complete work with observability and guarantees.
 
 <!-- BEGIN: REPO HERO -->
+
 ![Repository hero generated locally on the GPU stack](assets/repo-hero.png)
 <!-- END: REPO HERO -->
 
@@ -153,9 +154,7 @@ registerHandler('my.job.type', myJobHandler)
 // Golden test: input → expected output
 GOLDEN_CONTRACT_TESTS.ops.push({
   name: 'my_job_valid_input',
-  input: {
-    /* ... */
-  },
+  input: {/* ... */},
   expected_output: { success: true },
   expected_trace_keys: ['timestamp', 'runner_id', 'decision'],
   expected_artifact_keys: ['result'],
@@ -523,6 +522,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md)
 **JobForge** - Route agent work through PostgreSQL. Idempotent execution with tenant isolation.
 
 ## Repository Operations Standards
+
 - Squash-only merges
 - Auto-delete branches
 - Security scanning in CI

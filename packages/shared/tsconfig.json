@@ -6,7 +6,8 @@
     "declaration": true,
     "declarationMap": true,
     "noEmit": false,
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "types": ["node"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

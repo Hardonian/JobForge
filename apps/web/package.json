@@ -6,12 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
     "analyze": "ANALYZE=true next build"
   },
   "dependencies": {
     "@jobforge/errors": "workspace:*",
+    "@jobforge/sdk-ts": "workspace:*",
+    "@jobforge/shared": "workspace:*",
     "@jobforge/ui": "workspace:*",
     "next": "^16.3.3",
     "react": "^19.2.8",
@@ -27,7 +29,7 @@
     "eslint-config-next": "^14.1.0",
     "postcss": "^8.5.10",
     "tailwindcss": "^3.4.1",
-    "typescript": "^7.0.2",
+    "typescript": "^5.9.3",
     "webpack-bundle-analyzer": "^5.3.2"
   }
 }

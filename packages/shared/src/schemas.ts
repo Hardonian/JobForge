@@ -71,4 +71,3 @@ export const completeJobParamsSchema = z.object({
   result: z.record(z.unknown()).optional(),
   artifact_ref: z.string().optional(),
 })
-

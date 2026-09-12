@@ -2,20 +2,17 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "..",
+    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
-    "baseUrl": ".",
-    "paths": {
-      "@autopilot/contracts": ["../contracts/src/index.ts"],
-      "@jobforge/errors": ["../errors/src/index.ts"],
-      "@jobforge/sdk-ts": ["../sdk-ts/src/index.ts"],
-      "@jobforge/shared": ["../shared/src/index.ts"]
-    }
+    "declaration": true,
+    "declarationMap": true,
+    "noEmit": false,
+    "types": ["node"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

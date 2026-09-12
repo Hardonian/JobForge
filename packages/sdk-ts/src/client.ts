@@ -4,10 +4,12 @@
  */
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import * as crypto from 'node:crypto'
 import type {
   JobRow,
   JobResultRow,
   EnqueueJobParams,
+  BatchEnqueueJobParams,
   ClaimJobsParams,
   HeartbeatJobParams,
   CompleteJobParams,
@@ -25,6 +27,7 @@ import type {
 } from '@jobforge/shared'
 import {
   enqueueJobParamsSchema,
+  batchEnqueueJobParamsSchema,
   completeJobParamsSchema,
   submitEventParamsSchema,
   requestJobParamsSchema,
@@ -39,6 +42,11 @@ export interface JobForgeClientConfig {
   supabaseClient?: SupabaseClient
 }
 
+export interface WaitForJobOptions {
+  pollIntervalMs?: number
+  timeoutMs?: number
+}
+
 export class JobForgeClient {
   private supabase: SupabaseClient
 
@@ -47,10 +55,9 @@ export class JobForgeClient {
   }
 
   /**
-   * Enqueue a new job
+   * Enqueue a new job with optional priority and timeout
    */
   async enqueueJob(params: EnqueueJobParams): Promise<JobRow> {
-    // Validate params
     const validated = enqueueJobParamsSchema.parse(params)
 
     const { data, error } = await this.supabase.rpc('jobforge_enqueue_job', {
@@ -60,6 +67,8 @@ export class JobForgeClient {
       p_idempotency_key: validated.idempotency_key || null,
       p_run_at: validated.run_at || new Date().toISOString(),
       p_max_attempts: validated.max_attempts || 5,
+      p_priority: validated.priority ?? 0,
+      p_timeout_ms: validated.timeout_ms ?? 300000,
     })
 
     if (error) {
@@ -67,6 +76,32 @@ export class JobForgeClient {
     }
 
     return data as JobRow
+  }
+
+  /**
+   * Enqueue a batch of jobs atomically in a single transaction
+   */
+  async enqueueBatch(params: BatchEnqueueJobParams): Promise<JobRow[]> {
+    const validated = batchEnqueueJobParamsSchema.parse(params)
+
+    const { data, error } = await this.supabase.rpc('jobforge_enqueue_batch', {
+      p_tenant_id: validated.tenant_id,
+      p_jobs: validated.jobs.map((job) => ({
+        type: job.type,
+        payload: job.payload,
+        idempotency_key: job.idempotency_key || null,
+        run_at: job.run_at || new Date().toISOString(),
+        max_attempts: job.max_attempts || 5,
+        priority: job.priority ?? 0,
+        timeout_ms: job.timeout_ms ?? 300000,
+      })),
+    })
+
+    if (error) {
+      throw new Error(`Failed to enqueue batch: ${error.message}`)
+    }
+
+    return (data as JobRow[]) || []
   }
 
   /**
@@ -103,7 +138,6 @@ export class JobForgeClient {
    * Complete a job (succeeded or failed)
    */
   async completeJob(params: CompleteJobParams): Promise<void> {
-    // Validate params
     const validated = completeJobParamsSchema.parse(params)
 
     const { error } = await this.supabase.rpc('jobforge_complete_job', {
@@ -185,13 +219,110 @@ export class JobForgeClient {
 
     if (error) {
       if (error.code === 'PGRST116') {
-        // Not found
         return null
       }
       throw new Error(`Failed to get job: ${error.message}`)
     }
 
     return data as JobRow
+  }
+
+  /**
+   * Polls getJob until it reaches a terminal status or timeout
+   */
+  async waitForJob(
+    jobId: string,
+    tenantId: string,
+    options: WaitForJobOptions = {}
+  ): Promise<JobRow> {
+    const pollInterval = options.pollIntervalMs || 500
+    const timeout = options.timeoutMs || 60000
+    const startTime = Date.now()
+
+    while (Date.now() - startTime < timeout) {
+      const job = await this.getJob(jobId, tenantId)
+      if (!job) {
+        throw new Error(`Job not found: ${jobId}`)
+      }
+
+      if (['completed', 'failed', 'dead', 'cancelled'].includes(job.status)) {
+        return job
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, pollInterval))
+    }
+
+    throw new Error(`Timeout waiting for job ${jobId} to reach terminal state after ${timeout}ms`)
+  }
+
+  /**
+   * Paginated iterator yielding jobs across pages
+   */
+  async *listJobsIterator(
+    tenantId: string,
+    filters: {
+      status?: import('@jobforge/shared').JobStatus | import('@jobforge/shared').JobStatus[]
+      type?: string
+    } = {},
+    batchSize: number = 50
+  ): AsyncIterableIterator<JobRow> {
+    let offset = 0
+    let hasMore = true
+
+    while (hasMore) {
+      const jobs = await this.listJobs({
+        tenant_id: tenantId,
+        filters: {
+          ...filters,
+          limit: batchSize,
+          offset,
+        },
+      })
+
+      if (jobs.length === 0) {
+        hasMore = false
+        break
+      }
+
+      for (const job of jobs) {
+        yield job
+      }
+
+      if (jobs.length < batchSize) {
+        hasMore = false
+      } else {
+        offset += batchSize
+      }
+    }
+  }
+
+  /**
+   * Verify HMAC-SHA256 signature for incoming webhooks in constant time
+   */
+  verifyWebhookSignature(
+    payload: string | Buffer,
+    signatureHeader: string,
+    secret: string
+  ): boolean {
+    if (!signatureHeader || !secret) return false
+
+    const expectedSig = crypto.createHmac('sha256', secret).update(payload).digest('hex')
+
+    // Support both raw hex and v1=hex header formats
+    const signature = signatureHeader.startsWith('v1=') ? signatureHeader.slice(3) : signatureHeader
+
+    try {
+      const expectedBuffer = Buffer.from(expectedSig, 'utf-8')
+      const actualBuffer = Buffer.from(signature, 'utf-8')
+
+      if (expectedBuffer.length !== actualBuffer.length) {
+        return false
+      }
+
+      return crypto.timingSafeEqual(expectedBuffer, actualBuffer)
+    } catch {
+      return false
+    }
   }
 
   /**
@@ -224,12 +355,10 @@ export class JobForgeClient {
    * Requires JOBFORGE_EVENTS_ENABLED=1
    */
   async submitEvent(params: SubmitEventParams): Promise<EventRow> {
-    // Check if feature is enabled (client-side guard)
     if (!isEventIngestionAvailable()) {
       throw new Error('Event ingestion is disabled. Set JOBFORGE_EVENTS_ENABLED=1 to enable.')
     }
 
-    // Validate params
     const validated = submitEventParamsSchema.parse(params)
 
     const { data, error } = await this.supabase.rpc('jobforge_submit_event', {
@@ -292,7 +421,6 @@ export class JobForgeClient {
    * Requires JOBFORGE_AUTOPILOT_JOBS_ENABLED=1
    */
   async requestJob(params: RequestJobParams): Promise<RequestJobResult> {
-    // Note: Template enablement is checked server-side
     const validated = requestJobParamsSchema.parse(params)
 
     const { data, error } = await this.supabase.rpc('jobforge_request_job', {

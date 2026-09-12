@@ -27,7 +27,9 @@ if (!ciResult.passed) {
 // 2. Drift check
 const drift = policyGuard.detectDrift()
 if (drift.hasDrift) {
-  console.error(`❌ Policy drift detected: ${drift.uncategorizedJobs.length} uncategorized job types`)
+  console.error(
+    `❌ Policy drift detected: ${drift.uncategorizedJobs.length} uncategorized job types`
+  )
   for (const uncategorized of drift.uncategorizedJobs) {
     console.error(`  - Uncategorized job: ${uncategorized}`)
   }
@@ -51,7 +53,9 @@ function scanDirForTenantEnforcement(dir: string): void {
       const content = readFileSync(fullPath, 'utf-8')
       // Handlers must inspect or pass context.tenant_id or validate tenant_id
       if (content.includes('JobContext') && !content.includes('tenant_id')) {
-        console.warn(`⚠️ Warning: Handler ${file} imports JobContext but does not reference tenant_id`)
+        console.warn(
+          `⚠️ Warning: Handler ${file} imports JobContext but does not reference tenant_id`
+        )
       }
     }
   }

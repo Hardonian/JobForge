@@ -2,8 +2,8 @@
  * @jobforge/sdk-ts - TypeScript SDK for JobForge
  */
 
-export { JobForgeClient } from './client'
-export type { JobForgeClientConfig } from './client'
+export { JobForgeClient } from './client.js'
+export type { JobForgeClientConfig } from './client.js'
 
 // Re-export shared types
 export type {

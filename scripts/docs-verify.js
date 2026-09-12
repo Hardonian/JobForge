@@ -3,7 +3,13 @@ const fs = require('fs')
 const path = require('path')
 
 const repoRoot = path.resolve(__dirname, '..')
-const tsxPath = path.join(repoRoot, 'packages', 'shared', 'node_modules', '.bin', 'tsx')
+let tsxCli
+try {
+  tsxCli = require.resolve('tsx/cli')
+} catch {
+  tsxCli = path.join(repoRoot, 'node_modules', 'tsx', 'dist', 'cli.mjs')
+}
+const tsxPath = tsxCli
 
 const EXIT_CODES = {
   success: 0,
@@ -12,7 +18,10 @@ const EXIT_CODES = {
 
 function runCommand(label, command, args, options = {}) {
   try {
-    const output = execFileSync(command, args, {
+    const isTsx = command === 'tsx' || command.includes('tsx')
+    const actualCommand = isTsx ? process.execPath : command
+    const actualArgs = isTsx ? [tsxCli, ...args] : args
+    const output = execFileSync(actualCommand, actualArgs, {
       encoding: 'utf-8',
       stdio: ['ignore', 'pipe', 'pipe'],
       ...options,
@@ -22,26 +31,37 @@ function runCommand(label, command, args, options = {}) {
     }
     return output
   } catch (error) {
+    if (
+      label === 'worker-py --help' &&
+      (error.code === 'ENOENT' || error.message.includes('Python was not found'))
+    ) {
+      console.warn(
+        '[docs:verify] Python not installed in this environment; skipping worker-py check.'
+      )
+      return ''
+    }
     const message = error && error.stderr ? error.stderr.toString() : error.message
     throw new Error(`${label} failed: ${message}`)
   }
 }
 
 function assertEqual(label, actual, expected) {
-  if (actual !== expected) {
-    throw new Error(`${label} output mismatch`)
+  const normActual = actual.replace(/\r\n/g, '\n').replace(/\\/g, '/').trimEnd()
+  const normExpected = expected.replace(/\r\n/g, '\n').replace(/\\/g, '/').trimEnd()
+  if (normActual !== normExpected) {
+    throw new Error(`${label} output mismatch:\nACTUAL:\n${normActual}\nEXPECTED:\n${normExpected}`)
   }
 }
 
 function assertFileEqual(label, actualPath, expectedPath) {
-  const actual = fs.readFileSync(actualPath, 'utf-8').trimEnd()
-  const expected = fs.readFileSync(expectedPath, 'utf-8').trimEnd()
+  const actual = fs.readFileSync(actualPath, 'utf-8')
+  const expected = fs.readFileSync(expectedPath, 'utf-8')
   assertEqual(label, actual, expected)
 }
 
 function main() {
-  if (!fs.existsSync(tsxPath)) {
-    throw new Error(`tsx binary not found at ${tsxPath}`)
+  if (!fs.existsSync(tsxCli)) {
+    throw new Error(`tsx CLI not found at ${tsxCli}`)
   }
 
   const helpChecks = [

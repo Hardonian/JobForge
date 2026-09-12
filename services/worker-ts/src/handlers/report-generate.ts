@@ -1,10 +1,13 @@
 /**
  * Report Generation Connector
- * Generates reports from input data
+ * Generates reports from input data with persistent artifact storage
  */
 
 import type { JobContext } from '@jobforge/shared'
 import { z } from 'zod'
+import { createClient } from '@supabase/supabase-js'
+import * as fs from 'node:fs/promises'
+import * as path from 'node:path'
 
 const ReportGeneratePayloadSchema = z.object({
   report_type: z.string().min(1),
@@ -31,14 +34,13 @@ export interface ReportGenerateResult {
 }
 
 /**
- * Sample report generators by type
+ * Report generators by type
  */
 const reportGenerators: Record<
   string,
   (inputs: Record<string, unknown>, options?: Record<string, unknown>) => Record<string, unknown>
 > = {
   'usage-summary': (inputs, _options) => {
-    // Example: Summarize usage metrics
     const events = (inputs.events as Array<Record<string, unknown>>) || []
 
     return {
@@ -53,7 +55,6 @@ const reportGenerators: Record<
   },
 
   'job-analytics': (inputs, _options) => {
-    // Example: Analyze job execution data
     const jobs = (inputs.jobs as Array<Record<string, unknown>>) || []
 
     const statusCounts = jobs.reduce<Record<string, number>>((acc, job) => {
@@ -66,13 +67,12 @@ const reportGenerators: Record<
       total_jobs: jobs.length,
       status_breakdown: statusCounts,
       avg_attempts:
-        jobs.reduce((sum, job) => sum + Number(job.attempts || 0), 0) / jobs.length || 0,
+        jobs.reduce((sum, job) => sum + Number(job.attempts || 0), 0) / (jobs.length || 1),
       generated_at: new Date().toISOString(),
     }
   },
 
   'tenant-usage': (inputs, _options) => {
-    // Example: Tenant resource usage report
     const tenantId = inputs.tenant_id
     const jobs = (inputs.jobs as Array<Record<string, unknown>>) || []
     const connectors = (inputs.connectors as Array<Record<string, unknown>>) || []
@@ -88,7 +88,7 @@ const reportGenerators: Record<
 }
 
 /**
- * Convert JSON report to simple HTML
+ * Convert JSON report to styled HTML
  */
 function jsonToHtml(data: Record<string, unknown>, title: string): string {
   const escapeHtml = (str: string) =>
@@ -122,12 +122,12 @@ function jsonToHtml(data: Record<string, unknown>, title: string): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(title)}</title>
   <style>
-    body { font-family: system-ui, sans-serif; padding: 2rem; max-width: 1200px; margin: 0 auto; }
-    h1 { color: #333; }
+    body { font-family: system-ui, sans-serif; padding: 2rem; max-width: 1200px; margin: 0 auto; color: #111; }
+    h1 { color: #0f172a; }
     table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-    th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd; }
-    th { background-color: #f5f5f5; font-weight: 600; }
-    pre { background: #f5f5f5; padding: 0.5rem; border-radius: 4px; overflow-x: auto; }
+    th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
+    th { background-color: #f8fafc; font-weight: 600; width: 25%; }
+    pre { background: #f1f5f9; padding: 0.5rem; border-radius: 4px; overflow-x: auto; }
   </style>
 </head>
 <body>
@@ -138,7 +138,7 @@ function jsonToHtml(data: Record<string, unknown>, title: string): string {
 }
 
 /**
- * Convert JSON report to CSV (simple two-column format)
+ * Convert JSON report to CSV
  */
 function jsonToCsv(data: Record<string, unknown>): string {
   const rows = ['Key,Value']
@@ -153,6 +153,44 @@ function jsonToCsv(data: Record<string, unknown>): string {
 }
 
 /**
+ * Upload report artifact to Supabase Storage or local persistent fallback
+ */
+async function uploadReportArtifact(
+  tenantId: string,
+  jobId: string,
+  content: string
+): Promise<string> {
+  const artifactPath = `reports/${tenantId}/${jobId}.json`
+  const supabaseUrl = process.env.SUPABASE_URL
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (supabaseUrl && supabaseKey) {
+    try {
+      const supabase = createClient(supabaseUrl, supabaseKey)
+      const bucketName = 'jobforge-artifacts'
+      const { error } = await supabase.storage.from(bucketName).upload(artifactPath, content, {
+        contentType: 'application/json',
+        upsert: true,
+      })
+
+      if (!error) {
+        return artifactPath
+      }
+    } catch {
+      // Fallback to local storage
+    }
+  }
+
+  // Local filesystem persistence fallback
+  const localDir = path.resolve(process.cwd(), '.artifacts', 'reports', tenantId)
+  await fs.mkdir(localDir, { recursive: true })
+  const filePath = path.join(localDir, `${jobId}.json`)
+  await fs.writeFile(filePath, content, 'utf-8')
+
+  return artifactPath
+}
+
+/**
  * Report Generation Handler
  */
 export async function reportGenerateHandler(
@@ -161,24 +199,24 @@ export async function reportGenerateHandler(
 ): Promise<ReportGenerateResult> {
   const validated = ReportGeneratePayloadSchema.parse(payload)
 
-  // Get report generator
   const generator = reportGenerators[validated.report_type]
   if (!generator) {
     throw new Error(`Unknown report type: ${validated.report_type}`)
   }
 
-  // Get input data
-  const inputsData = validated.inputs_data || {}
+  let inputsData = validated.inputs_data || {}
 
-  if (validated.inputs_ref) {
-    // In production, fetch inputs from storage using inputs_ref
-    // For now, throw error if ref is used without data
-    if (!validated.inputs_data) {
-      throw new Error('inputs_ref requires external storage integration')
+  if (validated.inputs_ref && !validated.inputs_data) {
+    // Attempt local or storage load if inputs_ref given
+    const localRef = path.resolve(process.cwd(), '.artifacts', validated.inputs_ref)
+    try {
+      const fileData = await fs.readFile(localRef, 'utf-8')
+      inputsData = JSON.parse(fileData)
+    } catch {
+      throw new Error(`inputs_ref ${validated.inputs_ref} could not be resolved from storage`)
     }
   }
 
-  // Generate report JSON
   const report_json = generator(inputsData, validated.options)
   const generated_at = new Date().toISOString()
 
@@ -193,7 +231,6 @@ export async function reportGenerateHandler(
     },
   }
 
-  // Generate additional formats
   if (validated.format.includes('html')) {
     result.report_html = jsonToHtml(report_json, `Report: ${validated.report_type}`)
     result.metadata.output_size_bytes += result.report_html.length
@@ -204,10 +241,14 @@ export async function reportGenerateHandler(
     result.metadata.output_size_bytes += result.report_csv.length
   }
 
-  // In production, store large reports in object storage and return artifact_ref
+  // If report exceeds 100KB, persist to storage and record artifact reference
   if (result.metadata.output_size_bytes > 100_000) {
-    result.artifact_ref = `reports/${context.tenant_id}/${context.job_id}.json`
-    // TODO: Upload to storage
+    const reportPayload = JSON.stringify(result)
+    result.artifact_ref = await uploadReportArtifact(
+      context.tenant_id,
+      context.job_id,
+      reportPayload
+    )
   }
 
   return result

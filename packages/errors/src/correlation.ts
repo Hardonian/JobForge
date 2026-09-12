@@ -1,11 +1,26 @@
-import { randomUUID } from 'crypto'
-
 /**
  * Generate a unique correlation ID for request tracing.
- * Uses UUID v4 for global uniqueness.
+ * Uses UUID v4 for global uniqueness across Node.js and Edge runtimes.
  */
 export function generateCorrelationId(): string {
-  return randomUUID()
+  if (
+    typeof globalThis !== 'undefined' &&
+    globalThis.crypto &&
+    typeof globalThis.crypto.randomUUID === 'function'
+  ) {
+    return globalThis.crypto.randomUUID()
+  }
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const nodeCrypto = require('crypto')
+    return nodeCrypto.randomUUID()
+  } catch {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0
+      const v = c === 'x' ? r : (r & 0x3) | 0x8
+      return v.toString(16)
+    })
+  }
 }
 
 /**

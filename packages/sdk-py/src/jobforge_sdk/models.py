@@ -27,8 +27,10 @@ class JobRow(BaseModel):
     type: str
     payload: dict[str, Any]
     status: JobStatus
-    attempts: int = Field(ge=0)
-    max_attempts: int = Field(ge=1)
+    attempts: int = Field(default=0, ge=0)
+    max_attempts: int = Field(default=5, ge=1)
+    priority: int = Field(default=0)
+    timeout_ms: int = Field(default=300000, ge=1000)
     run_at: datetime
     locked_at: datetime | None = None
     locked_by: str | None = None
@@ -87,6 +89,27 @@ class EnqueueJobParams(BaseModel):
     idempotency_key: str | None = None
     run_at: datetime | None = None
     max_attempts: int = Field(default=5, ge=1, le=10)
+    priority: int = Field(default=0, ge=-100, le=100)
+    timeout_ms: int = Field(default=300000, ge=1000, le=86400000)
+
+
+class BatchEnqueueJobItem(BaseModel):
+    """Single job item in batch enqueue."""
+
+    type: str = Field(min_length=1)
+    payload: dict[str, Any]
+    idempotency_key: str | None = None
+    run_at: datetime | None = None
+    max_attempts: int = Field(default=5, ge=1, le=10)
+    priority: int = Field(default=0, ge=-100, le=100)
+    timeout_ms: int = Field(default=300000, ge=1000, le=86400000)
+
+
+class BatchEnqueueJobParams(BaseModel):
+    """Parameters for enqueuing multiple jobs in a single atomic transaction."""
+
+    tenant_id: UUID
+    jobs: list[BatchEnqueueJobItem] = Field(min_length=1, max_length=1000)
 
 
 class ClaimJobsParams(BaseModel):

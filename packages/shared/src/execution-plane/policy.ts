@@ -105,11 +105,7 @@ export interface AuditLogEntry {
  * Audit action types
  */
 export type AuditAction =
-  | 'event_ingest'
-  | 'job_request'
-  | 'job_cancel'
-  | 'policy_check'
-  | 'trigger_fire'
+  'event_ingest' | 'job_request' | 'job_cancel' | 'policy_check' | 'trigger_fire'
 
 /**
  * Parameters for creating audit log entry

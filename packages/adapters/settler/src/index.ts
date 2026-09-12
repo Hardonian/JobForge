@@ -7,7 +7,7 @@
  */
 
 import { z } from 'zod'
-import { JobForgeAdapter, createJobForgeAdapter } from '@jobforge/integration'
+import { JobForgeAdapter } from '@jobforge/integration'
 import type { JobForgeClient } from '@jobforge/sdk-ts'
 import type { TraceContext } from '@jobforge/integration'
 
