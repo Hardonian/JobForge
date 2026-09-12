@@ -4,6 +4,7 @@
 
 export { JobForgeClient } from './client.js'
 export type { JobForgeClientConfig } from './client.js'
+export { MockJobForgeClient } from './mock.js'
 
 // Re-export shared types
 export type {
