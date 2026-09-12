@@ -1,7 +1,8 @@
-"""JobForge Python Worker."""
-
 import asyncio
+import base64
 import contextlib
+import gzip
+import json
 import os
 import signal
 import sys
@@ -26,8 +27,25 @@ from .logger import logger
 from .registry import HandlerRegistry
 
 
+def decompress_payload(payload: Any) -> Any:
+    """Transparently decompress gzipped payload envelope if present."""
+    if (
+        isinstance(payload, dict)
+        and payload.get("__compressed") is True
+        and payload.get("__alg") == "gzip"
+    ):
+        data_b64 = payload.get("__data")
+        if isinstance(data_b64, str):
+            try:
+                raw_bytes = gzip.decompress(base64.b64decode(data_b64))
+                return json.loads(raw_bytes.decode("utf-8"))
+            except Exception:
+                return payload
+    return payload
+
+
 class Worker:
-    """JobForge worker for processing jobs."""
+    """JobForge worker for processing jobs with adaptive concurrency and poison-pill isolation."""
 
     def __init__(
         self,
@@ -39,6 +57,7 @@ class Worker:
         poll_interval_s: float = 2.0,
         heartbeat_interval_s: float = 30.0,
         claim_limit: int = 10,
+        adaptive_concurrency: bool = True,
     ) -> None:
         """
         Initialize worker.
@@ -51,12 +70,15 @@ class Worker:
             poll_interval_s: Polling interval in seconds
             heartbeat_interval_s: Heartbeat interval in seconds
             claim_limit: Max jobs to claim per poll
+            adaptive_concurrency: Whether to dynamically scale claim concurrency
         """
         self.worker_id = worker_id
         self.registry = registry
         self.poll_interval_s = poll_interval_s
         self.heartbeat_interval_s = heartbeat_interval_s
         self.claim_limit = claim_limit
+        self.adaptive_concurrency = adaptive_concurrency
+        self.current_concurrency = claim_limit
 
         self.client = JobForgeClient(supabase_url, supabase_key)
         self.logger = logger.child({"worker_id": worker_id})
@@ -65,19 +87,24 @@ class Worker:
         self.shutting_down = False
         self.active_jobs: set[str] = set()
         self.heartbeat_tasks: dict[str, asyncio.Task[None]] = {}
+        self.poison_tracker: dict[str, int] = {}
+        self.latencies: list[float] = []
 
     async def run_once(self) -> None:
-        """Run worker once (claim and process available jobs)."""
+        """Run worker once (claim and process available jobs with adaptive concurrency)."""
         try:
+            effective_limit = (
+                max(1, self.current_concurrency) if self.adaptive_concurrency else self.claim_limit
+            )
             jobs = self.client.claim_jobs(
-                ClaimJobsParams(worker_id=self.worker_id, limit=self.claim_limit)
+                ClaimJobsParams(worker_id=self.worker_id, limit=effective_limit)
             )
 
             if not jobs:
                 self.logger.debug("No jobs claimed")
                 return
 
-            self.logger.info(f"Claimed {len(jobs)} jobs")
+            self.logger.info(f"Claimed {len(jobs)} jobs (concurrency limit: {effective_limit})")
 
             # Process jobs concurrently
             await asyncio.gather(
@@ -123,6 +150,20 @@ class Worker:
         )
 
         job_id = str(job.id)
+
+        # Poison pill check
+        crashes = self.poison_tracker.get(job_id, 0)
+        if crashes >= 3 or job.attempts >= 5:
+            job_logger.warning(
+                "Job isolated by poison pill quarantine",
+                {"attempts": job.attempts, "crashes": crashes},
+            )
+            self._complete_job_failed(
+                job_id,
+                {"error": "Poison pill quarantine triggered", "quarantined": True},
+            )
+            return
+
         self.active_jobs.add(job_id)
         job_logger.info("Processing job started")
 
@@ -138,8 +179,11 @@ class Worker:
             if not registration:
                 raise ValueError(f"No handler registered for job type: {job.type}")
 
+            # Transparently decompress payload if envelope compressed
+            effective_payload = decompress_payload(job.payload)
+
             # Validate payload if validator provided
-            if registration.validate and not registration.validate(job.payload):
+            if registration.validate and not registration.validate(effective_payload):
                 raise ValueError("Payload validation failed")
 
             # Create job context
@@ -153,11 +197,23 @@ class Worker:
             # Save timeout for error handling
             handler_timeout = registration.timeout_s
 
+            start_time = time.monotonic()
+
             # Execute handler with timeout
             result = await asyncio.wait_for(
-                asyncio.to_thread(registration.handler, job.payload, context),
+                asyncio.to_thread(registration.handler, effective_payload, context),
                 timeout=handler_timeout,
             )
+
+            duration_s = time.monotonic() - start_time
+            self.latencies.append(duration_s)
+            if len(self.latencies) > 50:
+                self.latencies.pop(0)
+
+            # Clear poison tracker and scale up concurrency if healthy
+            self.poison_tracker.pop(job_id, None)
+            if self.adaptive_concurrency and self.current_concurrency < self.claim_limit:
+                self.current_concurrency = min(self.claim_limit, self.current_concurrency + 1)
 
             # Complete job successfully
             self.client.complete_job(
@@ -169,15 +225,21 @@ class Worker:
                 )
             )
 
-            job_logger.info("Job succeeded")
+            job_logger.info("Job succeeded", {"duration_s": round(duration_s, 3)})
 
         except TimeoutError:
             job_logger.error("Job timeout")
+            self.poison_tracker[job_id] = self.poison_tracker.get(job_id, 0) + 1
+            if self.adaptive_concurrency:
+                self.current_concurrency = max(1, int(self.current_concurrency * 0.7))
             self._complete_job_failed(
                 job_id, {"error": "Handler timeout", "timeout_s": handler_timeout}
             )
 
         except Exception as e:
+            self.poison_tracker[job_id] = self.poison_tracker.get(job_id, 0) + 1
+            if self.adaptive_concurrency:
+                self.current_concurrency = max(1, int(self.current_concurrency * 0.7))
             error_data = {
                 "error": str(e),
                 "type": type(e).__name__,

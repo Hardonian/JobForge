@@ -5,6 +5,8 @@
 export { JobForgeClient } from './client.js'
 export type { JobForgeClientConfig } from './client.js'
 export { MockJobForgeClient } from './mock.js'
+export { DirectPgJobForgeClient } from './direct-pg-client.js'
+export type { DirectPgClientConfig, QueryResult, SqlQueryFunction } from './direct-pg-client.js'
 
 // Re-export shared types
 export type {

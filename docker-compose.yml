@@ -34,6 +34,20 @@ services:
       VERIFY_PACK_ENABLED: "1"
     restart: on-failure
 
+  worker-py:
+    build:
+      context: .
+      dockerfile: services/worker-py/Dockerfile
+    container_name: jobforge-worker-py
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SUPABASE_URL: http://postgres:5432
+      SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy_dev_key
+      WORKER_ID: worker-py-docker-1
+    restart: on-failure
+
   web:
     build:
       context: .

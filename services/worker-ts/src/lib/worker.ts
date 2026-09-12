@@ -4,7 +4,14 @@
 
 import { JobForgeClient } from '@jobforge/sdk-ts'
 import type { JobRow, JobContext } from '@jobforge/shared'
-import { DEFAULT_HEARTBEAT_INTERVAL_MS, DEFAULT_POLL_INTERVAL_MS } from '@jobforge/shared'
+import {
+  DEFAULT_HEARTBEAT_INTERVAL_MS,
+  DEFAULT_POLL_INTERVAL_MS,
+  AdaptiveConcurrencyController,
+  CircuitBreaker,
+  PoisonPillDetector,
+  decompressPayload,
+} from '@jobforge/shared'
 import { HandlerRegistry } from './registry'
 import { logger, type Logger } from './logger'
 import { randomUUID } from 'crypto'
@@ -25,6 +32,7 @@ export interface WorkerConfig {
   heartbeatMaxIntervalMs?: number
   heartbeatBackoffMultiplier?: number
   client?: JobForgeClientLike
+  adaptiveConcurrency?: boolean
 }
 
 export class Worker {
@@ -37,6 +45,9 @@ export class Worker {
   private activeJobs = new Set<string>()
   private heartbeatTimeouts = new Map<string, NodeJS.Timeout>()
   private heartbeatIntervals = new Map<string, number>()
+  private concurrencyController: AdaptiveConcurrencyController
+  private poisonPillDetector: PoisonPillDetector
+  private circuitBreakers = new Map<string, CircuitBreaker>()
 
   constructor(config: WorkerConfig, registry: HandlerRegistry) {
     const basePollIntervalMs = config.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS
@@ -68,6 +79,7 @@ export class Worker {
       idleBackoffMultiplier,
       heartbeatMaxIntervalMs: maxHeartbeatIntervalMs,
       heartbeatBackoffMultiplier,
+      adaptiveConcurrency: config.adaptiveConcurrency ?? true,
       ...configWithoutClient,
     }
 
@@ -80,6 +92,10 @@ export class Worker {
 
     this.registry = registry
     this.logger = logger.child({ worker_id: this.config.workerId })
+    this.concurrencyController = new AdaptiveConcurrencyController({
+      maxConcurrency: this.config.claimLimit,
+    })
+    this.poisonPillDetector = new PoisonPillDetector()
   }
 
   /**
@@ -87,9 +103,14 @@ export class Worker {
    */
   async runOnce(): Promise<number> {
     try {
+      const claimLimit =
+        this.config.adaptiveConcurrency !== false
+          ? Math.min(this.config.claimLimit, this.concurrencyController.getConcurrencyLimit())
+          : this.config.claimLimit
+
       const jobs = await this.client.claimJobs({
         worker_id: this.config.workerId,
-        limit: this.config.claimLimit,
+        limit: Math.max(1, claimLimit),
       })
 
       if (jobs.length === 0) {
@@ -97,7 +118,7 @@ export class Worker {
         return 0
       }
 
-      this.logger.info(`Claimed ${jobs.length} jobs`)
+      this.logger.info(`Claimed ${jobs.length} jobs (concurrency limit: ${claimLimit})`)
 
       // Process jobs concurrently
       await Promise.allSettled(jobs.map((job) => this.processJob(job)))
@@ -170,6 +191,22 @@ export class Worker {
       attempt_no: job.attempts,
     })
 
+    // Assess poison pill quarantine condition
+    const poisonCheck = this.poisonPillDetector.assess(job.id, job.attempts, true)
+    if (poisonCheck.isPoison) {
+      jobLogger.warn('Job isolated by poison pill quarantine', { reason: poisonCheck.reason })
+      await this.client.completeJob({
+        job_id: job.id,
+        worker_id: this.config.workerId,
+        status: 'failed',
+        error: {
+          message: poisonCheck.reason,
+          quarantined: true,
+        },
+      })
+      return
+    }
+
     this.activeJobs.add(job.id)
     jobLogger.info('Processing job started')
 
@@ -183,9 +220,12 @@ export class Worker {
         throw new Error(`No handler registered for job type: ${job.type}`)
       }
 
+      // Transparently decompress payload if envelope compressed
+      const effectivePayload = decompressPayload(job.payload)
+
       // Validate payload if validator provided
       if (registration.options?.validate) {
-        const isValid = registration.options.validate(job.payload)
+        const isValid = registration.options.validate(effectivePayload)
         if (!isValid) {
           throw new Error('Payload validation failed')
         }
@@ -205,9 +245,23 @@ export class Worker {
         },
       }
 
-      // Execute handler with timeout
+      // Circuit breaker protection for handler execution
+      let breaker = this.circuitBreakers.get(job.type)
+      if (!breaker) {
+        breaker = new CircuitBreaker({ name: job.type })
+        this.circuitBreakers.set(job.type, breaker)
+      }
+
+      // Execute handler with timeout and latency tracking
+      const startTime = Date.now()
       const timeoutMs = registration.options?.timeoutMs || 300_000 // 5 min default
-      const result = await this.withTimeout(registration.handler(job.payload, context), timeoutMs)
+      const result = await breaker.execute(() =>
+        this.withTimeout(registration.handler(effectivePayload, context), timeoutMs)
+      )
+      const durationMs = Date.now() - startTime
+
+      this.concurrencyController.recordSuccess(durationMs)
+      this.poisonPillDetector.recordSuccess(job.id)
 
       // Complete job successfully
       await this.client.completeJob({
@@ -217,8 +271,11 @@ export class Worker {
         result: result as Record<string, unknown>,
       })
 
-      jobLogger.info('Job succeeded')
+      jobLogger.info('Job succeeded', { duration_ms: durationMs })
     } catch (error) {
+      this.concurrencyController.recordFailure()
+      this.poisonPillDetector.assess(job.id, job.attempts, false)
+
       const errorObj = error instanceof Error ? error : new Error(String(error))
       const errorData = {
         message: errorObj.message,

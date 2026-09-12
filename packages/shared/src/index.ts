@@ -92,3 +92,9 @@ export * from './workflow.js'
 
 // Explicit re-exports to resolve ambiguities
 export type { TriggerType } from './execution-plane/triggers.js'
+
+// Hardening, Performance & Resilience
+export * from './adaptive-concurrency.js'
+export * from './circuit-breaker.js'
+export * from './poison-pill.js'
+export * from './payload-compression.js'

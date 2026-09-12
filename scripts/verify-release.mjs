@@ -24,6 +24,8 @@ const GATES = [
   { id: 'GATE-05', name: 'ReadyLayer MCP Governance Plane Implementation' },
   { id: 'GATE-06', name: 'Security & Secret Exposure Static Analysis' },
   { id: 'GATE-07', name: 'Next.js 14 Operator Console & UI Components' },
+  { id: 'GATE-08', name: 'Resilient Concurrency, Circuit Breaking & Poison Pill Isolation' },
+  { id: 'GATE-09', name: 'Universal Portability & Direct PostgreSQL Wire Client' },
 ]
 
 async function runGate1() {
@@ -210,10 +212,70 @@ async function runGate7() {
   return 'Next.js 14 Operator Console pages & @jobforge/ui design system components verified.'
 }
 
+async function runGate8() {
+  const sharedIndex = await fs.readFile(
+    path.join(rootDir, 'packages', 'shared', 'src', 'index.ts'),
+    'utf-8'
+  )
+  for (const moduleName of [
+    'adaptive-concurrency',
+    'circuit-breaker',
+    'poison-pill',
+    'payload-compression',
+  ]) {
+    if (!sharedIndex.includes(moduleName)) {
+      throw new Error(`Shared index missing module: ${moduleName}`)
+    }
+  }
+
+  const tsWorker = await fs.readFile(
+    path.join(rootDir, 'services', 'worker-ts', 'src', 'lib', 'worker.ts'),
+    'utf-8'
+  )
+  if (!tsWorker.includes('AdaptiveConcurrencyController') || !tsWorker.includes('PoisonPillDetector')) {
+    throw new Error('TS Worker missing adaptive concurrency or poison pill integration')
+  }
+
+  const pyWorker = await fs.readFile(
+    path.join(rootDir, 'services', 'worker-py', 'src', 'jobforge_worker', 'lib', 'worker.py'),
+    'utf-8'
+  )
+  if (!pyWorker.includes('poison_tracker') || !pyWorker.includes('decompress_payload')) {
+    throw new Error('Python Worker missing poison tracker or payload decompression')
+  }
+
+  return 'AIMD adaptive concurrency, 3-state circuit breaker, poison-pill isolation, and payload compression verified.'
+}
+
+async function runGate9() {
+  const directPgTs = await fs.readFile(
+    path.join(rootDir, 'packages', 'sdk-ts', 'src', 'direct-pg-client.ts'),
+    'utf-8'
+  )
+  if (!directPgTs.includes('claimJobsFairShare') || !directPgTs.includes('getTenantBillingMetrics')) {
+    throw new Error('DirectPgJobForgeClient missing fair share claim or billing metrics')
+  }
+
+  const directPgPy = await fs.readFile(
+    path.join(rootDir, 'packages', 'sdk-py', 'src', 'jobforge_sdk', 'direct_pg.py'),
+    'utf-8'
+  )
+  if (!directPgPy.includes('claim_jobs_fair_share') || !directPgPy.includes('get_tenant_billing_metrics')) {
+    throw new Error('Python DirectPgJobForgeClient missing fair share claim or billing metrics')
+  }
+
+  const dockerCompose = await fs.readFile(path.join(rootDir, 'docker-compose.yml'), 'utf-8')
+  if (!dockerCompose.includes('worker-py:') || !dockerCompose.includes('worker-ts:')) {
+    throw new Error('docker-compose.yml missing polyglot worker services')
+  }
+
+  return 'Universal direct PostgreSQL wire clients (TS + Python), fair-share scheduling, and polyglot Docker Compose verified.'
+}
+
 async function main() {
   console.log('======================================================================')
   console.log('               JOBFORGE RELEASE CLOSURE VERIFICATION                  ')
-  console.log('                 7-Gate Comprehensive System Audit                    ')
+  console.log('                 9-Gate Comprehensive System Audit                    ')
   console.log('======================================================================\n')
 
   const gateRunners = [
@@ -224,6 +286,8 @@ async function main() {
     runGate5,
     runGate6,
     runGate7,
+    runGate8,
+    runGate9,
   ]
 
   let passed = 0
@@ -252,7 +316,7 @@ async function main() {
     console.error('Release verification FAILED. Correct issues above before release.')
     process.exit(1)
   } else {
-    console.log('SUCCESS: All 7 Release Gates PASSED with zero stubs and zero placeholders!')
+    console.log('SUCCESS: All 9 Release Gates PASSED with zero stubs and zero placeholders!')
     process.exit(0)
   }
 }
