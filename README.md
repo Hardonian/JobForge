@@ -526,3 +526,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md)
 - Squash-only merges
 - Auto-delete branches
 - Security scanning in CI
+
+---
+
+Part of the [Hardonia](https://github.com/Hardonian) sovereign stack by [AI Automated Systems](https://aiautomatedsystems.ca).
