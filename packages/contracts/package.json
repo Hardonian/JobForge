@@ -19,7 +19,7 @@
     "typecheck": "pnpm -w tsc --noEmit -p packages/contracts/tsconfig.json"
   },
   "dependencies": {
-    "zod": "^3.22.4"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@jobforge/typescript-config": "workspace:*",
