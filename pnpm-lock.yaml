@@ -201,8 +201,8 @@ importers:
         specifier: workspace:*
         version: link:../shared
       zod:
-        specifier: ^3.22.4
-        version: 3.25.76
+        specifier: ^4.6.5
+        version: 4.6.5
     devDependencies:
       '@jobforge/typescript-config':
         specifier: workspace:*
@@ -228,8 +228,8 @@ importers:
   packages/contracts:
     dependencies:
       zod:
-        specifier: ^3.22.4
-        version: 3.25.76
+        specifier: ^4.6.5
+        version: 4.6.5
     devDependencies:
       '@jobforge/typescript-config':
         specifier: workspace:*
@@ -339,8 +339,8 @@ importers:
         specifier: ^2.39.0
         version: 2.93.3
       zod:
-        specifier: ^3.22.4
-        version: 3.25.76
+        specifier: ^4.6.5
+        version: 4.6.5
     devDependencies:
       '@types/node':
         specifier: ^26.6.1
@@ -376,8 +376,8 @@ importers:
         specifier: ^1.31.0
         version: 1.31.0(zod@3.25.76)
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.6.5
+        version: 4.6.5
     devDependencies:
       '@jobforge/config':
         specifier: workspace:*
@@ -465,8 +465,8 @@ importers:
         specifier: ^2.117.1
         version: 2.117.1
       zod:
-        specifier: ^3.22.4
-        version: 3.25.76
+        specifier: ^4.6.5
+        version: 4.6.5
     devDependencies:
       '@jobforge/typescript-config':
         specifier: workspace:*
@@ -490,8 +490,8 @@ importers:
         specifier: workspace:*
         version: link:../contracts
       zod:
-        specifier: ^3.22.4
-        version: 3.25.76
+        specifier: ^4.6.5
+        version: 4.6.5
     devDependencies:
       '@jobforge/errors':
         specifier: workspace:*
@@ -566,8 +566,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/shared
       zod:
-        specifier: ^3.22.4
-        version: 3.25.76
+        specifier: ^4.6.5
+        version: 4.6.5
     devDependencies:
       '@jobforge/typescript-config':
         specifier: workspace:*
@@ -1401,8 +1401,8 @@ packages:
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
       raw-body: 3.0.2
-      zod: 3.25.76
-      zod-to-json-schema: 3.25.2(zod@3.25.76)
+      zod: 4.6.5
+      zod-to-json-schema: 3.25.2(zod@4.6.5)
     transitivePeerDependencies:
       - supports-color
     dev: false
@@ -7413,12 +7413,12 @@ packages:
       grammex: 3.1.13
       graphmatch: 1.1.1
 
-  /zod-to-json-schema@3.25.2(zod@3.25.76):
+  /zod-to-json-schema@3.25.2(zod@4.6.5):
     resolution: {integrity: sha512-O/PgfnpT1xKSDeQYSCfRI5Gy3hPf91mKVDuYLUHZJMiDFptvP41MSnWofm8dnCm0256ZNfZIM7DSzuSMAFnjHA==}
     peerDependencies:
       zod: ^3.25.28 || ^4
     dependencies:
-      zod: 3.25.76
+      zod: 4.6.5
     dev: false
 
   /zod-validation-error@4.0.2(zod@3.25.76):
