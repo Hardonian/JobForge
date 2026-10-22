@@ -201,7 +201,7 @@ importers:
         specifier: workspace:*
         version: link:../shared
       zod:
-        specifier: ^4.6.5
+        specifier: ^4.6.7
         version: 4.6.7
     devDependencies:
       '@jobforge/typescript-config':
@@ -228,7 +228,7 @@ importers:
   packages/contracts:
     dependencies:
       zod:
-        specifier: ^4.6.5
+        specifier: ^4.6.7
         version: 4.6.7
     devDependencies:
       '@jobforge/typescript-config':
@@ -339,7 +339,7 @@ importers:
         specifier: ^2.39.0
         version: 2.93.3
       zod:
-        specifier: ^4.6.5
+        specifier: ^4.6.7
         version: 4.6.7
     devDependencies:
       '@types/node':
@@ -374,10 +374,10 @@ importers:
         version: link:../shared
       '@modelcontextprotocol/sdk':
         specifier: ^1.31.0
-        version: 1.31.0(zod@3.25.76)
+        version: 1.31.0(zod@4.6.7)
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.6.7
+        version: 4.6.7
     devDependencies:
       '@jobforge/config':
         specifier: workspace:*
@@ -465,7 +465,7 @@ importers:
         specifier: ^2.117.1
         version: 2.117.1
       zod:
-        specifier: ^4.6.5
+        specifier: ^4.6.7
         version: 4.6.7
     devDependencies:
       '@jobforge/typescript-config':
@@ -490,7 +490,7 @@ importers:
         specifier: workspace:*
         version: link:../contracts
       zod:
-        specifier: ^4.6.5
+        specifier: ^4.6.7
         version: 4.6.7
     devDependencies:
       '@jobforge/errors':
@@ -566,7 +566,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/shared
       zod:
-        specifier: ^4.6.5
+        specifier: ^4.6.7
         version: 4.6.7
     devDependencies:
       '@jobforge/typescript-config':
@@ -1376,7 +1376,7 @@ packages:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.6.0
 
-  /@modelcontextprotocol/sdk@1.31.0(zod@3.25.76):
+  /@modelcontextprotocol/sdk@1.31.0(zod@4.6.7):
     resolution: {integrity: sha512-UvTMgnNlnIBO/22ob2RcVGDlcvOslQs8T59+FTGdA0L27a39fdGF/EDETNtDVK4DZGpwomlsYpRdA8UXcVL/pw==}
     engines: {node: '>=18'}
     peerDependencies:
@@ -1401,8 +1401,8 @@ packages:
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
       raw-body: 3.0.2
-      zod: 3.25.76
-      zod-to-json-schema: 3.25.2(zod@3.25.76)
+      zod: 4.6.7
+      zod-to-json-schema: 3.25.2(zod@4.6.7)
     transitivePeerDependencies:
       - supports-color
     dev: false
@@ -7400,12 +7400,12 @@ packages:
       grammex: 3.1.13
       graphmatch: 1.1.1
 
-  /zod-to-json-schema@3.25.2(zod@3.25.76):
+  /zod-to-json-schema@3.25.2(zod@4.6.7):
     resolution: {integrity: sha512-O/PgfnpT1xKSDeQYSCfRI5Gy3hPf91mKVDuYLUHZJMiDFptvP41MSnWofm8dnCm0256ZNfZIM7DSzuSMAFnjHA==}
     peerDependencies:
       zod: ^3.25.28 || ^4
     dependencies:
-      zod: 3.25.76
+      zod: 4.6.7
     dev: false
 
   /zod-validation-error@4.0.2(zod@4.6.7):
@@ -7416,10 +7416,6 @@ packages:
     dependencies:
       zod: 4.6.7
     dev: true
-
-  /zod@3.25.76:
-    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
-    dev: false
 
   /zod@4.6.7:
     resolution: {integrity: sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==}
