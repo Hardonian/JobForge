@@ -15,14 +15,14 @@
     "@jobforge/ui": "workspace:*",
     "next": "^16.4.0",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@jobforge/typescript-config": "workspace:*",
     "@types/node": "^26.6.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "autoprefixer": "^10.5.4",
+    "autoprefixer": "^10.6.1",
     "eslint": "^8.56.0",
     "eslint-config-next": "^16.4.0",
     "postcss": "^8.5.28",
