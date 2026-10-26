@@ -24,7 +24,7 @@
     "@jobforge/errors": "workspace:*",
     "@jobforge/observability": "workspace:*",
     "@jobforge/shared": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.32.0",
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "zod": "^3.25.76"
   },
   "devDependencies": {
