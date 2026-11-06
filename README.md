@@ -519,6 +519,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md)
 **JobForge** - Route agent work through PostgreSQL. Idempotent execution with tenant isolation.
 
 ## Repository Operations Standards
+
 - Squash-only merges
 - Auto-delete branches
 - Security scanning in CI
