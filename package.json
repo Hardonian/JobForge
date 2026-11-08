@@ -16,7 +16,7 @@
     "test": "turbo run test",
     "test:observability": "pnpm --filter @jobforge/observability test",
     "contract-tests": "pnpm --filter @jobforge/shared contract-tests",
-    "e2e:smoke": "pnpm --filter @jobforge/worker-ts exec tsx scripts/e2e-smoke-runner.ts",
+    "e2e:smoke": "tsx scripts/e2e-smoke-runner.ts",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,mdx}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,mdx}\"",
     "verify:fast": "pnpm run format:check && pnpm run lint && pnpm run typecheck",
@@ -88,7 +88,7 @@
       "brace-expansion@>=2.0.0 <2.1.2": ">=2.1.2 <3.0.0",
       "brace-expansion@<1.1.16": ">=1.1.16 <2.0.0",
       "js-yaml@>=4.0.0 <4.3.0": ">=4.3.0 <5.0.0",
-      "body-parser@>=2.0.0 <2.3.0": ">=2.3.0",
+      "body-parser@>=2.0.0 <2.4.0": ">=2.4.0",
       "hono@<4.12.25": ">=4.12.25",
       "hono@>=4.3.3 <4.12.27": ">=4.12.27",
       "@hono/node-server@<2.0.5": ">=2.0.5",
@@ -109,7 +109,9 @@
       "hono@>=3.8.0 <4.12.34": ">=4.12.34",
       "hono@>=4.7.0 <4.12.34": ">=4.12.34",
       "hono@>=4.12.0 <4.12.34": ">=4.12.34",
-      "nanoid@<3.3.18": ">=3.3.18 <4.0.0"
+      "nanoid@<3.3.18": ">=3.3.18 <4.0.0",
+      "next@>=16.0.0 <=16.4.0": ">=16.4.1",
+      "source-map-js@<1.2.2": ">=1.2.2 <2.0.0"
     }
   }
 }
