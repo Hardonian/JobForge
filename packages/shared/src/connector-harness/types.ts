@@ -19,7 +19,7 @@ export const ConnectorConfigSchema = z.object({
   /** Auth type required by this connector */
   auth_type: z.enum(['oauth2', 'api_key', 'bearer', 'basic', 'none']),
   /** Connector-specific configuration (validated per-connector) */
-  settings: z.record(z.string(), z.unknown()).default({}),
+  settings: z.record(z.string(), z.unknown()).prefault({}),
   /** Retry policy override */
   retry_policy: z
     .object({
@@ -28,7 +28,7 @@ export const ConnectorConfigSchema = z.object({
       max_delay_ms: z.number().int().positive().default(30000),
       backoff_multiplier: z.number().positive().default(2),
     })
-    .default({}),
+    .prefault({}),
   /** Timeout in milliseconds */
   timeout_ms: z.number().int().positive().default(30000),
   /** Rate limit (requests per second) */

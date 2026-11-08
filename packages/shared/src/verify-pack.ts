@@ -38,7 +38,7 @@ export const VerifyPackPayloadSchema = z.object({
       skipBuild: z.boolean().optional(),
       skipTest: z.boolean().optional(),
       customCommands: z.array(z.string()).optional(),
-      env: z.record(z.string()).optional(),
+      env: z.record(z.string(), z.string()).optional(),
     })
     .optional(),
 })

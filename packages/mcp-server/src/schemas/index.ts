@@ -30,7 +30,7 @@ export const timestampSchema = z.string().datetime()
 
 export const createJobInputSchema = z.object({
   jobType: jobTypeSchema,
-  inputs: z.record(z.unknown()).default({} as Record<string, unknown>),
+  inputs: z.record(z.string(), z.unknown()).default({} as Record<string, unknown>),
   tenantId: tenantIdSchema,
   projectId: projectIdSchema,
   traceId: z.string().min(1).optional(),
@@ -49,7 +49,7 @@ export const createJobOutputSchema = z.object({
 
 export const runJobInputSchema = z.object({
   jobType: jobTypeSchema,
-  inputs: z.record(z.unknown()).default({} as Record<string, unknown>),
+  inputs: z.record(z.string(), z.unknown()).default({} as Record<string, unknown>),
   tenantId: tenantIdSchema,
   projectId: projectIdSchema,
   traceId: z.string().min(1).optional(),
@@ -63,7 +63,7 @@ export const runJobOutputSchema = z.object({
   traceId: z.string(),
   startedAt: z.string().datetime().optional(),
   completedAt: z.string().datetime().optional(),
-  result: z.record(z.unknown()).optional(),
+  result: z.record(z.string(), z.unknown()).optional(),
   error: z
     .object({
       code: z.string(),
@@ -157,7 +157,7 @@ export const testConnectorOutputSchema = z.object({
   connectorId: z.string(),
   success: z.boolean(),
   testedAt: z.string().datetime(),
-  details: z.record(z.unknown()).optional(),
+  details: z.record(z.string(), z.unknown()).optional(),
   error: z
     .object({
       code: z.string(),
@@ -230,7 +230,7 @@ export const putArtifactInputSchema = z.object({
   size: z.number().int().positive().optional(),
   checksum: z.string().optional(),
   mimeType: z.string().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 })
 
 export const putArtifactOutputSchema = z.object({

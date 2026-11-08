@@ -181,6 +181,18 @@ async function checkEnvVars(): Promise<DoctorCheck> {
   })
 
   if (missing.length > 0) {
+    // CI (GitHub Actions sets CI=true) has no Supabase secrets for this repo,
+    // and the DB checks below already self-skip without env. Keep local runs
+    // strict: only CI downgrades this to a skip so the checks that CAN run
+    // there (node/pnpm/lockfile/flags/disk) still gate.
+    if (process.env.CI === 'true' || process.env.CI === '1') {
+      return {
+        name: 'Required Environment Variables',
+        status: 'skip',
+        message: `CI environment: ${missing.join(', ')} not configured (Supabase checks skipped)`,
+        details: { missing, present: redacted },
+      }
+    }
     return {
       name: 'Required Environment Variables',
       status: 'fail',

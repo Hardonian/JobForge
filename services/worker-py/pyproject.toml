@@ -38,3 +38,12 @@ strict = true
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+# Both `services/worker-py` and `packages/python-worker` are distribution
+# `jobforge-worker` with import package `jobforge_worker` (disjoint module
+# trees — they cannot be co-installed: pip ResolutionImpossible). CI installs
+# only packages/python-worker, so this suite resolves its OWN src first via
+# pythonpath. Each pytest process is separate, so no shadowing.
+pythonpath = ["src"]
+testpaths = ["tests"]

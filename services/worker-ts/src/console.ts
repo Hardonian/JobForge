@@ -222,7 +222,7 @@ async function listBundles(config: ConsoleConfig, args: string[]): Promise<void>
       fs.writeFileSync(cachePath, JSON.stringify({ cached_at: Date.now(), data: jobs }, null, 2))
     }
 
-    renderBundleList(jobs as Record<string, unknown>[], jsonOutput)
+    renderBundleList(jobs as unknown as Record<string, unknown>[], jsonOutput)
     printFooter()
   } catch (error) {
     logUnexpectedError('Failed to list bundles', error)
@@ -410,7 +410,7 @@ async function listTriggers(config: ConsoleConfig, args: string[]): Promise<void
       fs.writeFileSync(cachePath, JSON.stringify({ cached_at: Date.now(), data: rules }, null, 2))
     }
 
-    renderTriggerList(rules as Array<Record<string, unknown>>, jsonOutput)
+    renderTriggerList(rules as unknown as Array<Record<string, unknown>>, jsonOutput)
     printFooter()
   } catch (error) {
     logUnexpectedError('Failed to list triggers', error)

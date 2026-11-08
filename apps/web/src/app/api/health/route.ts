@@ -14,7 +14,10 @@ function getClientKey(request: NextRequest): string {
   if (forwarded) {
     return forwarded.split(',')[0]?.trim() ?? 'unknown'
   }
-  return request.ip ?? 'unknown'
+  // NextRequest.ip was removed in Next 16 (deprecated in 15); x-forwarded-for
+  // is the supported source. Without it, fall back to a stable key so the
+  // rate limiter still buckets the request instead of crashing.
+  return request.headers.get('x-real-ip') ?? 'unknown'
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {

@@ -12,8 +12,8 @@ import { readBodyPreview } from './response-preview'
 const HttpRequestPayloadSchema = z.object({
   url: z.string().url(),
   method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD']).default('GET'),
-  headers: z.record(z.string()).optional(),
-  body: z.union([z.string(), z.record(z.unknown())]).optional(),
+  headers: z.record(z.string(), z.string()).optional(),
+  body: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
   timeout_ms: z.number().int().positive().max(300_000).default(30_000),
   allowlist: z.array(z.string()).optional(),
   redact_headers: z.array(z.string()).default(['authorization', 'cookie', 'set-cookie']),

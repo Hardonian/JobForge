@@ -113,10 +113,10 @@ export const HttpJsonRequestSchema = z.object({
   url: z.string().url().max(2048, 'URL exceeds maximum length of 2048 characters'),
   method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']).default('GET'),
   headers: z
-    .record(z.string().max(8192, 'Header value exceeds maximum length'))
+    .record(z.string(), z.string().max(8192, 'Header value exceeds maximum length'))
     .optional()
     .default({}),
-  body: z.union([z.string(), z.record(z.unknown()), z.array(z.unknown())]).optional(),
+  body: z.union([z.string(), z.record(z.string(), z.unknown()), z.array(z.unknown())]).optional(),
   timeout_ms: z.number().int().positive().max(300_000).default(30_000),
   retry_config: z
     .object({
@@ -147,7 +147,7 @@ export const HttpJsonResponseSchema = z.object({
   success: z.boolean(),
   status_code: z.number().int().min(100).max(599),
   status_text: z.string(),
-  headers: z.record(z.string()),
+  headers: z.record(z.string(), z.string()),
   body_preview: z.string(),
   body_truncated: z.boolean(),
   duration_ms: z.number().int(),
@@ -171,7 +171,7 @@ export const HttpJsonErrorEnvelopeSchema = z.object({
   ]),
   message: z.string(),
   correlation_id: z.string().optional(),
-  details: z.record(z.unknown()).optional(),
+  details: z.record(z.string(), z.unknown()).optional(),
   timestamp: z.string().datetime(),
   request_info: z
     .object({
@@ -402,8 +402,8 @@ export async function httpJsonV1Handler(
     if (error instanceof z.ZodError) {
       throw new HttpJsonConnectorError(
         'VALIDATION_ERROR',
-        `Input validation failed: ${error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-        { correlationId, details: { zod_errors: error.errors } }
+        `Input validation failed: ${error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
+        { correlationId, details: { zod_errors: error.issues } }
       )
     }
     throw new HttpJsonConnectorError(

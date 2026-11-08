@@ -1416,8 +1416,8 @@ export const DecisionStepSchema = z.object({
   timestamp: z.string().datetime(),
   decision: z.string().min(1),
   reason: z.string(),
-  input_context: z.record(z.unknown()),
-  output_context: z.record(z.unknown()),
+  input_context: z.record(z.string(), z.unknown()),
+  output_context: z.record(z.string(), z.unknown()),
   duration_ms: z.number().nonnegative(),
 })
 
@@ -1497,7 +1497,7 @@ export function validateInvocationRecord(record: unknown): DeterminismValidation
   const result = InvocationRecordSchema.safeParse(record)
 
   if (!result.success) {
-    errors.push(...result.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`))
+    errors.push(...result.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`))
     return {
       valid: false,
       input_snapshot_valid: false,

@@ -144,7 +144,7 @@ export class ConnectorHarness {
       const envelopeValidation = ConnectorResultSchema.safeParse(result)
       if (!envelopeValidation.success) {
         errors.push(
-          `Envelope shape invalid: ${envelopeValidation.error.errors.map((e: ZodIssue) => `${e.path.join('.')}: ${e.message}`).join('; ')}`
+          `Envelope shape invalid: ${envelopeValidation.error.issues.map((e: ZodIssue) => `${e.path.join('.')}: ${e.message}`).join('; ')}`
         )
       }
 
@@ -153,7 +153,7 @@ export class ConnectorHarness {
         const evidenceValidation = EvidencePacketSchema.safeParse(evidence)
         if (!evidenceValidation.success) {
           errors.push(
-            `Evidence schema invalid: ${evidenceValidation.error.errors.map((e: ZodIssue) => `${e.path.join('.')}: ${e.message}`).join('; ')}`
+            `Evidence schema invalid: ${evidenceValidation.error.issues.map((e: ZodIssue) => `${e.path.join('.')}: ${e.message}`).join('; ')}`
           )
         }
       } else {
@@ -328,7 +328,7 @@ export function createTestFixture(
     },
     context: overrides.context ?? {
       trace_id: 'trace-test-001',
-      tenant_id: '00000000-0000-0000-0000-000000000001',
+      tenant_id: '00000000-0000-4000-8000-000000000001',
       dry_run: false,
       attempt_no: 1,
     },

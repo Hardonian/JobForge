@@ -189,7 +189,7 @@ function checkDepth(
 /**
  * Enhanced zod schema for job payload validation
  */
-export const safeJobPayloadSchema = z.record(z.unknown()).refine(
+export const safeJobPayloadSchema = z.record(z.string(), z.unknown()).refine(
   (val) => {
     const result = validatePayload(val)
     return result.valid

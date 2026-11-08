@@ -52,8 +52,11 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
+          # services/worker-py is deliberately NOT co-installed: its dist name
+          # and import package collide with packages/python-worker (both are
+          # `jobforge-worker` / `jobforge_worker` -> pip ResolutionImpossible).
+          # Its tests run via pytest pythonpath=src (see its pyproject.toml).
           pip install -e "packages/sdk-py[dev]" \
-            -e "services/worker-py[dev]" \
             -e "packages/python-worker[dev]"
 
       - name: Format check
@@ -75,6 +78,8 @@ jobs:
         run: pnpm run docs:verify
 
       - name: JobForge doctor
+        env:
+          JOBFORGE_DOCTOR_ENABLED: "1"
         run: pnpm jobforge:doctor
 
       - name: Setup Node.js
