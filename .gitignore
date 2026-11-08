@@ -54,3 +54,6 @@ __pycache__/
 .pytest_cache/
 .vscode/
 *.pyc
+
+# Python editable-install artifacts
+*.egg-info/
