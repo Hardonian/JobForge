@@ -65,8 +65,8 @@ export const JobReplayBundleSchema = z.object({
   tenant_id: z.string().uuid(),
   project_id: z.string().uuid().optional(),
   job_type: z.string().min(1),
-  payload: z.record(z.unknown()),
-  result: z.record(z.unknown()).optional(),
+  payload: z.record(z.string(), z.unknown()),
+  result: z.record(z.string(), z.unknown()).optional(),
   metadata: z
     .object({
       captured_by: z.string().optional(),
@@ -91,7 +91,7 @@ export async function loadReplayBundle(filePath: string): Promise<JobReplayBundl
   const result = JobReplayBundleSchema.safeParse(parsed)
   if (!result.success) {
     throw new Error(
-      `Invalid replay bundle: ${result.error.errors.map((e: { path: (string | number)[]; message: string }) => `${e.path.join('.')}: ${e.message}`).join(', ')}`
+      `Invalid replay bundle: ${result.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`
     )
   }
 
@@ -107,7 +107,7 @@ export function parseReplayBundle(jsonString: string): JobReplayBundle {
   const result = JobReplayBundleSchema.safeParse(parsed)
   if (!result.success) {
     throw new Error(
-      `Invalid replay bundle: ${result.error.errors.map((e: { path: (string | number)[]; message: string }) => `${e.path.join('.')}: ${e.message}`).join(', ')}`
+      `Invalid replay bundle: ${result.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`
     )
   }
 
@@ -240,11 +240,7 @@ export async function importReplayBundle(
     // Validate the resulting bundle
     const validationResult = JobRequestBundleSchema.safeParse(bundle)
     if (!validationResult.success) {
-      errors.push(
-        ...validationResult.error.errors.map(
-          (e: { path: (string | number)[]; message: string }) => `${e.path.join('.')}: ${e.message}`
-        )
-      )
+      errors.push(...validationResult.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`))
       return {
         success: false,
         errors,

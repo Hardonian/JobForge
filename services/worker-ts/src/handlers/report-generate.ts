@@ -9,9 +9,9 @@ import { z } from 'zod'
 const ReportGeneratePayloadSchema = z.object({
   report_type: z.string().min(1),
   inputs_ref: z.string().optional(),
-  inputs_data: z.record(z.unknown()).optional(),
+  inputs_data: z.record(z.string(), z.unknown()).optional(),
   format: z.array(z.enum(['json', 'html', 'csv'])).default(['json']),
-  options: z.record(z.unknown()).optional(),
+  options: z.record(z.string(), z.unknown()).optional(),
 })
 
 export type ReportGeneratePayload = z.infer<typeof ReportGeneratePayloadSchema>

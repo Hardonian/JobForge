@@ -77,11 +77,7 @@ export function validateBundle(bundle: unknown): { valid: boolean; errors: strin
   // Primary schema validation
   const result = JobRequestBundleSchema.safeParse(bundle)
   if (!result.success) {
-    errors.push(
-      ...result.error.errors.map(
-        (e: { path: (string | number)[]; message: string }) => `${e.path.join('.')}: ${e.message}`
-      )
-    )
+    errors.push(...result.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`))
     return { valid: false, errors }
   }
 
@@ -512,11 +508,7 @@ export function validateConnectorSchema(connector: unknown): { valid: boolean; e
 
   const result = ConnectorCapabilitySchema.safeParse(connector)
   if (!result.success) {
-    errors.push(
-      ...result.error.errors.map(
-        (e: { path: (string | number)[]; message: string }) => `${e.path.join('.')}: ${e.message}`
-      )
-    )
+    errors.push(...result.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`))
   }
 
   // Additional semantic validation
@@ -556,11 +548,7 @@ export function validateErrorEnvelope(error: unknown): { valid: boolean; errors:
 
   const result = ErrorEnvelopeSchema.safeParse(error)
   if (!result.success) {
-    errors.push(
-      ...result.error.errors.map(
-        (e: { path: (string | number)[]; message: string }) => `${e.path.join('.')}: ${e.message}`
-      )
-    )
+    errors.push(...result.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`))
     return { valid: false, errors }
   }
 

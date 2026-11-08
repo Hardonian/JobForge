@@ -212,7 +212,7 @@ export const OpsDiagnosePayloadSchema = z.object({
   project_id: z.string().uuid().optional(),
   symptom: z.string(),
   affected_resources: z.array(z.string()).min(1),
-  context_events: z.array(z.record(z.unknown())).optional(),
+  context_events: z.array(z.record(z.string(), z.unknown())).optional(),
   options: z
     .object({
       correlation_window_minutes: z.number().int().min(1).max(1440).default(60),
@@ -296,7 +296,7 @@ export const OpsRecommendPayloadSchema = z.object({
   tenant_id: z.string().uuid(),
   project_id: z.string().uuid().optional(),
   category: z.enum(['optimization', 'security', 'reliability', 'cost']),
-  context_data: z.record(z.unknown()).optional(),
+  context_data: z.record(z.string(), z.unknown()).optional(),
   constraints: z
     .object({
       max_cost_impact: z.number().optional(),

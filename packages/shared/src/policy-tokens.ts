@@ -40,7 +40,7 @@ export const PolicyTokenPayloadSchema = z.object({
   /** Resource being acted upon (optional) */
   res: z.string().optional(),
   /** Token context data (optional) */
-  ctx: z.record(z.unknown()).optional(),
+  ctx: z.record(z.string(), z.unknown()).optional(),
 })
 
 export type PolicyTokenPayload = z.infer<typeof PolicyTokenPayloadSchema>

@@ -30,7 +30,7 @@ import { EvidenceBuilder } from './evidence.js'
 function validateConfig(config: unknown): ConnectorConfig {
   const result = ConnectorConfigSchema.safeParse(config)
   if (!result.success) {
-    const issues = result.error.errors.map((e: ZodIssue) => `${e.path.join('.')}: ${e.message}`)
+    const issues = result.error.issues.map((e: ZodIssue) => `${e.path.join('.')}: ${e.message}`)
     throw new ConnectorValidationError(
       `Invalid connector config: ${issues.join('; ')}`,
       'CONFIG_VALIDATION_ERROR',
@@ -43,7 +43,7 @@ function validateConfig(config: unknown): ConnectorConfig {
 function validateInput(input: unknown): ConnectorInput {
   const result = ConnectorInputSchema.safeParse(input)
   if (!result.success) {
-    const issues = result.error.errors.map((e: ZodIssue) => `${e.path.join('.')}: ${e.message}`)
+    const issues = result.error.issues.map((e: ZodIssue) => `${e.path.join('.')}: ${e.message}`)
     throw new ConnectorValidationError(
       `Invalid connector input: ${issues.join('; ')}`,
       'INPUT_VALIDATION_ERROR',
@@ -56,7 +56,7 @@ function validateInput(input: unknown): ConnectorInput {
 function validateContext(context: unknown): ConnectorContext {
   const result = ConnectorContextSchema.safeParse(context)
   if (!result.success) {
-    const issues = result.error.errors.map((e: ZodIssue) => `${e.path.join('.')}: ${e.message}`)
+    const issues = result.error.issues.map((e: ZodIssue) => `${e.path.join('.')}: ${e.message}`)
     throw new ConnectorValidationError(
       `Invalid connector context: ${issues.join('; ')}`,
       'CONTEXT_VALIDATION_ERROR',

@@ -45,7 +45,7 @@ export const eventEnvelopeSchema = z.object({
   source_app: sourceAppSchema,
   source_module: sourceModuleSchema.optional(),
   subject: eventSubjectSchema.optional(),
-  payload: z.record(z.unknown()).default({}),
+  payload: z.record(z.string(), z.unknown()).default({}),
   contains_pii: z.boolean().default(false),
   redaction_hints: redactionHintsSchema.optional(),
 })
@@ -60,7 +60,7 @@ export const submitEventParamsSchema = z.object({
 
 export const requestJobParamsSchema = z.object({
   jobType: z.string().min(1, 'Job type is required'),
-  inputs: z.record(z.unknown()).default({}),
+  inputs: z.record(z.string(), z.unknown()).default({}),
   tenantId: z.string().uuid('Tenant ID must be a valid UUID'),
   projectId: z.string().uuid().optional(),
   traceId: z.string().min(1, 'Trace ID is required'),
@@ -93,7 +93,7 @@ export const runStatusSchema = z.object({
     .object({
       code: z.string(),
       message: z.string(),
-      details: z.record(z.unknown()).optional(),
+      details: z.record(z.string(), z.unknown()).optional(),
     })
     .optional(),
 })

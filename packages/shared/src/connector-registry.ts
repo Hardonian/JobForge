@@ -193,7 +193,7 @@ export function validateConnectorMetadata(metadata: unknown): {
   const result = ConnectorMetadataSchema.safeParse(metadata)
 
   if (!result.success) {
-    errors.push(...result.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`))
+    errors.push(...result.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`))
     return { valid: false, errors, warnings }
   }
 

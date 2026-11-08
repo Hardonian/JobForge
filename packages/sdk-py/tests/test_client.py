@@ -7,7 +7,14 @@ from jobforge_sdk.client import JobForgeClient, JobForgeError
 def test_client_base_url_is_normalized() -> None:
     client = JobForgeClient("https://example.com/", "service-key")
 
-    assert client._client.base_url.path == "/rest/v1"
+    # httpx >= 0.28 stores base_url with a trailing slash (representation-only
+    # normalization; request URLs are unchanged). Assert behavior, not the
+    # private field's exact formatting: no double slash, exact join result.
+    assert client._client.base_url.path.rstrip("/") == "/rest/v1"
+    assert (
+        str(client._client.build_request("GET", "records").url)
+        == "https://example.com/rest/v1/records"
+    )
 
 
 def test_rpc_returns_payload(monkeypatch: pytest.MonkeyPatch) -> None:

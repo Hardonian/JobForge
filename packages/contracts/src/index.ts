@@ -272,7 +272,7 @@ export const ConnectorCapabilitySchema = z.object({
   supported_job_types: z.array(z.string().min(1)),
   required_scopes: z.array(z.string()).default([]),
   required_capabilities: z.array(z.string()).default([]),
-  config_schema: z.record(z.unknown()).optional(),
+  config_schema: z.record(z.string(), z.unknown()).optional(),
   enabled: z.boolean().default(true),
 })
 
@@ -320,7 +320,7 @@ export const RegistryHandshakeRequestSchema = z.object({
   version: z.string().min(1),
   connectors: z.array(ConnectorCapabilitySchema).min(1),
   runner_capabilities: RunnerCapabilitiesSchema,
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
   timestamp: z.string().datetime(),
 })
 
@@ -381,7 +381,9 @@ export const ErrorEnvelopeSchema = z.object({
   code: ErrorCodeSchema,
   message: z.string().min(1),
   correlationId: z.string().optional(),
-  details: z.union([z.array(ValidationErrorDetailSchema), z.record(z.unknown())]).optional(),
+  details: z
+    .union([z.array(ValidationErrorDetailSchema), z.record(z.string(), z.unknown())])
+    .optional(),
   stack: z.string().optional(),
   timestamp: z.string().datetime(),
 })

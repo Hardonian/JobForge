@@ -11,21 +11,21 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "lint": "eslint \"**/*.ts\"",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "pnpm db:generate && tsc --noEmit",
     "pretest": "pnpm db:generate",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@prisma/client": "^7.9.1"
+    "@prisma/client": "^5.22.0"
   },
   "devDependencies": {
     "@jobforge/config": "workspace:*",
     "@jobforge/typescript-config": "workspace:*",
     "@types/node": "^26.6.1",
     "eslint": "^8.56.0",
-    "prisma": "^7.10.0",
-    "typescript": "^7.0.2",
+    "prisma": "^5.22.0",
+    "typescript": "^5.3.3",
     "vitest": "^5.0.0"
   }
 }

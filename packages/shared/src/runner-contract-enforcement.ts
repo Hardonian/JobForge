@@ -276,7 +276,7 @@ export function validateRunnerConfig(runner: unknown): {
   const result = RunnerConfigSchema.safeParse(runner)
 
   if (!result.success) {
-    errors.push(...result.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`))
+    errors.push(...result.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`))
     return { valid: false, errors, warnings }
   }
 

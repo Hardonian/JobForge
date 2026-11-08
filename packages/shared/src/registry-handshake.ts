@@ -48,7 +48,7 @@ export function validateConnectors(connectors: unknown[]): HandshakeValidationRe
 
     if (!result.success) {
       errors.push(
-        `Connector[${i}]: ${result.error.errors.map((e: { path: (string | number)[]; message: string }) => `${e.path.join('.')}: ${e.message}`).join(', ')}`
+        `Connector[${i}]: ${result.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')}`
       )
       continue
     }
@@ -91,11 +91,7 @@ export function validateRunnerCapabilities(capabilities: unknown): HandshakeVali
   const result = RunnerCapabilitiesSchema.safeParse(capabilities)
 
   if (!result.success) {
-    errors.push(
-      ...result.error.errors.map(
-        (e: { path: (string | number)[]; message: string }) => `${e.path.join('.')}: ${e.message}`
-      )
-    )
+    errors.push(...result.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`))
     return { valid: false, errors, warnings }
   }
 
@@ -137,11 +133,7 @@ export function validateRegistryHandshakeRequest(request: unknown): HandshakeVal
   const result = RegistryHandshakeRequestSchema.safeParse(request)
 
   if (!result.success) {
-    errors.push(
-      ...result.error.errors.map(
-        (e: { path: (string | number)[]; message: string }) => `${e.path.join('.')}: ${e.message}`
-      )
-    )
+    errors.push(...result.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`))
     return { valid: false, errors, warnings }
   }
 
@@ -227,11 +219,7 @@ export function validateRegistryHandshakeResponse(response: unknown): HandshakeV
   const result = RegistryHandshakeResponseSchema.safeParse(response)
 
   if (!result.success) {
-    errors.push(
-      ...result.error.errors.map(
-        (e: { path: (string | number)[]; message: string }) => `${e.path.join('.')}: ${e.message}`
-      )
-    )
+    errors.push(...result.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`))
     return { valid: false, errors, warnings }
   }
 

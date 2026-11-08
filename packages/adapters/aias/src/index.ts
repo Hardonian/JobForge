@@ -22,7 +22,7 @@ import type { TraceContext } from '@jobforge/integration'
 export const AiasAgentExecutePayloadSchema = z.object({
   agent_id: z.string().uuid(),
   tenant_id: z.string().uuid(),
-  input_data: z.record(z.unknown()),
+  input_data: z.record(z.string(), z.unknown()),
   model: z.string().default('gpt-4'),
   max_tokens: z.number().int().positive().default(4096),
   temperature: z.number().min(0).max(2).default(0.7),

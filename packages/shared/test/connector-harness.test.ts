@@ -111,7 +111,7 @@ const validInput = {
 
 const validContext = {
   trace_id: 'trace-test-001',
-  tenant_id: '00000000-0000-0000-0000-000000000001',
+  tenant_id: '00000000-0000-4000-8000-000000000001',
   dry_run: false,
   attempt_no: 1,
 }
@@ -651,7 +651,7 @@ describe('EvidenceBuilder', () => {
     const builder = new EvidenceBuilder({
       connector_id: 'test',
       trace_id: 'trace-1',
-      tenant_id: '00000000-0000-0000-0000-000000000001',
+      tenant_id: '00000000-0000-4000-8000-000000000001',
       input: { operation: 'fetch', api_key: 'secret' },
     })
 
@@ -670,7 +670,7 @@ describe('EvidenceBuilder', () => {
     const builder = new EvidenceBuilder({
       connector_id: 'test',
       trace_id: 'trace-2',
-      tenant_id: '00000000-0000-0000-0000-000000000001',
+      tenant_id: '00000000-0000-4000-8000-000000000001',
       input: { operation: 'post' },
     })
 

@@ -13,7 +13,7 @@ const WebhookDeliverPayloadSchema = z.object({
   target_url: z.string().url(),
   event_type: z.string().min(1),
   event_id: z.string().uuid(),
-  data: z.record(z.unknown()),
+  data: z.record(z.string(), z.unknown()),
   secret_ref: z.string().optional(),
   signature_algo: z.enum(['sha256', 'sha512']).default('sha256'),
   timeout_ms: z.number().int().positive().max(60_000).default(10_000),
