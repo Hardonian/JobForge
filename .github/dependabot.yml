@@ -9,6 +9,15 @@ updates:
     open-pull-requests-limit: 3
     labels: ["dependencies", "security"]
     commit-message: {prefix: "chore(deps)"}
+    ignore:
+      # TypeScript 7.x is the native Go rewrite. typescript-eslint (<=8.72.x)
+      # peers typescript <6.1.0 and crashes at module load on TS7 (ts.TypeFlags
+      # undefined); workspace typechecks also fail (node globals removed).
+      # Reverted deliberately twice: 6463982 incident, fixed in #109, re-broken
+      # by #114, reverted again here. Re-evaluate when typescript-eslint
+      # officially supports TS7.
+      - dependency-name: "typescript"
+        versions: [">= 7"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
