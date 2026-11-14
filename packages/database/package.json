@@ -17,7 +17,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@prisma/client": "^5.22.0"
+    "@prisma/client": "^7.10.1"
   },
   "devDependencies": {
     "@jobforge/config": "workspace:*",
